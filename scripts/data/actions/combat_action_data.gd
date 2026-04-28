@@ -8,6 +8,9 @@ extends Resource
 
 @export var effects: Array[ActionEffect] = []
 
+@export var start_sfx_id: StringName = &""
+@export var resolve_sfx_id: StringName = &""
+
 @export var hp_cost: int = 0
 @export var mana_cost: int = 0
 

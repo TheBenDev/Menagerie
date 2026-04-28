@@ -2,6 +2,7 @@ extends Node
 
 const CombatResultScript := preload("res://scripts/combat/combat_result.gd")
 const BattleHudScript := preload("res://scripts/ui/battle/battle_hud.gd")
+const CombatAudioBridgeScript := preload("res://scripts/audio/combat_audio_bridge.gd")
 
 @onready var battle: BattleController = $BattleController
 @onready var warrior: WarriorCombatant = $Warrior
@@ -11,6 +12,7 @@ const BattleHudScript := preload("res://scripts/ui/battle/battle_hud.gd")
 var actions_used: int = 0
 var combat_result_reported: bool = false
 var last_accounted_combat_time: float = 0.0
+var audio_bridge: Node = null
 
 func _ready() -> void:
 	_configure_encounter_from_game_manager()
@@ -34,6 +36,7 @@ func _ready() -> void:
 	_connect_combatant_signals(enemy)
 	_connect_combat_result_signals()
 	_connect_run_signals()
+	_setup_audio_bridge()
 
 	battle.start_battle()
 	_refresh_hud()
@@ -79,6 +82,12 @@ func _connect_run_signals() -> void:
 
 	if not GameManager.run_ended.is_connected(_on_run_ended):
 		GameManager.run_ended.connect(_on_run_ended)
+
+func _setup_audio_bridge() -> void:
+	audio_bridge = CombatAudioBridgeScript.new()
+	audio_bridge.name = "CombatAudioBridge"
+	add_child(audio_bridge)
+	audio_bridge.call("setup", battle, warrior, enemy, GameManager.current_is_boss if _has_game_manager() else false)
 
 func _choose_warrior_action(index: int) -> void:
 	if index < 0 or index >= warrior.actions.size():

@@ -19,6 +19,14 @@ const DUNGEON_SCENE_PATH := "res://scenes/dungeon.tscn"
 const COMBAT_SCENE_PATH := "res://scenes/Battle/BattleScene.tscn"
 const RUN_SUMMARY_SCENE_PATH := "res://scenes/run_summary.tscn"
 
+const MAIN_MENU_MUSIC_ID := &"main_menu"
+const WAITING_ROOM_MUSIC_ID := &"waiting_room"
+const DUNGEON_MUSIC_ID := &"dungeon"
+const COMBAT_MUSIC_ID := &"combat"
+const COMBAT_BASE_MUSIC_STATE_ID := &"combat_base"
+const RUN_ENDS_LOOP_SFX_ID := &"run_ends_loop"
+const BOSS_START_FIGHT_SFX_ID := &"boss_start_fight"
+
 const DEFAULT_ENEMY_PROFILE_PATH := "res://data/enemies/Training_Ghoul/training_ghoul_profile.tres"
 const CHARACTER_PROFILE_PATHS := {
 	"Warrior": "res://data/characters/Warrior/warrior_profile.tres",
@@ -38,6 +46,9 @@ var current_node_type: String = ""
 var current_enemy_profile_path: String = DEFAULT_ENEMY_PROFILE_PATH
 var current_is_boss: bool = false
 var pending_class_memory_awards: Dictionary = {}
+
+func _ready() -> void:
+	call_deferred("_play_music_for_current_scene")
 
 func start_new_run(character: String, difficulty: String) -> Variant:
 	selected_character = character
@@ -205,6 +216,60 @@ func go_to_scene(scene_path: String) -> void:
 	var error := get_tree().change_scene_to_file(scene_path)
 	if error != OK:
 		push_error("Failed to change scene to %s. Error: %s" % [scene_path, error])
+		return
+
+	play_music_for_scene(scene_path)
+
+func play_music_for_scene(scene_path: String) -> void:
+	_play_music_for_scene_path(scene_path)
+
+func play_sfx(sfx_id: StringName, options: Dictionary = {}) -> void:
+	var sound_manager := _sound_manager()
+	if sound_manager == null or String(sfx_id).is_empty():
+		return
+
+	sound_manager.call("play_sfx", sfx_id, options)
+
+func _play_music_for_current_scene() -> void:
+	var current_scene := get_tree().current_scene
+	if current_scene == null:
+		return
+
+	_play_music_for_scene_path(current_scene.scene_file_path)
+
+func _play_music_for_scene_path(scene_path: String) -> void:
+	var sound_manager := _sound_manager()
+	if sound_manager == null:
+		return
+
+	var music_id := _music_id_for_scene_path(scene_path)
+	if String(music_id).is_empty():
+		return
+
+	sound_manager.call("play_music", music_id)
+	if music_id == COMBAT_MUSIC_ID:
+		sound_manager.call("set_music_state", COMBAT_BASE_MUSIC_STATE_ID, 0.0)
+	else:
+		sound_manager.call("set_music_state", &"", 0.0)
+
+func _music_id_for_scene_path(scene_path: String) -> StringName:
+	match scene_path:
+		MAIN_MENU_SCENE_PATH:
+			return MAIN_MENU_MUSIC_ID
+		WAITING_ROOM_SCENE_PATH:
+			return WAITING_ROOM_MUSIC_ID
+		DUNGEON_SCENE_PATH, COMBAT_SCENE_PATH:
+			return DUNGEON_MUSIC_ID
+		RUN_SUMMARY_SCENE_PATH:
+			return MAIN_MENU_MUSIC_ID
+
+	return &""
+
+func _has_sound_manager() -> bool:
+	return _sound_manager() != null
+
+func _sound_manager() -> Node:
+	return get_node_or_null("/root/SoundManager")
 
 func _is_run_ended() -> bool:
 	return current_run_data != null and current_run_data.run_end_reason != END_REASON_IN_PROGRESS

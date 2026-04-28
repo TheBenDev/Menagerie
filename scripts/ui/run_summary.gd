@@ -88,5 +88,6 @@ func _reason_text(reason: String) -> String:
 			return reason.capitalize()
 
 func _on_return_pressed() -> void:
+	GameManager.play_sfx(GameManager.RUN_ENDS_LOOP_SFX_ID)
 	GameManager.clear_run()
 	GameManager.go_to_waiting_room()

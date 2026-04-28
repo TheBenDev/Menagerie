@@ -149,6 +149,8 @@ func _on_node_pressed(node_id: int) -> void:
 		return
 
 	if node.node_type == "Fight" or node.node_type == "Boss":
+		if node.is_boss or node.node_type == "Boss":
+			GameManager.play_sfx(GameManager.BOSS_START_FIGHT_SFX_ID)
 		GameManager.start_combat(node.id, node.node_type, node.enemy_profile, node.is_boss)
 
 func _run_data() -> Variant:

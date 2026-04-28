@@ -15,6 +15,7 @@ var selected_character: String = "Warrior"
 var selected_difficulty: String = DIFFICULTY_NORMAL
 
 func _ready() -> void:
+	call_deferred("_request_scene_music")
 	selected_difficulty = GameManager.selected_difficulty
 	if selected_difficulty.is_empty():
 		selected_difficulty = DIFFICULTY_NORMAL
@@ -27,6 +28,9 @@ func _ready() -> void:
 	start_run_button.pressed.connect(_on_start_run_pressed)
 	back_button.pressed.connect(_on_back_pressed)
 	_refresh_difficulty_buttons()
+
+func _request_scene_music() -> void:
+	GameManager.play_music_for_scene(GameManager.WAITING_ROOM_SCENE_PATH)
 
 func _set_difficulty(difficulty: String) -> void:
 	selected_difficulty = difficulty
