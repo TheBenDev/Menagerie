@@ -3,12 +3,12 @@
 importer="wav"
 type="AudioStreamWAV"
 uid="uid://bgi8msounoa6f"
-path="res://.godot/imported/RunEndsLoop.wav-9442f65be9cc7c45d05b6b0746c77366.sample"
+path="res://.godot/imported/RunEndsLoop.wav-a4cc2d91806fbe1e941c566f8385c863.sample"
 
 [deps]
 
-source_file="res://sounds/sfx/Boss/Global/Death/RunEndsLoop.wav"
-dest_files=["res://.godot/imported/RunEndsLoop.wav-9442f65be9cc7c45d05b6b0746c77366.sample"]
+source_file="res://sounds/sfx/Global/Death/RunEndsLoop.wav"
+dest_files=["res://.godot/imported/RunEndsLoop.wav-a4cc2d91806fbe1e941c566f8385c863.sample"]
 
 [params]
 
