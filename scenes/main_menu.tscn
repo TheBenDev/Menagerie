@@ -1,0 +1,75 @@
+[gd_scene format=3 uid="uid://p3trc6v5764w"]
+
+[ext_resource type="Theme" uid="uid://blcilhxj3ejys" path="res://assets/ui/menagerie_theme.tres" id="1_bqqt6"]
+[ext_resource type="Script" uid="uid://dvqn1oi2rnqx7" path="res://scripts/ui/main_menu.gd" id="1_main_menu"]
+[ext_resource type="Texture2D" uid="uid://cxrmi4gig0unq" path="res://assets/Backgrounds/Dungeon background cartoon 2d 1.jpg" id="3_wu84c"]
+
+[node name="MainMenu" type="Control" unique_id=1033853935]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("1_bqqt6")
+script = ExtResource("1_main_menu")
+
+[node name="Backdrop" type="TextureRect" parent="." unique_id=1837859559]
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+texture = ExtResource("3_wu84c")
+expand_mode = 1
+stretch_mode = 6
+
+[node name="DimOverlay" type="ColorRect" parent="." unique_id=225142564]
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0, 0, 0, 0.38)
+
+[node name="MarginContainer" type="MarginContainer" parent="." unique_id=1327236722]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 48
+theme_override_constants/margin_top = 48
+theme_override_constants/margin_right = 48
+theme_override_constants/margin_bottom = 48
+
+[node name="CenterContainer" type="CenterContainer" parent="MarginContainer" unique_id=1151724870]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="MenuLayout" type="VBoxContainer" parent="MarginContainer/CenterContainer" unique_id=480646373]
+custom_minimum_size = Vector2(360, 0)
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="TitleLabel" type="Label" parent="MarginContainer/CenterContainer/MenuLayout" unique_id=2018959063]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.88, 0.58, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.85)
+theme_override_constants/shadow_offset_x = 3
+theme_override_constants/shadow_offset_y = 3
+theme_override_font_sizes/font_size = 56
+text = "Menagerie"
+horizontal_alignment = 1
+
+[node name="StartButton" type="Button" parent="MarginContainer/CenterContainer/MenuLayout" unique_id=80648577]
+custom_minimum_size = Vector2(0, 56)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 22
+text = "Start"
+
+[node name="QuitButton" type="Button" parent="MarginContainer/CenterContainer/MenuLayout" unique_id=807396447]
+custom_minimum_size = Vector2(0, 56)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 22
+text = "Quit"

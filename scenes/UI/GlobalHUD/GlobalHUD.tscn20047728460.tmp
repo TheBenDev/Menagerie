@@ -1,0 +1,222 @@
+[gd_scene format=3 uid="uid://dk60mirr4sj2m"]
+
+[ext_resource type="Script" uid="uid://cnd5q856ybw2y" path="res://scripts/ui/global_hud.gd" id="1_global_hud"]
+[ext_resource type="Script" uid="uid://blspjgl4hh08k" path="res://scripts/ui/common/time_progress_bar.gd" id="2_time_progress_bar"]
+[ext_resource type="Theme" uid="uid://blcilhxj3ejys" path="res://assets/ui/menagerie_theme.tres" id="3_theme"]
+[ext_resource type="Texture2D" uid="uid://f8prumodqbsn" path="res://assets/ui/TimeProgressBar.png" id="4_f6cab"]
+
+[node name="GlobalHUD" type="CanvasLayer" unique_id=539725267]
+layer = 20
+script = ExtResource("1_global_hud")
+
+[node name="HUDRoot" type="Control" parent="." unique_id=295597093]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme = ExtResource("3_theme")
+
+[node name="TopMargin" type="MarginContainer" parent="HUDRoot" unique_id=1030111059]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_left = 24.0
+offset_top = 16.0
+offset_right = -24.0
+offset_bottom = 124.0
+grow_horizontal = 2
+theme_override_constants/margin_left = 0
+theme_override_constants/margin_top = 0
+theme_override_constants/margin_right = 0
+theme_override_constants/margin_bottom = 0
+
+[node name="TopBar" type="PanelContainer" parent="HUDRoot/TopMargin" unique_id=507517478]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="BarMargin" type="MarginContainer" parent="HUDRoot/TopMargin/TopBar" unique_id=1675116466]
+layout_mode = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 10
+
+[node name="BarRow" type="HBoxContainer" parent="HUDRoot/TopMargin/TopBar/BarMargin" unique_id=1518562439]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 14
+
+[node name="PlayerButton" type="Button" parent="HUDRoot/TopMargin/TopBar/BarMargin/BarRow" unique_id=1499938644]
+custom_minimum_size = Vector2(54, 54)
+layout_mode = 2
+tooltip_text = "Player"
+text = "W"
+
+[node name="LeftBalanceSpacer" type="Control" parent="HUDRoot/TopMargin/TopBar/BarMargin/BarRow" unique_id=1302573181]
+custom_minimum_size = Vector2(216, 0)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="TimerStack" type="Control" parent="HUDRoot/TopMargin/TopBar/BarMargin/BarRow" unique_id=1466625188]
+custom_minimum_size = Vector2(960, 90)
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="TimerProgress" type="Control" parent="HUDRoot/TopMargin/TopBar/BarMargin/BarRow/TimerStack" unique_id=595503681]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("2_time_progress_bar")
+
+[node name="TimerFrame" type="TextureRect" parent="HUDRoot/TopMargin/TopBar/BarMargin/BarRow/TimerStack" unique_id=551597624]
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+texture = ExtResource("4_f6cab")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="TimerLabel" type="Label" parent="HUDRoot/TopMargin/TopBar/BarMargin/BarRow/TimerStack" unique_id=1421849171]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = 20.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(1, 0.06, 0.035, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.85)
+theme_override_constants/shadow_offset_x = 2
+theme_override_constants/shadow_offset_y = 2
+theme_override_font_sizes/font_size = 24
+text = "05:00"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="CurrencyRow" type="HBoxContainer" parent="HUDRoot/TopMargin/TopBar/BarMargin/BarRow" unique_id=1974478289]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="MemoriesBox" type="PanelContainer" parent="HUDRoot/TopMargin/TopBar/BarMargin/BarRow/CurrencyRow" unique_id=556433665]
+custom_minimum_size = Vector2(150, 54)
+layout_mode = 2
+
+[node name="MemoryMargin" type="MarginContainer" parent="HUDRoot/TopMargin/TopBar/BarMargin/BarRow/CurrencyRow/MemoriesBox" unique_id=590799880]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 6
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 6
+
+[node name="MemoryLayout" type="VBoxContainer" parent="HUDRoot/TopMargin/TopBar/BarMargin/BarRow/CurrencyRow/MemoriesBox/MemoryMargin" unique_id=853288411]
+layout_mode = 2
+
+[node name="MemoryLabel" type="Label" parent="HUDRoot/TopMargin/TopBar/BarMargin/BarRow/CurrencyRow/MemoriesBox/MemoryMargin/MemoryLayout" unique_id=1537368532]
+layout_mode = 2
+text = "Memories"
+horizontal_alignment = 1
+
+[node name="MemoryValue" type="Label" parent="HUDRoot/TopMargin/TopBar/BarMargin/BarRow/CurrencyRow/MemoriesBox/MemoryMargin/MemoryLayout" unique_id=1315097257]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "0"
+horizontal_alignment = 1
+
+[node name="GoldBox" type="PanelContainer" parent="HUDRoot/TopMargin/TopBar/BarMargin/BarRow/CurrencyRow" unique_id=1250276728]
+custom_minimum_size = Vector2(120, 54)
+layout_mode = 2
+
+[node name="GoldMargin" type="MarginContainer" parent="HUDRoot/TopMargin/TopBar/BarMargin/BarRow/CurrencyRow/GoldBox" unique_id=740871107]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 6
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 6
+
+[node name="GoldLayout" type="VBoxContainer" parent="HUDRoot/TopMargin/TopBar/BarMargin/BarRow/CurrencyRow/GoldBox/GoldMargin" unique_id=1803326267]
+layout_mode = 2
+
+[node name="GoldLabel" type="Label" parent="HUDRoot/TopMargin/TopBar/BarMargin/BarRow/CurrencyRow/GoldBox/GoldMargin/GoldLayout" unique_id=895612561]
+layout_mode = 2
+text = "Gold"
+horizontal_alignment = 1
+
+[node name="GoldValue" type="Label" parent="HUDRoot/TopMargin/TopBar/BarMargin/BarRow/CurrencyRow/GoldBox/GoldMargin/GoldLayout" unique_id=1038588581]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "0"
+horizontal_alignment = 1
+
+[node name="PlayerPanel" type="PanelContainer" parent="HUDRoot" unique_id=1563346750]
+visible = false
+custom_minimum_size = Vector2(260, 0)
+layout_mode = 1
+anchors_preset = -1
+offset_left = 24.0
+offset_top = 132.0
+offset_right = 284.0
+offset_bottom = 312.0
+
+[node name="PanelMargin" type="MarginContainer" parent="HUDRoot/PlayerPanel" unique_id=1712135014]
+layout_mode = 2
+theme_override_constants/margin_left = 14
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 14
+theme_override_constants/margin_bottom = 12
+
+[node name="StatsLayout" type="VBoxContainer" parent="HUDRoot/PlayerPanel/PanelMargin" unique_id=1385700264]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="CharacterLabel" type="Label" parent="HUDRoot/PlayerPanel/PanelMargin/StatsLayout" unique_id=1672868482]
+layout_mode = 2
+text = "Character"
+
+[node name="CharacterValue" type="Label" parent="HUDRoot/PlayerPanel/PanelMargin/StatsLayout" unique_id=1621933486]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "Warrior"
+
+[node name="StatsGrid" type="GridContainer" parent="HUDRoot/PlayerPanel/PanelMargin/StatsLayout" unique_id=707806412]
+layout_mode = 2
+columns = 2
+
+[node name="StrengthLabel" type="Label" parent="HUDRoot/PlayerPanel/PanelMargin/StatsLayout/StatsGrid" unique_id=1175255407]
+layout_mode = 2
+text = "STR"
+
+[node name="StrengthValue" type="Label" parent="HUDRoot/PlayerPanel/PanelMargin/StatsLayout/StatsGrid" unique_id=418974646]
+layout_mode = 2
+text = "5"
+
+[node name="DexterityLabel" type="Label" parent="HUDRoot/PlayerPanel/PanelMargin/StatsLayout/StatsGrid" unique_id=954488657]
+layout_mode = 2
+text = "DEX"
+
+[node name="DexterityValue" type="Label" parent="HUDRoot/PlayerPanel/PanelMargin/StatsLayout/StatsGrid" unique_id=53488561]
+layout_mode = 2
+text = "5"
+
+[node name="IntelligenceLabel" type="Label" parent="HUDRoot/PlayerPanel/PanelMargin/StatsLayout/StatsGrid" unique_id=944729938]
+layout_mode = 2
+text = "INT"
+
+[node name="IntelligenceValue" type="Label" parent="HUDRoot/PlayerPanel/PanelMargin/StatsLayout/StatsGrid" unique_id=390891960]
+layout_mode = 2
+text = "5"
+
+[node name="VitalityLabel" type="Label" parent="HUDRoot/PlayerPanel/PanelMargin/StatsLayout/StatsGrid" unique_id=1390083493]
+layout_mode = 2
+text = "VIT"
+
+[node name="VitalityValue" type="Label" parent="HUDRoot/PlayerPanel/PanelMargin/StatsLayout/StatsGrid" unique_id=655899582]
+layout_mode = 2
+text = "5"

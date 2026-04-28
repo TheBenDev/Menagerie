@@ -1,0 +1,12 @@
+class_name DamagePacket
+extends RefCounted
+
+var source: Combatant
+var target: Combatant
+var amount: int = 0
+var tags: Array[String] = []
+
+func _init(_source: Combatant, _target: Combatant, _amount: int) -> void:
+	source = _source
+	target = _target
+	amount = _amount

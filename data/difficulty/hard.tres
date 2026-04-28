@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="DifficultyProfile" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/difficulty/difficulty_profile.gd" id="1_difficulty_profile"]
+
+[resource]
+script = ExtResource("1_difficulty_profile")
+id = "hard"
+display_name = "Hard"
+enemy_health_multiplier = 1.15
+enemy_damage_multiplier = 1.10
+enemy_time_cost_multiplier = 0.95
+reward_multiplier = 1.25
+ai_randomness = 0.20
+ai_score_strength = 0.90
+ai_survival_awareness = 0.80
+ai_finisher_priority = 0.85
+ai_debuff_awareness = 0.80
+ai_timing_awareness = 0.75

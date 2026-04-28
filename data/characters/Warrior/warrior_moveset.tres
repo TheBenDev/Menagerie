@@ -1,0 +1,62 @@
+[gd_resource type="Resource" script_class="CombatMovesetData" format=3 uid="uid://dmirfj36xyajo"]
+
+[ext_resource type="Script" uid="uid://3btd2ryissk0" path="res://scripts/data/actions/combat_moveset_data.gd" id="1_moveset"]
+[ext_resource type="Script" uid="uid://bvhvlkmv0thup" path="res://scripts/data/actions/player_action_data.gd" id="2_player_action"]
+[ext_resource type="Script" uid="uid://did5gnthi0qvc" path="res://scripts/data/actions/combat_action_data.gd" id="3_combat_action"]
+[ext_resource type="Script" uid="uid://bj802nmis6fsn" path="res://scripts/data/effects/action_effect.gd" id="4_action_effect"]
+[ext_resource type="Script" uid="uid://cii048l817bu" path="res://scripts/data/effects/damage_effect.gd" id="5_damage_effect"]
+[ext_resource type="Script" uid="uid://bl7m85y6lundr" path="res://scripts/data/effects/rage_gain_effect.gd" id="6_rage_gain_effect"]
+[ext_resource type="Script" uid="uid://bslqahxb1q04m" path="res://scripts/data/effects/block_effect.gd" id="7_block_effect"]
+[ext_resource type="Script" uid="uid://742dm4uxvu5t" path="res://scripts/data/effects/apply_status_effect.gd" id="8_apply_status_effect"]
+[ext_resource type="Resource" path="res://data/statuses/vulnerable.tres" id="9_vulnerable"]
+
+[sub_resource type="Resource" id="DamageEffect_quick_strike"]
+script = ExtResource("5_damage_effect")
+base_damage = 4
+scaling_multiplier = 1.0
+
+[sub_resource type="Resource" id="RageGainEffect_quick_strike"]
+script = ExtResource("6_rage_gain_effect")
+amount = 3
+
+[sub_resource type="Resource" id="PlayerAction_quick_strike"]
+script = ExtResource("2_player_action")
+id = "quick_strike"
+display_name = "Quick Strike"
+time_cost = 3.0
+effects = Array[ExtResource("4_action_effect")]([SubResource("DamageEffect_quick_strike"), SubResource("RageGainEffect_quick_strike")])
+
+[sub_resource type="Resource" id="DamageEffect_heavy_strike"]
+script = ExtResource("5_damage_effect")
+base_damage = 14
+scaling_multiplier = 1.5
+
+[sub_resource type="Resource" id="ApplyStatusEffect_heavy_strike_vulnerable"]
+script = ExtResource("8_apply_status_effect")
+status_data = ExtResource("9_vulnerable")
+
+[sub_resource type="Resource" id="RageGainEffect_heavy_strike"]
+script = ExtResource("6_rage_gain_effect")
+amount = 6
+
+[sub_resource type="Resource" id="PlayerAction_heavy_strike"]
+script = ExtResource("2_player_action")
+id = "heavy_strike"
+display_name = "Heavy Strike"
+time_cost = 8.0
+effects = Array[ExtResource("4_action_effect")]([SubResource("DamageEffect_heavy_strike"), SubResource("ApplyStatusEffect_heavy_strike_vulnerable"), SubResource("RageGainEffect_heavy_strike")])
+
+[sub_resource type="Resource" id="BlockEffect_guard"]
+script = ExtResource("7_block_effect")
+base_block = 12
+
+[sub_resource type="Resource" id="PlayerAction_guard"]
+script = ExtResource("2_player_action")
+id = "guard"
+display_name = "Guard"
+effects = Array[ExtResource("4_action_effect")]([SubResource("BlockEffect_guard")])
+target_enemy = false
+
+[resource]
+script = ExtResource("1_moveset")
+actions = Array[ExtResource("3_combat_action")]([SubResource("PlayerAction_quick_strike"), SubResource("PlayerAction_heavy_strike"), SubResource("PlayerAction_guard")])
