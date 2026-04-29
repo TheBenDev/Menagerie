@@ -1,6 +1,10 @@
 extends Node
 
+const AudioCueDataScript := preload("res://scripts/data/audio/audio_cue_data.gd")
+const AudioRegistryScript := preload("res://scripts/audio/audio_registry.gd")
+
 const DEFAULT_LIBRARY_PATH := "res://data/audio/common_audio_library.tres"
+const DEFAULT_SOUND_ROOT_PATH := "res://sounds"
 const BUS_MASTER := &"Master"
 const BUS_MUSIC := &"Music"
 const BUS_SFX := &"SFX"
@@ -10,10 +14,21 @@ const UI_POOL_SIZE := 8
 const SILENT_VOLUME_DB := -80.0
 const DEFAULT_SWITCH_FADE_SECONDS := 2.0
 const DEFAULT_STOP_FADE_SECONDS := 2.0
-const BUTTON_CLICK_CUE_ID := &"button_click"
+const BUTTON_CLICK_CUE_ID := &"ui.button.click"
+const LEGACY_ID_ALIASES := {
+	&"button_click": &"ui.button.click",
+	&"run_ends_loop": &"sfx.global.death.run_ends_loop",
+	&"boss_start_fight": &"sfx.boss.boss_start_fight",
+	&"diddy_jocky": &"sfx.enemy.jockey.diddy_jocky",
+	&"main_menu": &"music.main_menu",
+	&"waiting_room": &"music.waiting_room",
+	&"dungeon": &"music.dungeon",
+	&"combat": &"music.combat",
+}
 
 var library: Resource = null
 
+var _audio_registry = AudioRegistryScript.new()
 var _cues: Dictionary = {}
 var _music_tracks: Dictionary = {}
 var _missing_warnings: Dictionary = {}
@@ -47,6 +62,7 @@ func _ready() -> void:
 	_create_music_players()
 	_create_player_pool(_sfx_players, SFX_POOL_SIZE, BUS_SFX, "SFXPlayer")
 	_create_player_pool(_ui_players, UI_POOL_SIZE, BUS_UI, "UIPlayer")
+	_scan_audio_registry()
 	load_library(DEFAULT_LIBRARY_PATH)
 	if not get_tree().node_added.is_connected(_on_scene_node_added):
 		get_tree().node_added.connect(_on_scene_node_added)
@@ -70,6 +86,9 @@ func _exit_tree() -> void:
 		_clear_audio_player(player)
 
 	library = null
+	_audio_registry.streams_by_id.clear()
+	_audio_registry.paths_by_id.clear()
+	_audio_registry.ids_by_path.clear()
 	_cues.clear()
 	_music_tracks.clear()
 	_current_music_track = null
@@ -81,6 +100,8 @@ func _exit_tree() -> void:
 func load_library(library_path: String) -> void:
 	var loaded_library: Resource = load(library_path) as Resource
 	if loaded_library == null:
+		library = null
+		_reset_audio_catalog(null)
 		_warn_once(StringName("library:%s" % library_path), "Audio library could not be loaded: %s" % library_path)
 		return
 
@@ -88,24 +109,136 @@ func load_library(library_path: String) -> void:
 
 func set_library(new_library: Resource) -> void:
 	library = new_library
+	_reset_audio_catalog(library)
+
+func _reset_audio_catalog(active_library: Resource) -> void:
 	_cues.clear()
 	_music_tracks.clear()
+	_register_scanned_cues()
 
-	var raw_cues: Variant = library.get("cues")
+	if active_library == null:
+		return
+
+	var raw_cues: Variant = active_library.get("cues")
 	if raw_cues is Array:
 		for raw_cue in raw_cues:
 			var cue: Resource = raw_cue as Resource
-			var cue_id := _resource_string_name(cue, "id")
+			var cue_id := _canonical_audio_id(_resource_string_name(cue, "id"))
 			if cue != null and not String(cue_id).is_empty():
-				_cues[cue_id] = cue
+				cue.set("id", cue_id)
+				if _cues.has(cue_id) and not _cue_has_authored_streams(cue):
+					_merge_cue_override(_cues[cue_id] as Resource, cue)
+				else:
+					_cues[cue_id] = cue
 
-	var raw_music_tracks: Variant = library.get("music_tracks")
+	var raw_music_tracks: Variant = active_library.get("music_tracks")
 	if raw_music_tracks is Array:
 		for raw_track in raw_music_tracks:
 			var track: Resource = raw_track as Resource
-			var track_id := _resource_string_name(track, "id")
+			var track_id := _canonical_audio_id(_resource_string_name(track, "id"))
 			if track != null and not String(track_id).is_empty():
+				track.set("id", track_id)
 				_music_tracks[track_id] = track
+
+func _scan_audio_registry() -> void:
+	_audio_registry.scan(DEFAULT_SOUND_ROOT_PATH)
+	for failed_path in _audio_registry.failed_paths:
+		_warn_once(
+			StringName("registry_failed:%s" % failed_path),
+			"Audio registry could not load stream: %s" % failed_path
+		)
+	for raw_id in _audio_registry.duplicate_paths.keys():
+		var stream_id := StringName(raw_id)
+		var paths: PackedStringArray = []
+		for raw_path in _audio_registry.duplicate_paths[stream_id]:
+			paths.append(str(raw_path))
+		_warn_once(
+			StringName("registry_duplicate:%s" % stream_id),
+			"Audio registry duplicate stream id %s. Keeping first path from: %s" % [stream_id, ", ".join(paths)]
+		)
+
+func _register_scanned_cues() -> void:
+	for stream_id in _audio_registry.get_stream_ids():
+		var cue_bus := _auto_cue_bus(stream_id)
+		if String(cue_bus).is_empty():
+			continue
+
+		var cue_id := _auto_cue_id_for_stream_id(stream_id)
+		var cue := _cues.get(cue_id, null) as Resource
+		if cue == null:
+			cue = AudioCueDataScript.new()
+			cue.set("id", cue_id)
+			cue.set("bus", cue_bus)
+			_cues[cue_id] = cue
+
+		_append_cue_stream_id(cue, stream_id)
+
+func _auto_cue_bus(stream_id: StringName) -> StringName:
+	var stream_id_text := String(stream_id)
+	if stream_id_text.begins_with("sfx."):
+		return BUS_SFX
+	if stream_id_text.begins_with("ui."):
+		return BUS_UI
+
+	return &""
+
+func _auto_cue_id_for_stream_id(stream_id: StringName) -> StringName:
+	var parts := String(stream_id).split(".", false)
+	if parts.is_empty():
+		return stream_id
+
+	var final_part := parts[parts.size() - 1]
+	var variant_base := _numbered_variant_base(final_part)
+	if not variant_base.is_empty():
+		parts[parts.size() - 1] = variant_base
+
+	var cue_parts: PackedStringArray = []
+	for part in parts:
+		cue_parts.append(part)
+
+	return StringName(".".join(cue_parts))
+
+func _numbered_variant_base(value: String) -> String:
+	var separator_index := value.rfind("_")
+	if separator_index <= 0 or separator_index >= value.length() - 1:
+		return ""
+
+	var suffix := value.substr(separator_index + 1)
+	for index in range(suffix.length()):
+		var code := suffix.unicode_at(index)
+		if code < 48 or code > 57:
+			return ""
+
+	return value.substr(0, separator_index)
+
+func _append_cue_stream_id(cue: Resource, stream_id: StringName) -> void:
+	var stream_ids := _raw_stream_ids(cue, "stream_ids")
+	if stream_ids.has(stream_id):
+		return
+
+	stream_ids.append(stream_id)
+	cue.set("stream_ids", stream_ids)
+
+func _merge_cue_override(target_cue: Resource, override_cue: Resource) -> void:
+	if target_cue == null or override_cue == null:
+		return
+
+	for field_name in [
+		"bus",
+		"volume_db",
+		"pitch_min",
+		"pitch_max",
+		"cooldown_seconds",
+		"max_instances",
+		"priority",
+	]:
+		target_cue.set(field_name, override_cue.get(field_name))
+
+func _cue_has_authored_streams(cue: Resource) -> bool:
+	if cue == null:
+		return false
+
+	return not _raw_stream_ids(cue, "stream_ids").is_empty() or not _raw_audio_streams(cue, "streams").is_empty()
 
 func play_sfx(id: StringName, options: Dictionary = {}) -> void:
 	_play_cue(id, _sfx_players, BUS_SFX, options)
@@ -140,7 +273,7 @@ func _on_button_pressed(_button: BaseButton) -> void:
 	play_ui(BUTTON_CLICK_CUE_ID)
 
 func play_music(id: StringName, fade_seconds: float = -1.0, restart: bool = false) -> void:
-	var track_id := StringName(id)
+	var track_id := _canonical_audio_id(id)
 	if String(track_id).is_empty():
 		return
 
@@ -226,6 +359,12 @@ func is_music_playing() -> bool:
 
 	return false
 
+func has_audio_stream(id: StringName) -> bool:
+	return _audio_registry.has_stream(_canonical_audio_id(id))
+
+func get_registered_audio_stream_ids() -> Array[StringName]:
+	return _audio_registry.get_stream_ids()
+
 func get_music_debug_state() -> Dictionary:
 	var player_states: Array[Dictionary] = []
 	for player in _music_players:
@@ -249,6 +388,8 @@ func get_music_debug_state() -> Dictionary:
 		"current_music_id": _current_music_id,
 		"current_music_track_has_playlist": _track_playlist_streams(_current_music_track).size() > 0,
 		"playlist_next_crossfade_seconds": _playlist_next_crossfade_seconds,
+		"registry_stream_count": _audio_registry.get_stream_count(),
+		"cue_count": _cues.size(),
 		"music_track_count": _music_tracks.size(),
 		"music_bus_index": music_bus_index,
 		"music_bus_muted": AudioServer.is_bus_mute(music_bus_index) if music_bus_index >= 0 else true,
@@ -258,7 +399,7 @@ func get_music_debug_state() -> Dictionary:
 	}
 
 func _play_cue(id: StringName, pool: Array[AudioStreamPlayer], default_bus: StringName, options: Dictionary) -> void:
-	var cue_id := StringName(id)
+	var cue_id := _canonical_audio_id(id)
 	if String(cue_id).is_empty():
 		return
 
@@ -480,7 +621,7 @@ func _stream_for_track(track: Resource) -> AudioStream:
 	if not String(_current_music_state_id).is_empty():
 		var variant: Resource = _track_state_variant(track, _current_music_state_id)
 		if variant != null:
-			var variant_stream := _resource_audio_stream(variant, "stream")
+			var variant_stream := _resource_audio_stream_from_id(variant, "stream_id", "stream")
 			if variant_stream != null:
 				return variant_stream
 
@@ -488,7 +629,7 @@ func _stream_for_track(track: Resource) -> AudioStream:
 	if not playlist_streams.is_empty():
 		return _choose_playlist_stream(track, null)
 
-	return _resource_audio_stream(track, "base_stream")
+	return _resource_audio_stream_from_id(track, "base_stream_id", "base_stream")
 
 func _try_apply_pending_music_state() -> void:
 	if String(_pending_music_state_id).is_empty() or _pending_music_state_id == _current_music_state_id:
@@ -524,7 +665,7 @@ func _try_apply_pending_music_state() -> void:
 	var fade_seconds := _resource_float(variant, "fade_seconds", -1.0)
 	if fade_seconds < 0.0:
 		fade_seconds = _default_music_switch_fade_seconds(track)
-	_start_music_stream(track, _resource_audio_stream(variant, "stream"), fade_seconds)
+	_start_music_stream(track, _resource_audio_stream_from_id(variant, "stream_id", "stream"), fade_seconds)
 
 func _can_leave_current_music_state() -> bool:
 	if _music_state_hold_seconds <= 0.0:
@@ -624,11 +765,19 @@ func _cue_streams(cue: Resource) -> Array:
 	if cue == null:
 		return []
 
-	var raw_streams: Variant = cue.get("streams")
-	if raw_streams is Array:
-		return raw_streams
+	var streams: Array[AudioStream] = []
+	for stream_id in _raw_stream_ids(cue, "stream_ids"):
+		var stream := _audio_registry.get_stream(stream_id)
+		if stream == null:
+			_warn_once(
+				StringName("cue_stream_id:%s" % stream_id),
+				"Audio cue references an unregistered stream id: %s" % stream_id
+			)
+			continue
+		streams.append(stream)
 
-	return []
+	streams.append_array(_raw_audio_streams(cue, "streams"))
+	return streams
 
 func _track_state_variant(track: Resource, state_id: StringName) -> Resource:
 	if track == null:
@@ -706,11 +855,19 @@ func _track_playlist_streams(track: Resource) -> Array:
 	if track == null:
 		return []
 
-	var raw_streams: Variant = track.get("playlist_streams")
-	if raw_streams is Array:
-		return raw_streams
+	var streams: Array[AudioStream] = []
+	for stream_id in _raw_stream_ids(track, "playlist_stream_ids"):
+		var stream := _audio_registry.get_stream(stream_id)
+		if stream == null:
+			_warn_once(
+				StringName("playlist_stream_id:%s" % stream_id),
+				"Music playlist references an unregistered stream id: %s" % stream_id
+			)
+			continue
+		streams.append(stream)
 
-	return []
+	streams.append_array(_raw_audio_streams(track, "playlist_streams"))
+	return streams
 
 func _choose_playlist_stream(track: Resource, previous_stream: AudioStream) -> AudioStream:
 	var streams := _track_playlist_streams(track)
@@ -750,11 +907,58 @@ func _track_default_fade_seconds(track: Resource) -> float:
 func _default_music_switch_fade_seconds(track: Resource) -> float:
 	return max(_track_default_fade_seconds(track), DEFAULT_SWITCH_FADE_SECONDS)
 
-func _resource_audio_stream(resource: Resource, field_name: String) -> AudioStream:
+func _resource_audio_stream_from_id(resource: Resource, stream_id_field: String, fallback_stream_field: String) -> AudioStream:
 	if resource == null:
 		return null
 
-	return resource.get(field_name) as AudioStream
+	var stream_id := _resource_string_name(resource, stream_id_field)
+	if not String(stream_id).is_empty():
+		var stream := _audio_registry.get_stream(stream_id)
+		if stream != null:
+			return stream
+		_warn_once(
+			StringName("stream_id:%s" % stream_id),
+			"Audio resource references an unregistered stream id: %s" % stream_id
+		)
+
+	return resource.get(fallback_stream_field) as AudioStream
+
+func _raw_stream_ids(resource: Resource, field_name: String) -> Array[StringName]:
+	var stream_ids: Array[StringName] = []
+	if resource == null:
+		return stream_ids
+
+	var raw_ids: Variant = resource.get(field_name)
+	if raw_ids is Array:
+		for raw_id in raw_ids:
+			var stream_id := _canonical_audio_id(StringName(raw_id))
+			if not String(stream_id).is_empty():
+				stream_ids.append(stream_id)
+
+	return stream_ids
+
+func _raw_audio_streams(resource: Resource, field_name: String) -> Array[AudioStream]:
+	var streams: Array[AudioStream] = []
+	if resource == null:
+		return streams
+
+	var raw_streams: Variant = resource.get(field_name)
+	if raw_streams is Array:
+		for raw_stream in raw_streams:
+			var stream := raw_stream as AudioStream
+			if stream != null:
+				streams.append(stream)
+
+	return streams
+
+func _canonical_audio_id(id: StringName) -> StringName:
+	var current_id := StringName(id)
+	var visited_ids: Dictionary = {}
+	while LEGACY_ID_ALIASES.has(current_id) and not visited_ids.has(current_id):
+		visited_ids[current_id] = true
+		current_id = StringName(LEGACY_ID_ALIASES[current_id])
+
+	return current_id
 
 func _is_same_audio_stream(left_stream: AudioStream, right_stream: AudioStream) -> bool:
 	if left_stream == null or right_stream == null:

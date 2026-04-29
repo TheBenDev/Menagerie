@@ -3,7 +3,6 @@ extends Node
 
 const EnemyBrainScript := preload("res://scripts/combat/ai/enemy_brain.gd")
 const DEFAULT_DIFFICULTY_PROFILE := preload("res://data/difficulty/normal.tres")
-const CombatTime := preload("res://scripts/combat/time/combat_time.gd")
 
 signal time_changed(current_time: float)
 signal player_ready(player: Combatant)

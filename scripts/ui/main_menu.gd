@@ -11,10 +11,10 @@ func _ready() -> void:
 	close_button.pressed.connect(_on_close_pressed)
 
 func _request_scene_music() -> void:
-	GameManager.play_music_for_scene(GameManager.MAIN_MENU_SCENE_PATH)
+	GameManager.play_music_for_scene("main_menu")
 
 func _on_start_pressed() -> void:
-	GameManager.go_to_waiting_room()
+	GameManager.go_to_scene("waiting_room")
 
 func _on_escape_pressed() -> void:
 	escape_button.hide()

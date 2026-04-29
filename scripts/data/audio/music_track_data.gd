@@ -2,7 +2,9 @@ class_name MusicTrackData
 extends Resource
 
 @export var id: StringName = &""
+@export var base_stream_id: StringName = &""
 @export var base_stream: AudioStream = null
+@export var playlist_stream_ids: Array[StringName] = []
 @export var playlist_streams: Array[AudioStream] = []
 @export var randomize_playlist: bool = false
 @export var avoid_immediate_repeats: bool = true

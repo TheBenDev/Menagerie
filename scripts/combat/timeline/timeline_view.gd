@@ -1,7 +1,6 @@
 class_name TimelineView
 extends Control
 
-const CombatTime := preload("res://scripts/combat/time/combat_time.gd")
 const NumberFontHelper := preload("res://scripts/ui/common/number_font.gd")
 
 var current_time: float = 0.0

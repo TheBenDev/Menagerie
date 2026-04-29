@@ -1,8 +1,6 @@
 class_name Combatant
 extends Node
 
-const CombatTime := preload("res://scripts/combat/time/combat_time.gd")
-
 signal hp_changed(combatant: Combatant)
 signal block_changed(combatant: Combatant)
 signal statuses_changed(combatant: Combatant)

@@ -1,7 +1,6 @@
 class_name ActionQueuePanel
 extends PanelContainer
 
-const CombatTime := preload("res://scripts/combat/time/combat_time.gd")
 const NumberFontHelper := preload("res://scripts/ui/common/number_font.gd")
 
 @onready var queue_log: RichTextLabel = $PanelMargin/ActionQueue/QueueLog

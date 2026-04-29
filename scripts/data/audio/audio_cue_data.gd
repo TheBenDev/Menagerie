@@ -2,6 +2,7 @@ class_name AudioCueData
 extends Resource
 
 @export var id: StringName = &""
+@export var stream_ids: Array[StringName] = []
 @export var streams: Array[AudioStream] = []
 @export var bus: StringName = &"SFX"
 @export var volume_db: float = 0.0

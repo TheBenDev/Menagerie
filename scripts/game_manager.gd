@@ -6,26 +6,8 @@ signal run_time_changed(remaining_time_seconds: float, max_time_seconds: float)
 signal run_currencies_changed(memories: int, gold: int)
 signal run_ended(reason: String)
 
-const RUN_TIME_SECONDS := 500.0
-const NODE_TRAVEL_TIME_SECONDS := 30.0
-const END_REASON_IN_PROGRESS := "in_progress"
-const END_REASON_VICTORY := "victory"
-const END_REASON_DEFEAT := "defeat"
-const END_REASON_TIMEOUT := "timeout"
-
-const MAIN_MENU_SCENE_PATH := "res://scenes/main_menu.tscn"
-const WAITING_ROOM_SCENE_PATH := "res://scenes/waiting_room.tscn"
-const DUNGEON_SCENE_PATH := "res://scenes/dungeon.tscn"
-const COMBAT_SCENE_PATH := "res://scenes/Battle/BattleScene.tscn"
-const RUN_SUMMARY_SCENE_PATH := "res://scenes/run_summary.tscn"
-
-const MAIN_MENU_MUSIC_ID := &"main_menu"
-const WAITING_ROOM_MUSIC_ID := &"waiting_room"
-const DUNGEON_MUSIC_ID := &"dungeon"
-const COMBAT_MUSIC_ID := &"combat"
-const COMBAT_BASE_MUSIC_STATE_ID := &"combat_base"
-const RUN_ENDS_LOOP_SFX_ID := &"run_ends_loop"
-const BOSS_START_FIGHT_SFX_ID := &"boss_start_fight"
+const SCENE_ROOT_PATH := "res://scenes"
+const SCENE_EXTENSION := ".tscn"
 
 const DEFAULT_ENEMY_PROFILE_PATH := "res://data/enemies/Training_Ghoul/training_ghoul_profile.tres"
 const CHARACTER_PROFILE_PATHS := {
@@ -37,67 +19,50 @@ const DIFFICULTY_PROFILE_PATHS := {
 	"hard": "res://data/difficulty/hard.tres",
 }
 
-var selected_character: String = "Warrior"
-var selected_difficulty: String = "normal"
+var run_setup_data = RunDataScript.new()
 var current_run_data = null
-var last_combat_result = null
-var current_node_id: int = -1
-var current_node_type: String = ""
-var current_enemy_profile_path: String = DEFAULT_ENEMY_PROFILE_PATH
-var current_is_boss: bool = false
 var pending_class_memory_awards: Dictionary = {}
 
 func _ready() -> void:
 	call_deferred("_play_music_for_current_scene")
 
 func start_new_run(character: String, difficulty: String) -> Variant:
-	selected_character = character
-	selected_difficulty = difficulty
-	last_combat_result = null
-	current_node_id = -1
-	current_node_type = ""
-	current_enemy_profile_path = DEFAULT_ENEMY_PROFILE_PATH
-	current_is_boss = false
-
 	current_run_data = RunDataScript.new()
-	current_run_data.selected_character = selected_character
-	current_run_data.selected_difficulty = selected_difficulty
-	current_run_data.current_node_index = 0
-	current_run_data.reset_run_timer(RUN_TIME_SECONDS)
+	current_run_data.start_run(character, difficulty, RunDataScript.DEFAULT_RUN_TIME_SECONDS, DEFAULT_ENEMY_PROFILE_PATH)
+	run_setup_data.configure_selection(current_run_data.selected_character, current_run_data.selected_difficulty)
 	emit_run_state()
 	return current_run_data
 
 func clear_run() -> void:
 	current_run_data = null
-	last_combat_result = null
-	current_node_id = -1
-	current_node_type = ""
-	current_enemy_profile_path = DEFAULT_ENEMY_PROFILE_PATH
-	current_is_boss = false
 
 func start_combat(node_id: int, node_type: String, enemy_profile_path: String, is_boss: bool) -> void:
-	current_node_id = node_id
-	current_node_type = node_type
-	current_enemy_profile_path = enemy_profile_path if not enemy_profile_path.is_empty() else DEFAULT_ENEMY_PROFILE_PATH
-	current_is_boss = is_boss
-	last_combat_result = null
+	if current_run_data == null:
+		start_new_run(run_setup_data.selected_character, run_setup_data.selected_difficulty)
 
-	if not advance_run_time(NODE_TRAVEL_TIME_SECONDS):
+	current_run_data.set_encounter(node_id, node_type, enemy_profile_path, is_boss, DEFAULT_ENEMY_PROFILE_PATH)
+
+	if not advance_run_time(RunDataScript.NODE_TRAVEL_TIME_SECONDS):
 		return
 
-	go_to_scene(COMBAT_SCENE_PATH)
+	go_to_scene("Battle/BattleScene")
 
 func complete_combat(result: Variant) -> void:
 	if _is_run_ended():
 		return
 
-	last_combat_result = result
-	go_to_scene(DUNGEON_SCENE_PATH)
+	if current_run_data != null:
+		current_run_data.store_combat_result(result)
+	go_to_scene("dungeon")
 
 func consume_last_combat_result() -> Variant:
-	var result = last_combat_result
-	last_combat_result = null
-	return result
+	if current_run_data == null:
+		return null
+
+	return current_run_data.consume_pending_combat_result()
+
+func has_pending_combat_result() -> bool:
+	return current_run_data != null and current_run_data.has_pending_combat_result()
 
 func advance_run_time(seconds: float) -> bool:
 	if current_run_data == null:
@@ -109,7 +74,7 @@ func advance_run_time(seconds: float) -> bool:
 	emit_run_state()
 
 	if current_run_data.remaining_run_time_seconds <= 0.0:
-		end_current_run(END_REASON_TIMEOUT)
+		end_current_run(RunDataScript.END_REASON_TIMEOUT)
 		return false
 
 	return true
@@ -130,11 +95,11 @@ func end_current_run(reason: String) -> void:
 	current_run_data.end_run(reason)
 	emit_run_state()
 	run_ended.emit(reason)
-	call_deferred("go_to_run_summary")
+	call_deferred("go_to_scene", "run_summary")
 
 func emit_run_state() -> void:
 	if current_run_data == null:
-		run_time_changed.emit(0.0, RUN_TIME_SECONDS)
+		run_time_changed.emit(0.0, RunDataScript.DEFAULT_RUN_TIME_SECONDS)
 		run_currencies_changed.emit(0, 0)
 		return
 
@@ -142,17 +107,10 @@ func emit_run_state() -> void:
 	run_currencies_changed.emit(current_run_data.memories, current_run_data.gold)
 
 func export_current_run_memories() -> int:
-	if current_run_data == null or current_run_data.memories_exported:
+	if current_run_data == null:
 		return 0
 
-	current_run_data.memories_exported = true
-	var awarded_memories: int = max(current_run_data.memories, 0)
-	if awarded_memories <= 0:
-		return 0
-
-	var current_total: int = int(pending_class_memory_awards.get(current_run_data.selected_character, 0))
-	pending_class_memory_awards[current_run_data.selected_character] = current_total + awarded_memories
-	return awarded_memories
+	return current_run_data.export_memories_to(pending_class_memory_awards)
 
 func calculate_rewards_for_profile(profile: Resource, is_boss: bool) -> Dictionary:
 	var rewards := {
@@ -184,35 +142,51 @@ func get_selected_difficulty_profile() -> Resource:
 	return load(profile_path)
 
 func get_selected_character_profile() -> Resource:
-	var profile_path := str(CHARACTER_PROFILE_PATHS.get(selected_character, CHARACTER_PROFILE_PATHS["Warrior"]))
+	var profile_path := str(CHARACTER_PROFILE_PATHS.get(get_selected_character_id(), CHARACTER_PROFILE_PATHS[RunDataScript.DEFAULT_CHARACTER]))
 	if profile_path.is_empty():
 		return null
 
 	return load(profile_path)
 
+func get_selected_character_id() -> String:
+	if current_run_data != null:
+		return current_run_data.selected_character
+
+	return run_setup_data.selected_character
+
+func get_selected_difficulty_id() -> String:
+	if current_run_data != null:
+		return current_run_data.selected_difficulty
+
+	return run_setup_data.selected_difficulty
+
 func get_selected_difficulty_profile_path() -> String:
-	return str(DIFFICULTY_PROFILE_PATHS.get(selected_difficulty, DIFFICULTY_PROFILE_PATHS["normal"]))
+	return str(DIFFICULTY_PROFILE_PATHS.get(get_selected_difficulty_id(), DIFFICULTY_PROFILE_PATHS[RunDataScript.DEFAULT_DIFFICULTY]))
 
 func get_selected_difficulty_display_name() -> String:
 	var profile := get_selected_difficulty_profile()
 	if profile == null:
-		return selected_difficulty.capitalize()
+		return get_selected_difficulty_id().capitalize()
 
 	return profile.display_name
 
-func go_to_main_menu() -> void:
-	go_to_scene(MAIN_MENU_SCENE_PATH)
+func get_current_encounter() -> Dictionary:
+	if current_run_data == null:
+		return {
+			"node_id": -1,
+			"node_type": "",
+			"enemy_profile_path": DEFAULT_ENEMY_PROFILE_PATH,
+			"is_boss": false,
+		}
 
-func go_to_waiting_room() -> void:
-	go_to_scene(WAITING_ROOM_SCENE_PATH)
+	return current_run_data.get_current_encounter(DEFAULT_ENEMY_PROFILE_PATH)
 
-func go_to_dungeon() -> void:
-	go_to_scene(DUNGEON_SCENE_PATH)
+func go_to_scene(scene_ref: String) -> void:
+	var scene_path := scene_path_for(scene_ref)
+	if scene_path.is_empty():
+		push_error("Failed to change scene: scene reference is empty.")
+		return
 
-func go_to_run_summary() -> void:
-	go_to_scene(RUN_SUMMARY_SCENE_PATH)
-
-func go_to_scene(scene_path: String) -> void:
 	var error := get_tree().change_scene_to_file(scene_path)
 	if error != OK:
 		push_error("Failed to change scene to %s. Error: %s" % [scene_path, error])
@@ -220,15 +194,22 @@ func go_to_scene(scene_path: String) -> void:
 
 	play_music_for_scene(scene_path)
 
-func play_music_for_scene(scene_path: String) -> void:
-	_play_music_for_scene_path(scene_path)
+func play_music_for_scene(scene_ref: String) -> void:
+	_play_music_for_scene_path(scene_path_for(scene_ref))
 
-func play_sfx(sfx_id: StringName, options: Dictionary = {}) -> void:
-	var sound_manager := _sound_manager()
-	if sound_manager == null or String(sfx_id).is_empty():
-		return
+func scene_path_for(scene_ref: String) -> String:
+	var normalized_ref := scene_ref.strip_edges().replace("\\", "/")
+	if normalized_ref.is_empty():
+		return ""
 
-	sound_manager.call("play_sfx", sfx_id, options)
+	if normalized_ref.begins_with("res://"):
+		return _with_scene_extension(normalized_ref)
+
+	normalized_ref = normalized_ref.trim_prefix("/")
+	if normalized_ref.begins_with("scenes/"):
+		normalized_ref = normalized_ref.substr("scenes/".length())
+
+	return _with_scene_extension(SCENE_ROOT_PATH.path_join(normalized_ref))
 
 func _play_music_for_current_scene() -> void:
 	var current_scene := get_tree().current_scene
@@ -247,32 +228,48 @@ func _play_music_for_scene_path(scene_path: String) -> void:
 		return
 
 	sound_manager.call("play_music", music_id)
-	if music_id == COMBAT_MUSIC_ID:
-		sound_manager.call("set_music_state", COMBAT_BASE_MUSIC_STATE_ID, 0.0)
+	if music_id == &"music.combat":
+		sound_manager.call("set_music_state", &"combat_base", 0.0)
 	else:
 		sound_manager.call("set_music_state", &"", 0.0)
 
 func _music_id_for_scene_path(scene_path: String) -> StringName:
-	match scene_path:
-		MAIN_MENU_SCENE_PATH:
-			return MAIN_MENU_MUSIC_ID
-		WAITING_ROOM_SCENE_PATH:
-			return WAITING_ROOM_MUSIC_ID
-		DUNGEON_SCENE_PATH, COMBAT_SCENE_PATH:
-			return DUNGEON_MUSIC_ID
-		RUN_SUMMARY_SCENE_PATH:
-			return MAIN_MENU_MUSIC_ID
+	match _scene_id_for_path(scene_path).to_lower():
+		"main_menu":
+			return &"music.main_menu"
+		"waiting_room":
+			return &"music.waiting_room"
+		"dungeon", "battle/battlescene":
+			return &"music.dungeon"
+		"run_summary":
+			return &"music.main_menu"
 
 	return &""
 
-func _has_sound_manager() -> bool:
-	return _sound_manager() != null
+func _scene_id_for_path(scene_ref: String) -> String:
+	var scene_path := scene_path_for(scene_ref)
+	var scene_prefix := SCENE_ROOT_PATH + "/"
+	var scene_id := scene_path
+	if scene_id.begins_with(scene_prefix):
+		scene_id = scene_id.substr(scene_prefix.length())
+	if scene_id.ends_with(SCENE_EXTENSION):
+		scene_id = scene_id.substr(0, scene_id.length() - SCENE_EXTENSION.length())
+
+	return scene_id
+
+func _with_scene_extension(scene_path: String) -> String:
+	if scene_path.ends_with(SCENE_EXTENSION):
+		return scene_path
+	if scene_path.get_extension().is_empty():
+		return scene_path + SCENE_EXTENSION
+
+	return scene_path
 
 func _sound_manager() -> Node:
 	return get_node_or_null("/root/SoundManager")
 
 func _is_run_ended() -> bool:
-	return current_run_data != null and current_run_data.run_end_reason != END_REASON_IN_PROGRESS
+	return current_run_data != null and current_run_data.has_ended()
 
 func _variant_int(source: Variant, field_name: String, default_value: int) -> int:
 	if source is Dictionary:

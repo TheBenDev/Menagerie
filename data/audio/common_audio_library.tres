@@ -2,20 +2,12 @@
 
 [ext_resource type="Script" path="res://scripts/data/audio/audio_library_data.gd" id="1_library"]
 [ext_resource type="Script" path="res://scripts/data/audio/music_track_data.gd" id="2_music_track"]
-[ext_resource type="AudioStream" path="res://sounds/music/bgtheme.wav" id="3_bgtheme"]
-[ext_resource type="AudioStream" path="res://sounds/music/Dungeon/cautious_battle.wav" id="4_cautious_battle"]
-[ext_resource type="AudioStream" path="res://sounds/music/Dungeon/dramtic_battle.wav" id="5_dramtic_battle"]
-[ext_resource type="AudioStream" path="res://sounds/music/Dungeon/eerie_exploration.wav" id="6_eerie_exploration"]
-[ext_resource type="AudioStream" path="res://sounds/music/Dungeon/impending_doom.wav" id="7_impending_doom"]
-[ext_resource type="Script" path="res://scripts/data/audio/audio_cue_data.gd" id="8_audio_cue"]
-[ext_resource type="AudioStream" path="res://sounds/ui/Button/Click.wav" id="9_button_click"]
-[ext_resource type="AudioStream" path="res://sounds/sfx/Boss/Global/Death/RunEndsLoop.wav" id="10_run_ends_loop"]
-[ext_resource type="AudioStream" path="res://sounds/sfx/Boss/BossStartFight.wav" id="11_boss_start_fight"]
+[ext_resource type="Script" path="res://scripts/data/audio/audio_cue_data.gd" id="3_audio_cue"]
 
 [sub_resource type="Resource" id="MusicTrack_main_menu"]
 script = ExtResource("2_music_track")
-id = &"main_menu"
-base_stream = ExtResource("3_bgtheme")
+id = &"music.main_menu"
+base_stream_id = &"music.bgtheme"
 bus = &"Music"
 volume_db = -8.0
 default_fade_seconds = 2.0
@@ -23,8 +15,8 @@ loop = true
 
 [sub_resource type="Resource" id="MusicTrack_waiting_room"]
 script = ExtResource("2_music_track")
-id = &"waiting_room"
-base_stream = ExtResource("3_bgtheme")
+id = &"music.waiting_room"
+base_stream_id = &"music.bgtheme"
 bus = &"Music"
 volume_db = -8.0
 default_fade_seconds = 2.0
@@ -32,9 +24,9 @@ loop = true
 
 [sub_resource type="Resource" id="MusicTrack_dungeon"]
 script = ExtResource("2_music_track")
-id = &"dungeon"
-base_stream = ExtResource("6_eerie_exploration")
-playlist_streams = Array[AudioStream]([ExtResource("4_cautious_battle"), ExtResource("5_dramtic_battle"), ExtResource("6_eerie_exploration"), ExtResource("7_impending_doom")])
+id = &"music.dungeon"
+base_stream_id = &"music.dungeon.eerie_exploration"
+playlist_stream_ids = Array[StringName]([&"music.dungeon.cautious_battle", &"music.dungeon.dramtic_battle", &"music.dungeon.eerie_exploration", &"music.dungeon.impending_doom"])
 randomize_playlist = true
 avoid_immediate_repeats = true
 playlist_crossfade_min_seconds = 5.0
@@ -46,17 +38,16 @@ loop = true
 
 [sub_resource type="Resource" id="MusicTrack_combat"]
 script = ExtResource("2_music_track")
-id = &"combat"
-base_stream = ExtResource("3_bgtheme")
+id = &"music.combat"
+base_stream_id = &"music.bgtheme"
 bus = &"Music"
 volume_db = -7.0
 default_fade_seconds = 2.0
 loop = true
 
 [sub_resource type="Resource" id="AudioCue_button_click"]
-script = ExtResource("8_audio_cue")
-id = &"button_click"
-streams = Array[AudioStream]([ExtResource("9_button_click")])
+script = ExtResource("3_audio_cue")
+id = &"ui.button.click"
 bus = &"UI"
 volume_db = -4.0
 cooldown_seconds = 0.02
@@ -64,24 +55,30 @@ max_instances = 8
 priority = 1
 
 [sub_resource type="Resource" id="AudioCue_run_ends_loop"]
-script = ExtResource("8_audio_cue")
-id = &"run_ends_loop"
-streams = Array[AudioStream]([ExtResource("10_run_ends_loop")])
+script = ExtResource("3_audio_cue")
+id = &"sfx.global.death.run_ends_loop"
 bus = &"SFX"
 volume_db = -2.0
 max_instances = 1
 priority = 8
 
 [sub_resource type="Resource" id="AudioCue_boss_start_fight"]
-script = ExtResource("8_audio_cue")
-id = &"boss_start_fight"
-streams = Array[AudioStream]([ExtResource("11_boss_start_fight")])
+script = ExtResource("3_audio_cue")
+id = &"sfx.boss.boss_start_fight"
 bus = &"SFX"
 volume_db = -2.0
 max_instances = 2
 priority = 7
 
+[sub_resource type="Resource" id="AudioCue_diddy_jocky"]
+script = ExtResource("3_audio_cue")
+id = &"sfx.enemy.jockey.diddy_jocky"
+bus = &"SFX"
+volume_db = -2.0
+max_instances = 4
+priority = 1
+
 [resource]
 script = ExtResource("1_library")
-cues = Array[Resource]([SubResource("AudioCue_button_click"), SubResource("AudioCue_run_ends_loop"), SubResource("AudioCue_boss_start_fight")])
+cues = Array[Resource]([SubResource("AudioCue_button_click"), SubResource("AudioCue_run_ends_loop"), SubResource("AudioCue_boss_start_fight"), SubResource("AudioCue_diddy_jocky")])
 music_tracks = Array[Resource]([SubResource("MusicTrack_main_menu"), SubResource("MusicTrack_waiting_room"), SubResource("MusicTrack_dungeon"), SubResource("MusicTrack_combat")])
