@@ -1,3 +1,4 @@
+## Summary of one encounter result used to update run progress, rewards, and the run summary screen.
 class_name CombatResult
 extends RefCounted
 

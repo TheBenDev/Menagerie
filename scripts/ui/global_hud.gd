@@ -1,3 +1,4 @@
+## Persistent HUD layer for run timer, currencies, and selected character stats.
 extends CanvasLayer
 
 const NumberFontHelper := preload("res://scripts/ui/common/number_font.gd")
@@ -73,12 +74,12 @@ func _refresh_player_panel() -> void:
 
 	var profile := GameManager.get_selected_character_profile()
 	if profile == null:
-		character_value.text = GameManager.selected_character
+		character_value.text = GameManager.get_selected_character_id()
 		_set_stat_values(null)
 		return
 
 	var display_name: String = str(profile.get("display_name"))
-	character_value.text = display_name if not display_name.is_empty() else GameManager.selected_character
+	character_value.text = display_name if not display_name.is_empty() else GameManager.get_selected_character_id()
 	player_button.text = str(profile.get("timeline_initial"))
 	_set_stat_values(profile)
 
@@ -96,7 +97,7 @@ func _profile_stat(profile: Resource, field_name: String) -> String:
 
 func _format_time(value: float) -> String:
 	var total_seconds: int = max(int(ceil(value)), 0)
-	var minutes: int = total_seconds / 60
+	var minutes: int = int(floor(float(total_seconds) / 60.0))
 	var seconds: int = total_seconds % 60
 	return "%02d:%02d" % [minutes, seconds]
 

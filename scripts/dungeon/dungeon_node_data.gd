@@ -1,3 +1,4 @@
+## Runtime dungeon node state used by DungeonController to track visited, revealed, and connected nodes.
 class_name DungeonNodeData
 extends RefCounted
 

@@ -1,3 +1,4 @@
+## Custom control that draws a labeled resource meter with optional reference value and bonus text.
 extends Control
 
 const NumberFontHelper := preload("res://scripts/ui/common/number_font.gd")

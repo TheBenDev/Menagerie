@@ -1,3 +1,4 @@
+## Battle screen HUD that coordinates combatant panels, action buttons, timeline, and time controls.
 class_name BattleHUD
 extends Control
 

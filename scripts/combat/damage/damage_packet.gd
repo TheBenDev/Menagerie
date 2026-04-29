@@ -1,3 +1,4 @@
+## Carries source, target, amount, and tags for damage before a target applies block and health loss.
 class_name DamagePacket
 extends RefCounted
 

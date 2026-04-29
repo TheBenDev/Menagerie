@@ -1,3 +1,4 @@
+## Controls dungeon map progression, applies completed combat results, and starts selected encounters.
 extends Node
 
 const DungeonNodeDataScript := preload("res://scripts/dungeon/dungeon_node_data.gd")
@@ -68,7 +69,7 @@ func _connect_node_views() -> void:
 			view.pressed.connect(callback)
 
 func _apply_pending_combat_result() -> bool:
-	if GameManager.last_combat_result == null:
+	if not GameManager.has_pending_combat_result():
 		return false
 
 	var result: Variant = GameManager.consume_last_combat_result()
@@ -77,7 +78,7 @@ func _apply_pending_combat_result() -> bool:
 	GameManager.emit_run_state()
 
 	if not result.victory or result.is_boss:
-		GameManager.call_deferred("go_to_run_summary")
+		GameManager.call_deferred("go_to_scene", "run_summary")
 		return true
 
 	return false
@@ -149,11 +150,13 @@ func _on_node_pressed(node_id: int) -> void:
 		return
 
 	if node.node_type == "Fight" or node.node_type == "Boss":
+		if node.is_boss or node.node_type == "Boss":
+			SoundManager.play_sfx(&"sfx.boss.boss_start_fight")
 		GameManager.start_combat(node.id, node.node_type, node.enemy_profile, node.is_boss)
 
 func _run_data() -> Variant:
 	if GameManager.current_run_data == null:
-		GameManager.start_new_run(GameManager.selected_character, GameManager.selected_difficulty)
+		GameManager.start_new_run(GameManager.get_selected_character_id(), GameManager.get_selected_difficulty_id())
 
 	return GameManager.current_run_data
 

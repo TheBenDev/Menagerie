@@ -1,7 +1,9 @@
+## Scene coordinator that wires combatants, HUD, audio, run data, and final combat result reporting.
 extends Node
 
 const CombatResultScript := preload("res://scripts/combat/combat_result.gd")
 const BattleHudScript := preload("res://scripts/ui/battle/battle_hud.gd")
+const CombatAudioBridgeScript := preload("res://scripts/audio/combat_audio_bridge.gd")
 
 @onready var battle: BattleController = $BattleController
 @onready var warrior: WarriorCombatant = $Warrior
@@ -11,6 +13,7 @@ const BattleHudScript := preload("res://scripts/ui/battle/battle_hud.gd")
 var actions_used: int = 0
 var combat_result_reported: bool = false
 var last_accounted_combat_time: float = 0.0
+var audio_bridge: Node = null
 
 func _ready() -> void:
 	_configure_encounter_from_game_manager()
@@ -34,6 +37,7 @@ func _ready() -> void:
 	_connect_combatant_signals(enemy)
 	_connect_combat_result_signals()
 	_connect_run_signals()
+	_setup_audio_bridge()
 
 	battle.start_battle()
 	_refresh_hud()
@@ -80,6 +84,13 @@ func _connect_run_signals() -> void:
 	if not GameManager.run_ended.is_connected(_on_run_ended):
 		GameManager.run_ended.connect(_on_run_ended)
 
+func _setup_audio_bridge() -> void:
+	audio_bridge = CombatAudioBridgeScript.new()
+	audio_bridge.name = "CombatAudioBridge"
+	add_child(audio_bridge)
+	var encounter := GameManager.get_current_encounter() if _has_game_manager() else {}
+	audio_bridge.call("setup", battle, warrior, enemy, bool(encounter.get("is_boss", false)))
+
 func _choose_warrior_action(index: int) -> void:
 	if index < 0 or index >= warrior.actions.size():
 		return
@@ -117,7 +128,8 @@ func _configure_encounter_from_game_manager() -> void:
 	if not _has_game_manager():
 		return
 
-	var enemy_profile_path: String = GameManager.current_enemy_profile_path
+	var encounter := GameManager.get_current_encounter()
+	var enemy_profile_path: String = str(encounter.get("enemy_profile_path", ""))
 	if not enemy_profile_path.is_empty():
 		var enemy_profile: Resource = load(enemy_profile_path)
 		if enemy_profile != null:
@@ -126,7 +138,7 @@ func _configure_encounter_from_game_manager() -> void:
 	battle.difficulty_profile = GameManager.get_selected_difficulty_profile()
 
 func _apply_boss_overrides() -> void:
-	if not _has_game_manager() or not GameManager.current_is_boss:
+	if not _has_game_manager() or not bool(GameManager.get_current_encounter().get("is_boss", false)):
 		return
 
 	enemy.display_name = "Training Boss"
@@ -140,14 +152,15 @@ func _on_warrior_died(_combatant: Combatant) -> void:
 	_finish_combat(false)
 
 func _on_run_ended(reason: String) -> void:
-	if reason != GameManager.END_REASON_TIMEOUT or combat_result_reported:
+	if reason != RunData.END_REASON_TIMEOUT or combat_result_reported:
 		return
 
+	var encounter := GameManager.get_current_encounter() if _has_game_manager() else {}
 	combat_result_reported = true
 	var result: Variant = CombatResultScript.new()
 	result.victory = false
-	result.node_id = GameManager.current_node_id if _has_game_manager() else -1
-	result.is_boss = GameManager.current_is_boss if _has_game_manager() else false
+	result.node_id = int(encounter.get("node_id", -1))
+	result.is_boss = bool(encounter.get("is_boss", false))
 	result.enemy_defeated = enemy.hp <= 0
 	result.player_defeated = warrior.hp <= 0
 	result.damage_dealt = max(enemy.max_hp - enemy.hp, 0)
@@ -165,17 +178,18 @@ func _finish_combat(victory: bool) -> void:
 		return
 
 	combat_result_reported = true
+	var encounter := GameManager.get_current_encounter() if _has_game_manager() else {}
 	var result: Variant = CombatResultScript.new()
 	result.victory = victory
-	result.node_id = GameManager.current_node_id if _has_game_manager() else -1
-	result.is_boss = GameManager.current_is_boss if _has_game_manager() else false
+	result.node_id = int(encounter.get("node_id", -1))
+	result.is_boss = bool(encounter.get("is_boss", false))
 	result.enemy_defeated = enemy.hp <= 0
 	result.player_defeated = warrior.hp <= 0
 	result.damage_dealt = max(enemy.max_hp - enemy.hp, 0)
 	result.damage_taken = max(warrior.max_hp - warrior.hp, 0)
 	result.actions_used = actions_used
 	result.time_elapsed = battle.current_time
-	result.end_reason = "" if victory else GameManager.END_REASON_DEFEAT
+	result.end_reason = "" if victory else RunData.END_REASON_DEFEAT
 
 	if not _has_game_manager():
 		return

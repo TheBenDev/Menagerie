@@ -1,7 +1,6 @@
+## Horizontal action bar that displays available player actions and emits selected action indexes.
 class_name BattleActionBar
 extends HBoxContainer
-
-const CombatTime := preload("res://scripts/combat/time/combat_time.gd")
 
 signal action_selected(index: int)
 

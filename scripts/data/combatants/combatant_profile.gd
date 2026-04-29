@@ -1,3 +1,4 @@
+## Resource profile for combatant identity, stats, moveset, rewards, audio cues, and UI resource bars.
 class_name CombatantProfile
 extends Resource
 
@@ -12,5 +13,8 @@ extends Resource
 @export var moveset: Resource = null
 @export var enemy_ai_profile: EnemyAIProfile = null
 @export var reward_profile: Resource = null
+@export var hit_sfx_id: StringName = &""
+@export var block_sfx_id: StringName = &""
+@export var death_sfx_id: StringName = &""
 @export var health_bar: Resource = null
 @export var resource_bars: Array[Resource] = []

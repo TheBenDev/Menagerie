@@ -1,3 +1,4 @@
+## Custom control that draws the run timer fill inside its authored frame proportions.
 class_name TimeProgressBar
 extends Control
 

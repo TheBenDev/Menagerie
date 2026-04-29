@@ -1,3 +1,4 @@
+## Resource defining base memory and gold rewards, plus the boss reward multiplier.
 class_name RewardProfile
 extends Resource
 

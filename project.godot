@@ -13,10 +13,11 @@ config_version=5
 config/name="Menagerie"
 run/main_scene="res://scenes/main_menu.tscn"
 config/features=PackedStringArray("4.6", "Forward Plus")
-config/icon="res://icon.svg"
+config/icon="res://assets/ui/AppIcon.png"
 
 [autoload]
 
+SoundManager="*res://scripts/audio/sound_manager.gd"
 GameManager="*res://scripts/game_manager.gd"
 _mcp_game_helper="*res://addons/godot_ai/runtime/game_helper.gd"
 

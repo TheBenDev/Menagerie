@@ -1,3 +1,4 @@
+## HUD panel for one combatant, including name, placeholder art, health, extra resources, and statuses.
 class_name CombatantPanel
 extends PanelContainer
 

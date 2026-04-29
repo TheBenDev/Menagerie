@@ -1,3 +1,4 @@
+## Resource profile for difficulty modifiers affecting enemy stats, rewards, and AI decision quality.
 class_name DifficultyProfile
 extends Resource
 

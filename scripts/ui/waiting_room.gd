@@ -1,7 +1,8 @@
+## Setup screen for selecting character and difficulty before starting a new dungeon run.
 extends Control
 
 const DIFFICULTY_EASY := "easy"
-const DIFFICULTY_NORMAL := "normal"
+const DIFFICULTY_NORMAL := RunData.DEFAULT_DIFFICULTY
 const DIFFICULTY_HARD := "hard"
 
 @onready var warrior_button: Button = $MarginContainer/Layout/SetupPanel/PanelMargin/SetupLayout/CharacterRow/WarriorButton
@@ -15,7 +16,8 @@ var selected_character: String = "Warrior"
 var selected_difficulty: String = DIFFICULTY_NORMAL
 
 func _ready() -> void:
-	selected_difficulty = GameManager.selected_difficulty
+	call_deferred("_request_scene_music")
+	selected_difficulty = GameManager.get_selected_difficulty_id()
 	if selected_difficulty.is_empty():
 		selected_difficulty = DIFFICULTY_NORMAL
 
@@ -27,6 +29,9 @@ func _ready() -> void:
 	start_run_button.pressed.connect(_on_start_run_pressed)
 	back_button.pressed.connect(_on_back_pressed)
 	_refresh_difficulty_buttons()
+
+func _request_scene_music() -> void:
+	GameManager.play_music_for_scene("waiting_room")
 
 func _set_difficulty(difficulty: String) -> void:
 	selected_difficulty = difficulty
@@ -43,7 +48,7 @@ func _refresh_difficulty_buttons() -> void:
 
 func _on_start_run_pressed() -> void:
 	GameManager.start_new_run(selected_character, selected_difficulty)
-	GameManager.go_to_dungeon()
+	GameManager.go_to_scene("dungeon")
 
 func _on_back_pressed() -> void:
-	GameManager.go_to_main_menu()
+	GameManager.go_to_scene("main_menu")

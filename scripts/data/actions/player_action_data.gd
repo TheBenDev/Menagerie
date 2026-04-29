@@ -1,3 +1,4 @@
+## Player-only combat action data with rage cost, stance requirement, action bar visibility, and tooltip text.
 class_name PlayerActionData
 extends "res://scripts/data/actions/combat_action_data.gd"
 

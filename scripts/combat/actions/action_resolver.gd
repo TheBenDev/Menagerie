@@ -1,3 +1,4 @@
+## Applies a combat action's costs and effects from a source combatant to the chosen targets.
 class_name ActionResolver
 extends RefCounted
 

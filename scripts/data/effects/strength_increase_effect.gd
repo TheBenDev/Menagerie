@@ -1,7 +1,10 @@
+## Action effect that permanently adjusts strength for chosen targets or the source when no target is supplied.
 class_name StrengthIncreaseEffect
 extends "res://scripts/data/effects/action_effect.gd"
 
-@export var amount: int = 1
+func _init() -> void:
+	effect_id = CombatEffectLibrary.EFFECT_STRENGTH_ADD
+	amount = 1
 
 func apply(source: Combatant, targets: Array[Combatant], _action: CombatActionData) -> void:
 	if amount == 0:

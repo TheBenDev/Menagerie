@@ -1,3 +1,4 @@
+## Run summary screen that displays final run stats and exports earned memories before returning to setup.
 extends Control
 
 const NumberFontHelper := preload("res://scripts/ui/common/number_font.gd")
@@ -71,22 +72,23 @@ func _set_empty_values() -> void:
 func _title_for(run_data: Variant) -> String:
 	if run_data.run_victory:
 		return "Run Complete"
-	if run_data.run_end_reason == GameManager.END_REASON_TIMEOUT:
+	if run_data.run_end_reason == RunData.END_REASON_TIMEOUT:
 		return "Time Expired"
 
 	return "Run Ended"
 
 func _reason_text(reason: String) -> String:
 	match reason:
-		GameManager.END_REASON_VICTORY:
+		RunData.END_REASON_VICTORY:
 			return "Victory"
-		GameManager.END_REASON_TIMEOUT:
+		RunData.END_REASON_TIMEOUT:
 			return "Time Out"
-		GameManager.END_REASON_DEFEAT:
+		RunData.END_REASON_DEFEAT:
 			return "Defeat"
 		_:
 			return reason.capitalize()
 
 func _on_return_pressed() -> void:
+	SoundManager.play_sfx(&"sfx.global.death.run_ends_loop")
 	GameManager.clear_run()
-	GameManager.go_to_waiting_room()
+	GameManager.go_to_scene("waiting_room")
