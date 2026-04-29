@@ -1,3 +1,4 @@
+## Player combatant that builds and decays rage from dealing or taking damage.
 class_name WarriorCombatant
 extends "res://scripts/combat/combatants/combatant.gd"
 

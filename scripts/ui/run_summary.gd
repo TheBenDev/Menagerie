@@ -1,3 +1,4 @@
+## Run summary screen that displays final run stats and exports earned memories before returning to setup.
 extends Control
 
 const NumberFontHelper := preload("res://scripts/ui/common/number_font.gd")

@@ -1,3 +1,4 @@
+## Autoload audio service for registering cues, playing SFX/UI sounds, and crossfading music tracks.
 extends Node
 
 const AudioCueDataScript := preload("res://scripts/data/audio/audio_cue_data.gd")

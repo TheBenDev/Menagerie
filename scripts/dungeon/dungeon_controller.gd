@@ -1,3 +1,4 @@
+## Controls dungeon map progression, applies completed combat results, and starts selected encounters.
 extends Node
 
 const DungeonNodeDataScript := preload("res://scripts/dungeon/dungeon_node_data.gd")

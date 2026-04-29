@@ -1,3 +1,4 @@
+## Button view for a dungeon node that displays availability, encounter type, and selection tooltip text.
 class_name DungeonNodeView
 extends Button
 

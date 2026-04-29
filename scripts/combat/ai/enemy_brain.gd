@@ -1,3 +1,4 @@
+## Chooses enemy actions and targets using authored move weights plus difficulty-aware scoring.
 class_name EnemyBrain
 extends RefCounted
 

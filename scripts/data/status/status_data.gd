@@ -1,3 +1,4 @@
+## Resource defining a timed status and its outgoing or incoming damage multipliers.
 class_name StatusData
 extends Resource
 

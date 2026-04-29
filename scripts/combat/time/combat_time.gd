@@ -1,3 +1,4 @@
+## Utility methods for snapping combat timing to fixed ticks and formatting action durations.
 class_name CombatTime
 extends RefCounted
 

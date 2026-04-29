@@ -1,3 +1,4 @@
+## Resource profile for combatant identity, stats, moveset, rewards, audio cues, and UI resource bars.
 class_name CombatantProfile
 extends Resource
 

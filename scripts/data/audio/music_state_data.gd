@@ -1,3 +1,4 @@
+## Resource describing an adaptive music variant for a named state, including stream and fade behavior.
 class_name MusicStateData
 extends Resource
 

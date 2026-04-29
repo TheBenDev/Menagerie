@@ -1,9 +1,9 @@
+## Action effect that deals stat-scaled damage packets to each valid target.
 class_name DamageEffect
 extends "res://scripts/data/effects/action_effect.gd"
 
-@export var base_damage: int = 0
-@export_enum("STR", "DEX", "INT", "VIT") var scaling_stat: String = "STR"
-@export var scaling_multiplier: float = 0.0
+func _init() -> void:
+	effect_id = CombatEffectLibrary.EFFECT_DAMAGE
 
 func apply(source: Combatant, targets: Array[Combatant], _action: CombatActionData) -> void:
 	var damage_amount: int = _calculate_damage(source)

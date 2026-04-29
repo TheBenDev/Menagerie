@@ -1,3 +1,4 @@
+## Setup screen for selecting character and difficulty before starting a new dungeon run.
 extends Control
 
 const DIFFICULTY_EASY := "easy"

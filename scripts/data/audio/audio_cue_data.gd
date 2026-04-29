@@ -1,3 +1,4 @@
+## Resource describing a sound cue, its candidate streams, mixer bus, pitch, cooldown, and priority.
 class_name AudioCueData
 extends Resource
 

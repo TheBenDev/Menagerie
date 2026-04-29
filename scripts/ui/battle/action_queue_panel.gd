@@ -1,3 +1,4 @@
+## Panel that renders pending and resolved combat actions in queue order for the battle HUD.
 class_name ActionQueuePanel
 extends PanelContainer
 

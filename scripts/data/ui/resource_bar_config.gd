@@ -1,3 +1,4 @@
+## Resource configuration for drawing a combatant resource bar from a combatant resource snapshot.
 class_name ResourceBarConfig
 extends Resource
 

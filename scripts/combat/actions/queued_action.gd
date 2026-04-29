@@ -1,3 +1,4 @@
+## Represents an action waiting on the combat timeline, including timing, status, and tie-break data.
 class_name QueuedAction
 extends RefCounted
 

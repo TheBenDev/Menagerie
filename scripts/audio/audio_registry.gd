@@ -1,3 +1,4 @@
+## Scans the sound folder and exposes audio streams by stable IDs derived from their resource paths.
 class_name AudioRegistry
 extends RefCounted
 

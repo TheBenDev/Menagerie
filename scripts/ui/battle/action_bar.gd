@@ -1,3 +1,4 @@
+## Horizontal action bar that displays available player actions and emits selected action indexes.
 class_name BattleActionBar
 extends HBoxContainer
 

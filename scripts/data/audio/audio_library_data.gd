@@ -1,3 +1,4 @@
+## Resource catalog for authored sound cues and music tracks.
 class_name AudioLibraryData
 extends Resource
 

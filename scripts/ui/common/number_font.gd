@@ -1,3 +1,4 @@
+## Static helper for applying and drawing a monospaced font for numeric spans inside UI text.
 class_name NumberFont
 extends RefCounted
 

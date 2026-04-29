@@ -1,3 +1,4 @@
+## Advances combat time, queues actions, resolves simultaneous actions, and requests player input.
 class_name BattleController
 extends Node
 

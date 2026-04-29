@@ -1,3 +1,4 @@
+## Persistent HUD layer for run timer, currencies, and selected character stats.
 extends CanvasLayer
 
 const NumberFontHelper := preload("res://scripts/ui/common/number_font.gd")

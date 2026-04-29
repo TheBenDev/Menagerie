@@ -1,3 +1,4 @@
+## Enemy-only combat action data with AI weights, target rules, HP gates, and role metadata.
 class_name EnemyMoveData
 extends "res://scripts/data/actions/combat_action_data.gd"
 

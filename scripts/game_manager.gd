@@ -1,3 +1,4 @@
+## Autoload that owns run setup, scene transitions, rewards, run timers, and scene music routing.
 extends Node
 
 const RunDataScript := preload("res://scripts/run_data.gd")

@@ -1,3 +1,4 @@
+## Scene coordinator that wires combatants, HUD, audio, run data, and final combat result reporting.
 extends Node
 
 const CombatResultScript := preload("res://scripts/combat/combat_result.gd")

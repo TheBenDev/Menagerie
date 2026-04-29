@@ -1,3 +1,4 @@
+## Stores all mutable state for a run, including selection, timer, encounters, rewards, and combat totals.
 class_name RunData
 extends RefCounted
 

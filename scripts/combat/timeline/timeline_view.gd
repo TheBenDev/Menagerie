@@ -1,3 +1,4 @@
+## Custom control that draws and scrolls the combat action timeline with pending and resolved markers.
 class_name TimelineView
 extends Control
 

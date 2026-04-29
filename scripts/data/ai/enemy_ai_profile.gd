@@ -1,3 +1,4 @@
+## Resource defining how an enemy chooses among its authored moves.
 class_name EnemyAIProfile
 extends Resource
 

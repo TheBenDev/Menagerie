@@ -1,3 +1,4 @@
+## Resource definition for a combat action, including timing, costs, effects, audio, and target side.
 class_name CombatActionData
 extends Resource
 

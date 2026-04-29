@@ -1,3 +1,4 @@
+## Base combatant node with stats, resources, statuses, action state, and damage handling.
 class_name Combatant
 extends Node
 

@@ -1,3 +1,4 @@
+## Bridges combat events to SoundManager by playing action SFX and updating adaptive combat music states.
 extends Node
 
 const MUSIC_STATE_BASE := &"combat_base"

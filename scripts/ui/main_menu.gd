@@ -1,3 +1,4 @@
+## Main menu scene script that starts setup, handles escape/close buttons, and requests menu music.
 extends Control
 
 @onready var start_button: BaseButton = $MarginContainer/CenterContainer/MenuLayout/StartButton

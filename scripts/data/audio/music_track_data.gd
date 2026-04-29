@@ -1,3 +1,4 @@
+## Resource describing a music track, playlist behavior, adaptive state variants, bus, volume, and looping.
 class_name MusicTrackData
 extends Resource
 
