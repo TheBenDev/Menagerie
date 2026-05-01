@@ -14,7 +14,8 @@ This inventory covers source asset groups used by scenes, UI, battle visuals, an
 | Training Ghoul sprites | `res://scenes/combatants/enemies/training_ghoul/textures/*` | Training Ghoul battle visual frames. |
 | Fonts | `res://assets/fonts/gotfridus_font_0_5/*` | Gotfridus font files and license. |
 | Main menu UI | `res://assets/ui/main_menu/*` | Main menu background and texture buttons. |
-| Global UI | `res://assets/ui/global/textured_background.png`, `TimeProgressBar.png`, `TitleIcon.png`, `AppIcon.png` | Shared UI art and app icon. |
+| Global UI | `res://assets/ui/global/background/textured_background.png`, `TimeProgressBar.png`, `TitleIcon.png`, `AppIcon.png` | Shared UI art and app icon. |
+| Dungeon node UI | `res://assets/ui/dungeon/nodes/*Node.png`, `res://assets/ui/dungeon/nodes/*Node_hover.png` | Dungeon map node art for empty connectors and event nodes. |
 | Theme | `res://assets/ui/menagerie_theme.tres` | Project UI theme. |
 
 ## Audio assets

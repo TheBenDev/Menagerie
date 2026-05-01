@@ -12,14 +12,15 @@ This inventory lists runtime `.gd` scripts under `res://core` and `res://scenes`
 | --- | ---: |
 | `core/audio` | 7 |
 | `core/combat` | 19 |
-| `core/dungeon` | 1 |
+| `core/dungeon` | 2 |
+| `core/input` | 1 |
 | `core/difficulty`, `core/rewards`, `core/statuses` | 3 |
 | `scenes/combat` | 6 |
 | `scenes/combatants` | 8 |
-| `scenes/dungeon` | 2 |
+| `scenes/dungeon` | 4 |
 | `scenes/ui` | 8 |
 | Root scripts | 2 |
-| Total | 56 |
+| Total | 60 |
 
 ## Root scripts
 
@@ -27,6 +28,12 @@ This inventory lists runtime `.gd` scripts under `res://core` and `res://scenes`
 | --- | --- | --- |
 | `res://core/game_manager.gd` | Autoload, no `class_name` | Owns run setup, scene transitions, rewards, timers, and scene music routing. |
 | `res://core/run_data.gd` | `RunData` | Stores mutable run state, selected setup, timer, encounters, rewards, and combat totals. |
+
+## Input
+
+| Script | Class | Purpose |
+| --- | --- | --- |
+| `res://core/input/keybinds_helper.gd` | `KeybindsHelper` | Converts raw mouse/keybind events into semantic map navigation actions. |
 
 ## Audio
 
@@ -87,9 +94,12 @@ This inventory lists runtime `.gd` scripts under `res://core` and `res://scenes`
 
 | Script | Class | Purpose |
 | --- | --- | --- |
-| `res://scenes/dungeon/dungeon_controller.gd` | None | Controls dungeon progression, applies combat results, starts encounters. |
-| `res://core/dungeon/dungeon_node_data.gd` | `DungeonNodeData` | Runtime dungeon node state for visited/revealed/connected nodes. |
-| `res://scenes/dungeon/dungeon_node_view.gd` | `DungeonNodeView` | Button view for dungeon nodes and selection tooltips. |
+| `res://scenes/dungeon/dungeon_controller.gd` | None | Builds dungeon grid nodes, controls reveal state, applies combat results, and starts routed encounters. |
+| `res://core/dungeon/dungeon_node_data.gd` | `DungeonNodeData` | Runtime dungeon node state for grid placement, visited/revealed state, and connections. |
+| `res://core/dungeon/dungeon_node_event_helper.gd` | `DungeonNodeEventHelper` | Builds and processes shared dungeon node visit event payloads. |
+| `res://scenes/dungeon/dungeon_grid_view.gd` | `DungeonGridView` | Draws the dungeon map grid behind generated nodes. |
+| `res://scenes/dungeon/dungeon_map_input_connector.gd` | `DungeonMapInputConnector` | Applies map navigation keybinds to dungeon zooming and panning. |
+| `res://scenes/dungeon/dungeon_node_view.gd` | `DungeonNodeView` | Texture button view for dungeon nodes and selection tooltips. |
 
 ## UI
 

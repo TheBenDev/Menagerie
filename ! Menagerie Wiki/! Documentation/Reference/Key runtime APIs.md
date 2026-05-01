@@ -18,6 +18,24 @@ This page summarizes the most important runtime APIs new developers usually need
 | `go_to_scene(scene_ref)` | method | Main route endpoint. |
 | `scene_path_for(scene_ref)` | method | Use to check route resolution without changing scene. |
 
+## RunData dungeon state
+
+| Surface | Type | Notes |
+| --- | --- | --- |
+| `visited_dungeon_node_ids` | `Array[int]` | Source of truth for visited dungeon map nodes. |
+| `mark_dungeon_node_visited(node_id)` | method | Adds a visited node ID and advances `current_node_index`. |
+| `is_dungeon_node_visited(node_id)` | method | Checks whether a node was completed. |
+| `get_visited_dungeon_node_ids()` | method | Returns a duplicate of visited node IDs for reveal calculations. |
+| `get_last_visited_dungeon_node_id()` | method | Returns the latest visited node ID, or `-1` before Haven is completed. |
+
+## Dungeon helpers
+
+| Surface | Type | Notes |
+| --- | --- | --- |
+| `DungeonNodeEventHelper.build_node_event(node)` | static method | Builds the shared dictionary payload for dungeon node visit events. |
+| `DungeonNodeEventHelper.process_node_event(node, game_manager, sound_manager)` | static method | Handles currently-routed node types and reports whether completion is deferred. |
+| `KeybindsHelper.process_map_navigation_event(event, is_panning)` | static method | Converts wheel and middle-mouse events into zoom/pan action dictionaries. |
+
 ## SoundManager
 
 | Surface | Type | Notes |

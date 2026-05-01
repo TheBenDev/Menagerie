@@ -21,7 +21,7 @@ Scene routes are string refs resolved by `GameManager.scene_path_for()` and load
 | --- | --- | --- | --- |
 | `main_menu` | `res://scenes/ui/main_menu/main_menu.tscn` | `res://scenes/ui/main_menu/main_menu.gd` | `music.main_menu` |
 | `waiting_room` | `res://scenes/ui/waiting_room/waiting_room.tscn` | `res://scenes/ui/waiting_room/waiting_room.gd` | `music.waiting_room` |
-| `dungeon` | `res://scenes/dungeon/dungeon.tscn` | `res://scenes/dungeon/dungeon_controller.gd` | `music.dungeon` |
+| `dungeon` | `res://scenes/dungeon/DungeonMap.tscn` | `res://scenes/dungeon/dungeon_controller.gd` | `music.dungeon` |
 | `Battle/BattleScene` | `res://scenes/combat/BattleScene.tscn` | `res://scenes/combat/battle_scene.gd` | `music.dungeon` |
 | `run_summary` | `res://scenes/ui/run_summary/run_summary.tscn` | `res://scenes/ui/run_summary/run_summary.gd` | `music.main_menu` |
 

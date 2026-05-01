@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://d3ovr4oae0nno"
-path="res://.godot/imported/textured_background.png-c49dee94e31189579c38dd677a7390f1.ctex"
+uid="uid://cslgqccdujf0r"
+path="res://.godot/imported/EncounterNode.png-07bcaf4d1ecdbf3018f05fc9274b750c.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/ui/global/background/textured_background.png"
-dest_files=["res://.godot/imported/textured_background.png-c49dee94e31189579c38dd677a7390f1.ctex"]
+source_file="res://assets/ui/dungeon/nodes/EncounterNode.png"
+dest_files=["res://.godot/imported/EncounterNode.png-07bcaf4d1ecdbf3018f05fc9274b750c.ctex"]
 
 [params]
 

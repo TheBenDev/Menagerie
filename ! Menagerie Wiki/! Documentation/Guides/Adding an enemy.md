@@ -39,10 +39,11 @@ Use existing Training Ghoul resources as the pattern:
 
 ## Add to dungeon
 
-1. Open `res://scenes/dungeon/dungeon.tscn` through Godot.
-2. Pick or add a `DungeonNodeView`.
-3. Set its `enemy_profile_path` to the new enemy profile.
+1. Open `res://scenes/dungeon/dungeon_controller.gd`.
+2. Add or update a node descriptor in `DEFAULT_NODE_DESCRIPTORS`.
+3. Set its `enemy` value to the new enemy profile path.
 4. Set `is_boss` for boss encounters.
+5. Open `res://scenes/dungeon/DungeonMap.tscn` through Godot to verify the generated node placement.
 
 ## Optional battle visual
 

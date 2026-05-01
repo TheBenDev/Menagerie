@@ -57,8 +57,19 @@ Signals are the main event contract between combat, UI, audio, and run state.
 | --- | --- | --- |
 | `MainMenu` buttons | `pressed` | Routes to waiting room, quits, or handles escape. |
 | `WaitingRoom` buttons | `pressed` | Selects difficulty, starts run, or routes back. |
-| `DungeonNodeView` buttons | `pressed` | `DungeonController` starts reachable encounters. |
+| `DungeonNodeView` buttons | `pressed` | `DungeonController` emits a node event and completes or routes the node by type. |
+| `DungeonController` | `node_event_emitted(event: Dictionary)` | Emitted for every visited dungeon node type. |
+| `DungeonController` | `node_completed(node_id: int, node_type: String)` | Emitted when non-deferred node completion is marked locally. |
 | `SoundManager` button hook | `BaseButton.pressed` | Plays `ui.button.click` for existing and newly-added buttons. |
+
+## Dungeon node events
+
+| Node type | Current behavior |
+| --- | --- |
+| `Haven` | Emits a node event and completes immediately. |
+| `Empty` | Emits a node event and completes immediately. |
+| `Fight` | Emits a node event and routes through `GameManager.start_combat()`. Completion waits for a victorious combat result. |
+| `Boss` | Emits a node event and routes through `GameManager.start_combat()`. Completion waits for the boss combat result. |
 
 ## See also
 

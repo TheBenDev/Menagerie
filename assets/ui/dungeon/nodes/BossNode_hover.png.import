@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://d3ovr4oae0nno"
-path="res://.godot/imported/textured_background.png-c49dee94e31189579c38dd677a7390f1.ctex"
+uid="uid://cv38uduans0cp"
+path="res://.godot/imported/BossNode_hover.png-4d4b8110d1e94e6ceb41169819861767.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/ui/global/background/textured_background.png"
-dest_files=["res://.godot/imported/textured_background.png-c49dee94e31189579c38dd677a7390f1.ctex"]
+source_file="res://assets/ui/dungeon/nodes/BossNode_hover.png"
+dest_files=["res://.godot/imported/BossNode_hover.png-4d4b8110d1e94e6ceb41169819861767.ctex"]
 
 [params]
 

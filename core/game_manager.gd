@@ -13,7 +13,8 @@ const SCENE_ROUTE_PATHS := {
 	"main_menu": "ui/main_menu/main_menu",
 	"waiting_room": "ui/waiting_room/waiting_room",
 	"run_summary": "ui/run_summary/run_summary",
-	"dungeon": "dungeon/dungeon",
+	"dungeon": "dungeon/DungeonMap",
+	"dungeon/dungeon": "dungeon/DungeonMap",
 	"battle/battlescene": "combat/BattleScene",
 	"combat/battlescene": "combat/BattleScene",
 }
@@ -249,7 +250,7 @@ func _music_id_for_scene_path(scene_path: String) -> StringName:
 			return &"music.main_menu"
 		"waiting_room", "ui/waiting_room/waiting_room":
 			return &"music.waiting_room"
-		"dungeon", "dungeon/dungeon", "battle/battlescene", "combat/battlescene":
+		"dungeon", "dungeon/dungeon", "dungeon/dungeonmap", "battle/battlescene", "combat/battlescene":
 			return &"music.dungeon"
 		"run_summary", "ui/run_summary/run_summary":
 			return &"music.main_menu"

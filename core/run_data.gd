@@ -24,6 +24,7 @@ var memories_exported: bool = false
 var current_node_index: int = 0
 var total_nodes: int = 5
 var boss_node_index: int = 4
+var visited_dungeon_node_ids: Array[int] = []
 
 var fights_completed: int = 0
 var regular_fights_completed: int = 0
@@ -55,6 +56,7 @@ func start_run(character: String, difficulty: String, run_time_seconds: float, d
 	current_node_index = 0
 	total_nodes = 5
 	boss_node_index = 4
+	visited_dungeon_node_ids.clear()
 	fights_completed = 0
 	regular_fights_completed = 0
 	boss_defeated = false
@@ -131,6 +133,28 @@ func consume_pending_combat_result() -> Variant:
 	pending_combat_result = null
 	return result
 
+func mark_dungeon_node_visited(node_id: int) -> void:
+	if node_id < 0:
+		return
+
+	if not visited_dungeon_node_ids.has(node_id):
+		visited_dungeon_node_ids.append(node_id)
+		visited_dungeon_node_ids.sort()
+
+	current_node_index = max(current_node_index, node_id)
+
+func is_dungeon_node_visited(node_id: int) -> bool:
+	return visited_dungeon_node_ids.has(node_id)
+
+func get_visited_dungeon_node_ids() -> Array[int]:
+	return visited_dungeon_node_ids.duplicate()
+
+func get_last_visited_dungeon_node_id() -> int:
+	if visited_dungeon_node_ids.is_empty():
+		return -1
+
+	return int(visited_dungeon_node_ids[visited_dungeon_node_ids.size() - 1])
+
 func export_memories_to(class_memory_awards: Dictionary) -> int:
 	if memories_exported:
 		return 0
@@ -158,7 +182,7 @@ func register_combat_result(result: Variant) -> void:
 
 	grant_rewards(result.memories_awarded, result.gold_awarded)
 	fights_completed += 1
-	current_node_index = max(current_node_index, result.node_id)
+	mark_dungeon_node_visited(result.node_id)
 
 	if result.is_boss:
 		boss_defeated = true

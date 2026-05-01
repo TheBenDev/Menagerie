@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://d3ovr4oae0nno"
-path="res://.godot/imported/textured_background.png-c49dee94e31189579c38dd677a7390f1.ctex"
+uid="uid://b4hcn5y7fukuq"
+path="res://.godot/imported/HavenNode_hover.png-a827cfba4e44106302417743a8fdd06b.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/ui/global/background/textured_background.png"
-dest_files=["res://.godot/imported/textured_background.png-c49dee94e31189579c38dd677a7390f1.ctex"]
+source_file="res://assets/ui/dungeon/nodes/HavenNode_hover.png"
+dest_files=["res://.godot/imported/HavenNode_hover.png-a827cfba4e44106302417743a8fdd06b.ctex"]
 
 [params]
 

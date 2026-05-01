@@ -20,7 +20,7 @@ This documentation follows an MDN-style split:
 | Main scene | `res://scenes/ui/main_menu/main_menu.tscn` |
 | Core autoloads | `SoundManager`, `GameManager` |
 | Editor plugins | Easy State Machine, Godot AI |
-| Script count | 56 `.gd` files |
+| Script count | 60 `.gd` files |
 | Data resource count | 16 `.tres` files under `res://core`, `res://scenes/combatants`, and `res://assets/audio` |
 | Real scene count | 9 `.tscn` scenes, excluding editor `.tmp` scene files |
 

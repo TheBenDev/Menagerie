@@ -12,7 +12,7 @@ The UI layer is scene-driven: scene scripts call `GameManager`, reusable control
 | --- | --- | --- |
 | `main_menu.tscn` | `res://scenes/ui/main_menu/main_menu.gd` | Routes to waiting room, handles escape/close, requests menu music. |
 | `waiting_room.tscn` | `res://scenes/ui/waiting_room/waiting_room.gd` | Selects character/difficulty and starts runs. |
-| `dungeon.tscn` | `res://scenes/dungeon/dungeon_controller.gd` | Shows map progression and starts encounters. |
+| `DungeonMap.tscn` | `res://scenes/dungeon/dungeon_controller.gd` | Shows grid map progression and starts routed node encounters. |
 | `Battle/UI/BattleHUD.tscn` | `res://scenes/combat/ui/battle_hud.gd` | Shows combat state, timeline, panels, action bar, and time controls. |
 | `UI/GlobalHUD/GlobalHUD.tscn` | `res://scenes/ui/global_hud/global_hud.gd` | Shows run timer, currencies, and selected character stats. |
 | `run_summary.tscn` | `res://scenes/ui/run_summary/run_summary.gd` | Shows final run stats and returns to waiting room. |
@@ -42,6 +42,7 @@ The UI layer is scene-driven: scene scripts call `GameManager`, reusable control
 | `TimeProgressBar` | `res://scenes/ui/common/time_progress_bar.gd` | Draws the run timer fill inside an authored frame. |
 | `NumberFont` | `res://scenes/ui/common/number_font.gd` | Applies or draws monospaced number spans in mixed-width UI text. |
 | `TimelineView` | `res://scenes/combat/timeline_view.gd` | Draws and scrolls battle timeline markers. |
+| `DungeonMapInputConnector` | `res://scenes/dungeon/dungeon_map_input_connector.gd` | Connects shared map navigation keybinds to dungeon zooming and panning. |
 
 ## See also
 
