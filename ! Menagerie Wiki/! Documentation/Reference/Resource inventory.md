@@ -4,37 +4,41 @@ page-type: reference
 status: draft
 ---
 
-This inventory lists authored gameplay/audio `.tres` files under `res://data`, excluding `.uid` files.
+This inventory lists authored gameplay, audio, UI, and visual `.tres` files under the current project layout, excluding `.uid` files.
 
 ## Totals
 
 | Group | Count |
 | --- | ---: |
-| `data/audio` | 1 |
-| `data/characters` | 3 |
-| `data/difficulty` | 3 |
-| `data/enemies` | 3 |
-| `data/rewards` | 1 |
-| `data/statuses` | 2 |
-| Total | 13 |
+| `assets/audio` | 1 |
+| `assets/ui` | 1 |
+| `core/difficulty` | 3 |
+| `core/rewards` | 1 |
+| `core/statuses` | 2 |
+| `scenes/combatants/characters` | 4 |
+| `scenes/combatants/enemies` | 4 |
+| Total | 16 |
 
 ## Resources
 
 | Resource | Script class | Purpose |
 | --- | --- | --- |
-| `res://data/audio/common_audio_library.tres` | `AudioLibraryData` | Authored music tracks and cue overrides. |
-| `res://data/characters/Warrior/warrior_moveset.tres` | `CombatMovesetData` | Warrior player actions and embedded action effects. |
-| `res://data/characters/Warrior/warrior_profile.tres` | `CombatantProfile` | Warrior stats, moveset, UI bars, and identity data. |
-| `res://data/characters/Warrior/warrior_visual_state_machine_config.tres` | `SMConfig` | Easy State Machine config for warrior battle visual. |
-| `res://data/difficulty/easy.tres` | `DifficultyProfile` | Easy difficulty tuning. |
-| `res://data/difficulty/normal.tres` | `DifficultyProfile` | Normal difficulty tuning and default difficulty. |
-| `res://data/difficulty/hard.tres` | `DifficultyProfile` | Hard difficulty tuning. |
-| `res://data/enemies/Training_Ghoul/training_ghoul_ai.tres` | `EnemyAIProfile` | Training Ghoul move list and embedded enemy effects. |
-| `res://data/enemies/Training_Ghoul/training_ghoul_profile.tres` | `CombatantProfile` | Training Ghoul stats, AI profile, rewards, UI bars, and identity data. |
-| `res://data/enemies/Training_Ghoul/training_ghoul_visual_state_machine_config.tres` | `SMConfig` | Easy State Machine config for Training Ghoul visual. |
-| `res://data/rewards/training_ghoul_rewards.tres` | `RewardProfile` | Base Training Ghoul memory/gold rewards and boss multiplier. |
-| `res://data/statuses/vulnerable.tres` | `StatusData` | Timed incoming damage multiplier status. |
-| `res://data/statuses/weaken.tres` | `StatusData` | Timed outgoing damage multiplier status. |
+| `res://assets/audio/common_audio_library.tres` | `AudioLibraryData` | Authored music tracks and cue overrides. |
+| `res://assets/ui/menagerie_theme.tres` | `Theme` | Project UI theme. |
+| `res://scenes/combatants/characters/warrior/textures/warrior_idle_frames.tres` | `SpriteFrames` | Warrior battle visual frames. |
+| `res://scenes/combatants/characters/warrior/warrior_moveset.tres` | `CombatMovesetData` | Warrior player actions and embedded action effects. |
+| `res://scenes/combatants/characters/warrior/warrior_profile.tres` | `CombatantProfile` | Warrior stats, moveset, UI bars, and identity data. |
+| `res://scenes/combatants/characters/warrior/warrior_visual_state_machine_config.tres` | `SMConfig` | Easy State Machine config for warrior battle visual. |
+| `res://core/difficulty/easy.tres` | `DifficultyProfile` | Easy difficulty tuning. |
+| `res://core/difficulty/normal.tres` | `DifficultyProfile` | Normal difficulty tuning and default difficulty. |
+| `res://core/difficulty/hard.tres` | `DifficultyProfile` | Hard difficulty tuning. |
+| `res://scenes/combatants/enemies/training_ghoul/textures/training_ghoul_visual_frames.tres` | `SpriteFrames` | Training Ghoul battle visual frames. |
+| `res://scenes/combatants/enemies/training_ghoul/training_ghoul_ai.tres` | `EnemyAIProfile` | Training Ghoul move list and embedded enemy effects. |
+| `res://scenes/combatants/enemies/training_ghoul/training_ghoul_profile.tres` | `CombatantProfile` | Training Ghoul stats, AI profile, rewards, UI bars, and identity data. |
+| `res://scenes/combatants/enemies/training_ghoul/training_ghoul_visual_state_machine_config.tres` | `SMConfig` | Easy State Machine config for Training Ghoul visual. |
+| `res://core/rewards/training_ghoul_rewards.tres` | `RewardProfile` | Base Training Ghoul memory/gold rewards and boss multiplier. |
+| `res://core/statuses/vulnerable.tres` | `StatusData` | Timed incoming damage multiplier status. |
+| `res://core/statuses/weaken.tres` | `StatusData` | Timed outgoing damage multiplier status. |
 
 ## Resource schemas
 

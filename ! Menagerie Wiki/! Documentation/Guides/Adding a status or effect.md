@@ -8,7 +8,7 @@ Use this guide to add reusable status data or new combat effect behavior.
 
 ## Add a status
 
-1. Create a `StatusData` resource under `res://data/statuses`.
+1. Create a `StatusData` resource under `res://core/statuses`.
 2. Use a short lowercase ID that matches the file name.
 3. Set:
    - `id`
@@ -18,7 +18,7 @@ Use this guide to add reusable status data or new combat effect behavior.
    - `incoming_damage_multiplier`
 4. Reference the status from an `ActionEffect` with `effect_id = &"status.apply"` and `status_id = &"status.<id>"`.
 
-`CombatEffectLibrary.status_path_for_id()` resolves `status.<id>` to `res://data/statuses/<id>.tres`.
+`CombatEffectLibrary.status_path_for_id()` resolves `status.<id>` to `res://core/statuses/<id>.tres`.
 
 ## Use an existing effect behavior
 
@@ -34,7 +34,7 @@ Prefer `ActionEffect` plus a namespaced `effect_id`:
 
 ## Add a new effect behavior
 
-1. Add a new namespaced constant to `res://scripts/combat/actions/combat_effect_library.gd`.
+1. Add a new namespaced constant to `res://core/combat/actions/combat_effect_library.gd`.
 2. Add the new ID to `apply_effect()`.
 3. Add estimation behavior to `estimate_power()` if enemy AI should score it.
 4. Use exported fields already present on `ActionEffect` if they fit.

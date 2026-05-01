@@ -19,7 +19,7 @@ One sentence explaining what this script owns.
 
 | Item | Value |
 | --- | --- |
-| Source | `res://scripts/...` |
+| Source | `res://core/...` or `res://scenes/...` |
 | Class | `ClassName` or none |
 | Extends | `Node`, `Resource`, etc. |
 | Used by | Scenes, resources, or scripts |

@@ -19,7 +19,7 @@ One sentence explaining what this resource configures.
 
 | Item | Value |
 | --- | --- |
-| Resource path | `res://data/...` |
+| Resource path | `res://core/...`, `res://scenes/...`, or `res://assets/...` |
 | Script class | `ClassName` |
 | Runtime consumers | Scripts or scenes |
 
@@ -35,7 +35,7 @@ Explain how this resource enters runtime.
 ## Examples
 
 ```gdscript
-var resource := load("res://data/...")
+var resource := load("res://core/...")
 ```
 
 ## Authoring notes

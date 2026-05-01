@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="StatusData" format=3]
+
+[ext_resource type="Script" path="res://core/statuses/status_data.gd" id="1_status_data"]
+
+[resource]
+script = ExtResource("1_status_data")
+id = "vulnerable"
+display_name = "Vulnerable"
+duration_seconds = 10.0
+incoming_damage_multiplier = 1.25

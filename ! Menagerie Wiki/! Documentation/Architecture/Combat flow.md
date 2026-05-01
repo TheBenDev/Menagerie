@@ -10,13 +10,13 @@ Combat is a time-based queue where the player chooses actions, the enemy AI choo
 
 | Actor                 | Source                                                  | Responsibility                                                                                  |
 | --------------------- | ------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| `BattleScene`         | `res://scripts/combat/battle/battle_scene.gd`           | Scene coordinator for combatants, HUD, audio bridge, run data, and final result reporting.      |
-| `BattleController`    | `res://scripts/combat/battle/battle_controller.gd`      | Advances combat time, queues actions, resolves simultaneous actions, and requests player input. |
-| `Combatant`           | `res://scripts/combat/combatants/combatant.gd`          | Holds stats, HP, block, statuses, available actions, and pending action state.                  |
-| `WarriorCombatant`    | `res://scripts/combat/combatants/warrior_combatant.gd`  | Adds rage gain/decay and rage snapshots for the HUD.                                            |
-| `EnemyBrain`          | `res://scripts/combat/ai/enemy_brain.gd`                | Chooses enemy moves from authored weights and difficulty-aware scoring.                         |
-| `ActionResolver`      | `res://scripts/combat/actions/action_resolver.gd`       | Applies action costs and calls each action effect.                                              |
-| `CombatEffectLibrary` | `res://scripts/combat/actions/combat_effect_library.gd` | Resolves namespaced effect IDs such as `combat.damage` and `status.apply`.                      |
+| `BattleScene`         | `res://scenes/combat/battle_scene.gd`           | Scene coordinator for combatants, HUD, audio bridge, run data, and final result reporting.      |
+| `BattleController`    | `res://core/combat/battle/battle_controller.gd`      | Advances combat time, queues actions, resolves simultaneous actions, and requests player input. |
+| `Combatant`           | `res://scenes/combatants/combatant.gd`          | Holds stats, HP, block, statuses, available actions, and pending action state.                  |
+| `WarriorCombatant`    | `res://scenes/combatants/characters/warrior/warrior_combatant.gd`  | Adds rage gain/decay and rage snapshots for the HUD.                                            |
+| `EnemyBrain`          | `res://core/combat/ai/enemy_brain.gd`                | Chooses enemy moves from authored weights and difficulty-aware scoring.                         |
+| `ActionResolver`      | `res://core/combat/actions/action_resolver.gd`       | Applies action costs and calls each action effect.                                              |
+| `CombatEffectLibrary` | `res://core/combat/actions/combat_effect_library.gd` | Resolves namespaced effect IDs such as `combat.damage` and `status.apply`.                      |
 
 ## Runtime sequence
 
@@ -39,7 +39,7 @@ Combat is a time-based queue where the player chooses actions, the enemy AI choo
 | --- | --- |
 | `combat.damage` | Deals stat-scaled damage, applies outgoing and incoming multipliers, then block and HP loss. |
 | `combat.block` | Grants block to the source combatant. |
-| `status.apply` | Loads a status resource from `res://data/statuses` and applies it to targets. |
+| `status.apply` | Loads a status resource from `res://core/statuses` and applies it to targets. |
 | `resource.rage.gain` | Calls `gain_rage()` on sources that implement it. |
 | `stat.strength.add` | Adds strength to targets, or to the source if no targets are supplied. |
 

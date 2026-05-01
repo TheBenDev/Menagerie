@@ -8,13 +8,13 @@ Use this guide to add a new enemy profile, AI profile, rewards, and optional bat
 
 ## Create the data folder
 
-Create a folder under `res://data/enemies/<Enemy_Name>`.
+Create a folder under `res://scenes/combatants/enemies/<enemy_name>`.
 
 Use existing Training Ghoul resources as the pattern:
 
-- `res://data/enemies/Training_Ghoul/training_ghoul_profile.tres`
-- `res://data/enemies/Training_Ghoul/training_ghoul_ai.tres`
-- `res://data/enemies/Training_Ghoul/training_ghoul_visual_state_machine_config.tres`
+- `res://scenes/combatants/enemies/training_ghoul/training_ghoul_profile.tres`
+- `res://scenes/combatants/enemies/training_ghoul/training_ghoul_ai.tres`
+- `res://scenes/combatants/enemies/training_ghoul/training_ghoul_visual_state_machine_config.tres`
 
 ## Create rewards
 
@@ -39,7 +39,7 @@ Use existing Training Ghoul resources as the pattern:
 
 ## Add to dungeon
 
-1. Open `res://scenes/dungeon.tscn` through Godot.
+1. Open `res://scenes/dungeon/dungeon.tscn` through Godot.
 2. Pick or add a `DungeonNodeView`.
 3. Set its `enemy_profile_path` to the new enemy profile.
 4. Set `is_boss` for boss encounters.

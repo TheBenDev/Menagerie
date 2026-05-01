@@ -1,6 +1,0 @@
-[gd_resource type="Resource" script_class="DifficultyProfile" format=3 uid="uid://bdgd4wk22mur6"]
-
-[ext_resource type="Script" uid="uid://c30seywk0slme" path="res://scripts/data/difficulty/difficulty_profile.gd" id="1_difficulty_profile"]
-
-[resource]
-script = ExtResource("1_difficulty_profile")

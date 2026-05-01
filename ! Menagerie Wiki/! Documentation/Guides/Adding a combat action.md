@@ -14,7 +14,7 @@ Use this guide to add a player action or enemy move backed by `CombatActionData`
 
 ## Add a player action
 
-1. Open `res://data/characters/Warrior/warrior_moveset.tres` in Godot.
+1. Open `res://scenes/combatants/characters/warrior/warrior_moveset.tres` in Godot.
 2. Add any needed `ActionEffect` subresources directly before the action that uses them.
 3. Add a `PlayerActionData` subresource.
 4. Set the action fields:
@@ -29,7 +29,7 @@ Use this guide to add a player action or enemy move backed by `CombatActionData`
 
 ## Add an enemy move
 
-1. Open the enemy AI profile, such as `res://data/enemies/Training_Ghoul/training_ghoul_ai.tres`.
+1. Open the enemy AI profile, such as `res://scenes/combatants/enemies/training_ghoul/training_ghoul_ai.tres`.
 2. Add `ActionEffect` subresources directly before the move that uses them.
 3. Add an `EnemyMoveData` subresource.
 4. Set base action fields from `CombatActionData`.

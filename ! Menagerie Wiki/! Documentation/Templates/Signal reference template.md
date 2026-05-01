@@ -20,7 +20,7 @@ One sentence explaining when this signal is emitted.
 | Item | Value |
 | --- | --- |
 | Emitter | `ClassName` |
-| Source | `res://scripts/...` |
+| Source | `res://core/...` or `res://scenes/...` |
 | Signal | `signal_name(...)` |
 
 ## Payload

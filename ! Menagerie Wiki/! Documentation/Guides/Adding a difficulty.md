@@ -8,19 +8,19 @@ Use this guide to add a new difficulty profile and expose it to run setup.
 
 ## Create the profile
 
-1. Create a `DifficultyProfile` resource under `res://data/difficulty`.
+1. Create a `DifficultyProfile` resource under `res://core/difficulty`.
 2. Set:
    - `id`
    - `display_name`
    - enemy multipliers
    - reward multiplier
    - AI tuning weights
-3. Use `res://data/difficulty/normal.tres` as the baseline.
+3. Use `res://core/difficulty/normal.tres` as the baseline.
 
 ## Register the profile
 
-1. Update `GameManager.DIFFICULTY_PROFILE_PATHS` in `res://scripts/game_manager.gd`.
-2. If this difficulty should be selectable in the waiting room, update `res://scenes/waiting_room.tscn` and `res://scripts/ui/waiting_room.gd`.
+1. Update `GameManager.DIFFICULTY_PROFILE_PATHS` in `res://core/game_manager.gd`.
+2. If this difficulty should be selectable in the waiting room, update `res://scenes/ui/waiting_room/waiting_room.tscn` and `res://scenes/ui/waiting_room/waiting_room.gd`.
 3. Keep `RunData.DEFAULT_DIFFICULTY` unchanged unless the project default should move.
 
 ## Runtime effects

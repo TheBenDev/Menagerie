@@ -10,12 +10,10 @@ This inventory covers source asset groups used by scenes, UI, battle visuals, an
 
 | Group | Paths | Use |
 | --- | --- | --- |
-| Backgrounds | `res://assets/Backgrounds/Dungeon background cartoon 2d *.jpg` | Dungeon/background art candidates. |
-| Warrior sprites | `res://assets/characters/Warrior/*.png`, `warrior_idle_frames.tres` | Warrior battle visual frames. |
-| Training Ghoul sprites | `res://assets/enemies/training_ghoul/*.png`, `training_ghoul_visual_frames.tres` | Training Ghoul battle visual frames. |
-| Fantasy UI pack | `res://assets/FantasyUIfree/*` | UI frame and bar source art. |
-| Fonts | `res://assets/Gotfridus_Font_0_5/*` | Gotfridus font files and license. |
-| Main menu UI | `res://assets/ui/Main Menu/*` | Main menu background and texture buttons. |
+| Warrior sprites | `res://scenes/combatants/characters/warrior/textures/*` | Warrior battle visual frames. |
+| Training Ghoul sprites | `res://scenes/combatants/enemies/training_ghoul/textures/*` | Training Ghoul battle visual frames. |
+| Fonts | `res://assets/fonts/gotfridus_font_0_5/*` | Gotfridus font files and license. |
+| Main menu UI | `res://assets/ui/main_menu/*` | Main menu background and texture buttons. |
 | Global UI | `res://assets/ui/global/textured_background.png`, `TimeProgressBar.png`, `TitleIcon.png`, `AppIcon.png` | Shared UI art and app icon. |
 | Theme | `res://assets/ui/menagerie_theme.tres` | Project UI theme. |
 
@@ -23,13 +21,12 @@ This inventory covers source asset groups used by scenes, UI, battle visuals, an
 
 | Group | Paths | Runtime IDs |
 | --- | --- | --- |
-| Base music | `res://sounds/music/bgtheme.wav` | `music.bgtheme` |
-| Dungeon music | `res://sounds/music/Dungeon/*.wav` | `music.dungeon.*` |
-| Ambience stems | `res://sounds/music/Stems/Ambience/*.wav` | `music.stems.ambience.*` |
-| Boss SFX | `res://sounds/sfx/Boss/BossStartFight.wav` | `sfx.boss.boss_start_fight` |
-| Enemy SFX | `res://sounds/sfx/Enemy/Jockey/diddy jocky.wav` | `sfx.enemy.jockey.diddy_jocky` |
-| Global SFX | `res://sounds/sfx/Global/Death/RunEndsLoop.wav` | `sfx.global.death.run_ends_loop` |
-| UI sounds | `res://sounds/ui/Button/Click.wav`, `res://sounds/ui/Notification/SkillTreePoint.wav` | `ui.button.click`, `ui.notification.skill_tree_point` |
+| Base music | `res://assets/audio/music/bgtheme.wav` | `music.bgtheme` |
+| Dungeon music | `res://assets/audio/music/dungeon/*.wav` | `music.dungeon.*` |
+| Ambience stems | `res://assets/audio/music/stems/ambience/*.wav` | `music.stems.ambience.*` |
+| Boss SFX | `res://assets/audio/sfx/global/boss/BossStartFight.wav` | `sfx.global.boss.boss_start_fight` |
+| Global SFX | `res://assets/audio/sfx/global/death/RunEndsLoop.wav` | `sfx.global.death.run_ends_loop` |
+| UI sounds | `res://assets/audio/ui/button/Click.wav`, `res://assets/audio/ui/notification/SkillTreePoint.wav` | `ui.button.click`, `ui.notification.skill_tree_point` |
 
 ## Files not normally documented
 

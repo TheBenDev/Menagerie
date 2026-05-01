@@ -1,9 +1,0 @@
-[gd_resource type="Resource" script_class="RewardProfile" format=3]
-
-[ext_resource type="Script" path="res://scripts/data/rewards/reward_profile.gd" id="1_reward_profile"]
-
-[resource]
-script = ExtResource("1_reward_profile")
-base_memories = 5
-base_gold = 10
-boss_multiplier = 4.0

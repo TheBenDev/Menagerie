@@ -1,0 +1,161 @@
+[gd_scene format=3 uid="uid://kyqg6yac01sy"]
+
+[ext_resource type="Script" uid="uid://dl4prainanbqr" path="res://scenes/dungeon/dungeon_controller.gd" id="1_dungeon_controller"]
+[ext_resource type="Script" uid="uid://43dee0xwjh53" path="res://scenes/dungeon/dungeon_node_view.gd" id="2_node_view"]
+[ext_resource type="PackedScene" uid="uid://dk60mirr4sj2m" path="res://scenes/ui/global_hud/GlobalHUD.tscn" id="3_global_hud"]
+[ext_resource type="Theme" uid="uid://blcilhxj3ejys" path="res://assets/ui/menagerie_theme.tres" id="4_theme"]
+
+[node name="Dungeon" type="Control" unique_id=1721247295]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("4_theme")
+
+[node name="Backdrop" type="ColorRect" parent="." unique_id=2031395788]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.075, 0.08, 0.085, 1)
+
+[node name="DungeonController" type="Node" parent="." unique_id=811380347]
+script = ExtResource("1_dungeon_controller")
+node_container_path = NodePath("../MarginContainer/Layout/PathPanel/PathMargin/PathRow")
+
+[node name="GlobalHUD" parent="." unique_id=52286228 instance=ExtResource("3_global_hud")]
+
+[node name="MarginContainer" type="MarginContainer" parent="." unique_id=1239401819]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 44
+theme_override_constants/margin_top = 112
+theme_override_constants/margin_right = 44
+theme_override_constants/margin_bottom = 36
+
+[node name="Layout" type="VBoxContainer" parent="MarginContainer" unique_id=2129362171]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 18
+
+[node name="HeaderRow" type="HBoxContainer" parent="MarginContainer/Layout" unique_id=2053562056]
+layout_mode = 2
+theme_override_constants/separation = 18
+
+[node name="TitleLabel" type="Label" parent="MarginContainer/Layout/HeaderRow" unique_id=980320065]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 42
+text = "Dungeon"
+
+[node name="DifficultyLabel" type="Label" parent="MarginContainer/Layout/HeaderRow" unique_id=858669521]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Difficulty: Normal"
+vertical_alignment = 1
+
+[node name="StatusLabel" type="Label" parent="MarginContainer/Layout" unique_id=1892133864]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Progress: 0 / 4 fights complete"
+
+[node name="PathPanel" type="PanelContainer" parent="MarginContainer/Layout" unique_id=1840002184]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="PathMargin" type="MarginContainer" parent="MarginContainer/Layout/PathPanel" unique_id=757156507]
+layout_mode = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 22
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 22
+
+[node name="PathRow" type="HBoxContainer" parent="MarginContainer/Layout/PathPanel/PathMargin" unique_id=1706180243]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 10
+
+[node name="Node0Button" type="Button" parent="MarginContainer/Layout/PathPanel/PathMargin/PathRow" unique_id=802133205]
+custom_minimum_size = Vector2(170, 96)
+layout_mode = 2
+text = "Current
+Haven"
+script = ExtResource("2_node_view")
+node_id = 0
+node_type = "Haven"
+
+[node name="Connector01" type="Label" parent="MarginContainer/Layout/PathPanel/PathMargin/PathRow" unique_id=248609970]
+layout_mode = 2
+text = "->"
+vertical_alignment = 1
+
+[node name="Node1Button" type="Button" parent="MarginContainer/Layout/PathPanel/PathMargin/PathRow" unique_id=87357349]
+custom_minimum_size = Vector2(170, 96)
+layout_mode = 2
+text = "Fight
+Revealed"
+script = ExtResource("2_node_view")
+node_id = 1
+enemy_profile_path = "res://scenes/combatants/enemies/training_ghoul/training_ghoul_profile.tres"
+
+[node name="Connector12" type="Label" parent="MarginContainer/Layout/PathPanel/PathMargin/PathRow" unique_id=621234445]
+layout_mode = 2
+text = "->"
+vertical_alignment = 1
+
+[node name="Node2Button" type="Button" parent="MarginContainer/Layout/PathPanel/PathMargin/PathRow" unique_id=642522415]
+custom_minimum_size = Vector2(170, 96)
+layout_mode = 2
+text = "?
+Hidden"
+script = ExtResource("2_node_view")
+node_id = 2
+enemy_profile_path = "res://scenes/combatants/enemies/training_ghoul/training_ghoul_profile.tres"
+
+[node name="Connector23" type="Label" parent="MarginContainer/Layout/PathPanel/PathMargin/PathRow" unique_id=979880623]
+layout_mode = 2
+text = "->"
+vertical_alignment = 1
+
+[node name="Node3Button" type="Button" parent="MarginContainer/Layout/PathPanel/PathMargin/PathRow" unique_id=330213342]
+custom_minimum_size = Vector2(170, 96)
+layout_mode = 2
+text = "?
+Hidden"
+script = ExtResource("2_node_view")
+node_id = 3
+enemy_profile_path = "res://scenes/combatants/enemies/training_ghoul/training_ghoul_profile.tres"
+
+[node name="Connector34" type="Label" parent="MarginContainer/Layout/PathPanel/PathMargin/PathRow" unique_id=1013583879]
+layout_mode = 2
+text = "->"
+vertical_alignment = 1
+
+[node name="Node4Button" type="Button" parent="MarginContainer/Layout/PathPanel/PathMargin/PathRow" unique_id=1952869980]
+custom_minimum_size = Vector2(170, 96)
+layout_mode = 2
+text = "?
+Hidden"
+script = ExtResource("2_node_view")
+node_id = 4
+node_type = "Boss"
+enemy_profile_path = "res://scenes/combatants/enemies/training_ghoul/training_ghoul_profile.tres"
+is_boss = true
+
+[node name="DetailLabel" type="Label" parent="MarginContainer/Layout" unique_id=1204011812]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Next: Fight"
+
+[node name="Spacer" type="Control" parent="MarginContainer/Layout" unique_id=1696742071]
+layout_mode = 2
+size_flags_vertical = 3

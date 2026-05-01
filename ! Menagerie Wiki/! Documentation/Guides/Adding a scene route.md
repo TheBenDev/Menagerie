@@ -9,7 +9,7 @@ Use this guide to add a new scene that can be loaded through `GameManager.go_to_
 ## Create the scene
 
 1. Create the `.tscn` under `res://scenes`.
-2. Add a scene script under `res://scripts/ui`, `res://scripts/dungeon`, `res://scripts/combat`, or another appropriate subsystem.
+2. Add a scene script beside the scene, such as under `res://scenes/ui`, `res://scenes/dungeon`, `res://scenes/combat`, or another appropriate subsystem.
 3. Save the scene through Godot so resource serialization and UIDs are editor-owned.
 
 ## Route naming
@@ -27,7 +27,7 @@ Prefer a short route ref without extension for call sites.
 
 If the scene needs route music:
 
-1. Add or reuse a music track in `res://data/audio/common_audio_library.tres`.
+1. Add or reuse a music track in `res://assets/audio/common_audio_library.tres`.
 2. Update `GameManager._music_id_for_scene_path()`.
 3. Confirm `GameManager.play_music_for_scene(route)` resolves the new mapping.
 

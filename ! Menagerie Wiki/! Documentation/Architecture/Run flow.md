@@ -10,12 +10,12 @@ The run flow describes how menu selection becomes dungeon state, combat, rewards
 
 | Actor | Source | Responsibility |
 | --- | --- | --- |
-| `GameManager` | `res://scripts/game_manager.gd` | Autoload that owns run setup, scene transitions, rewards, timer events, and route music. |
-| `RunData` | `res://scripts/run_data.gd` | RefCounted model for selected character, difficulty, timer, current encounter, rewards, and combat totals. |
-| Waiting room | `res://scripts/ui/waiting_room.gd` | Selects character and difficulty, starts a run, routes to dungeon. |
-| Dungeon controller | `res://scripts/dungeon/dungeon_controller.gd` | Applies completed combat results and starts selected encounters. |
-| Battle scene | `res://scripts/combat/battle/battle_scene.gd` | Reports combat results back to `GameManager`. |
-| Run summary | `res://scripts/ui/run_summary.gd` | Displays run totals and exports earned memories. |
+| `GameManager` | `res://core/game_manager.gd` | Autoload that owns run setup, scene transitions, rewards, timer events, and route music. |
+| `RunData` | `res://core/run_data.gd` | RefCounted model for selected character, difficulty, timer, current encounter, rewards, and combat totals. |
+| Waiting room | `res://scenes/ui/waiting_room/waiting_room.gd` | Selects character and difficulty, starts a run, routes to dungeon. |
+| Dungeon controller | `res://scenes/dungeon/dungeon_controller.gd` | Applies completed combat results and starts selected encounters. |
+| Battle scene | `res://scenes/combat/battle_scene.gd` | Reports combat results back to `GameManager`. |
+| Run summary | `res://scenes/ui/run_summary/run_summary.gd` | Displays run totals and exports earned memories. |
 
 ## Flow
 

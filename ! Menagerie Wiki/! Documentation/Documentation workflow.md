@@ -40,7 +40,7 @@ Treat `.uid`, `.tmp`, `.import`, `.godot`, and generated cache/build files as im
 - Start each page with a one-sentence purpose statement.
 - Prefer short, concrete sections over long essays.
 - Link to related pages using Obsidian links, such as `[[Combat flow]]`.
-- Include source paths for code and resources, such as `res://scripts/combat/battle/battle_controller.gd`.
+- Include source paths for code and resources, such as `res://core/combat/battle/battle_controller.gd`.
 - Document public methods, signals, exported properties, resource schemas, route IDs, and stable IDs.
 - Document private helpers only when they explain a non-obvious flow or abstraction.
 - End every page with `## See also`.

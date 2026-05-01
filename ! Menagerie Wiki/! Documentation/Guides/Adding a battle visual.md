@@ -9,8 +9,8 @@ Use this guide to add a character or enemy battle visual scene.
 ## Add visual assets
 
 1. Put source sprites under:
-   - `res://assets/characters/<Name>` for playable characters.
-   - `res://assets/enemies/<name>` for enemies.
+   - `res://scenes/combatants/characters/<name>/textures` for playable characters.
+   - `res://scenes/combatants/enemies/<name>/textures` for enemies.
 2. Create or update a `SpriteFrames` resource.
 3. Use animation names expected by state scripts, such as `idle` or `static`.
 
@@ -18,8 +18,8 @@ Use this guide to add a character or enemy battle visual scene.
 
 Use existing scenes as patterns:
 
-- `res://scenes/Battle/WarriorBattleVisual.tscn`
-- `res://scenes/Battle/TrainingGhoulBattleVisual.tscn`
+- `res://scenes/combatants/characters/warrior/WarriorBattleVisual.tscn`
+- `res://scenes/combatants/enemies/training_ghoul/TrainingGhoulBattleVisual.tscn`
 
 The scene should contain:
 
@@ -27,7 +27,8 @@ The scene should contain:
 - `AnimatedSprite2D`.
 - `StateMachine`.
 - State nodes such as `IdleState` or `StaticState`.
-- An Easy State Machine `SMConfig` resource under `res://data/...`.
+- An Easy State Machine `SMConfig` resource in the same combatant folder as the visual scene.
+- Shared state scripts can use `CombatantAnimationStateHelper` from `res://scenes/combatants/combatant_animation_state_helper.gd`.
 
 ## Configure fitting
 
@@ -42,7 +43,7 @@ The scene should contain:
 
 ## Wire into battle UI
 
-1. Open `res://scenes/Battle/UI/BattleHUD.tscn` in Godot.
+1. Open `res://scenes/combat/ui/BattleHUD.tscn` in Godot.
 2. Replace or add the visual scene where the combatant panel expects it.
 3. Keep node paths used by `battle_hud.gd` and `combatant_panel.gd` stable unless you update the scripts.
 

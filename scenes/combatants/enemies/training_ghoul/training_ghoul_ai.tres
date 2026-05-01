@@ -1,0 +1,94 @@
+[gd_resource type="Resource" script_class="EnemyAIProfile" format=3 uid="uid://b6gu4avfgu60p"]
+
+[ext_resource type="Script" uid="uid://cklhp8le7oiy8" path="res://core/combat/ai/enemy_ai_profile.gd" id="1_enemy_ai_profile"]
+[ext_resource type="Script" uid="uid://dc786e3pylw3d" path="res://core/combat/data/actions/enemy_move_data.gd" id="2_enemy_move_data"]
+[ext_resource type="Script" uid="uid://bj802nmis6fsn" path="res://core/combat/data/effects/action_effect.gd" id="3_action_effect"]
+
+[sub_resource type="Resource" id="DamageEffect_bite"]
+script = ExtResource("3_action_effect")
+effect_id = &"combat.damage"
+base_damage = 5
+scaling_multiplier = 0.8
+
+[sub_resource type="Resource" id="EnemyMove_bite"]
+script = ExtResource("2_enemy_move_data")
+weight = 5.0
+id = "bite"
+display_name = "Bite"
+time_cost = 4.0
+effects = Array[ExtResource("3_action_effect")]([SubResource("DamageEffect_bite")])
+
+[sub_resource type="Resource" id="DamageEffect_weakening_claw"]
+script = ExtResource("3_action_effect")
+effect_id = &"combat.damage"
+base_damage = 3
+scaling_multiplier = 0.5
+
+[sub_resource type="Resource" id="ApplyStatusEffect_weakening_claw_weaken"]
+script = ExtResource("3_action_effect")
+effect_id = &"status.apply"
+status_id = &"status.weaken"
+
+[sub_resource type="Resource" id="EnemyMove_weakening_claw"]
+script = ExtResource("2_enemy_move_data")
+weight = 4.0
+ai_role = "Debuff"
+status_id = "weaken"
+id = "weakening_claw"
+display_name = "Weakening Claw"
+time_cost = 3.0
+effects = Array[ExtResource("3_action_effect")]([SubResource("DamageEffect_weakening_claw"), SubResource("ApplyStatusEffect_weakening_claw_weaken")])
+
+[sub_resource type="Resource" id="DamageEffect_slam"]
+script = ExtResource("3_action_effect")
+effect_id = &"combat.damage"
+base_damage = 12
+scaling_multiplier = 1.2
+
+[sub_resource type="Resource" id="ApplyStatusEffect_slam_vulnerable"]
+script = ExtResource("3_action_effect")
+effect_id = &"status.apply"
+status_id = &"status.vulnerable"
+
+[sub_resource type="Resource" id="EnemyMove_slam"]
+script = ExtResource("2_enemy_move_data")
+ai_role = "HeavyDamage"
+status_id = "vulnerable"
+id = "slam"
+display_name = "Heavy Slam"
+time_cost = 8.0
+effects = Array[ExtResource("3_action_effect")]([SubResource("DamageEffect_slam"), SubResource("ApplyStatusEffect_slam_vulnerable")])
+
+[sub_resource type="Resource" id="BlockEffect_guard"]
+script = ExtResource("3_action_effect")
+effect_id = &"combat.block"
+amount = 12
+
+[sub_resource type="Resource" id="EnemyMove_guard"]
+script = ExtResource("2_enemy_move_data")
+weight = 2.0
+target_rule = "Self"
+ai_role = "Defense"
+id = "guard"
+display_name = "Guard"
+effects = Array[ExtResource("3_action_effect")]([SubResource("BlockEffect_guard")])
+target_enemy = false
+
+[sub_resource type="Resource" id="StrengthIncreaseEffect_grave_strength"]
+script = ExtResource("3_action_effect")
+effect_id = &"stat.strength.add"
+amount = 1
+
+[sub_resource type="Resource" id="EnemyMove_grave_strength"]
+script = ExtResource("2_enemy_move_data")
+weight = 1.2
+target_rule = "Self"
+ai_role = "Setup"
+id = "grave_strength"
+display_name = "Grave Strength"
+effects = Array[ExtResource("3_action_effect")]([SubResource("StrengthIncreaseEffect_grave_strength")])
+target_enemy = false
+
+[resource]
+script = ExtResource("1_enemy_ai_profile")
+moves = Array[ExtResource("2_enemy_move_data")]([SubResource("EnemyMove_bite"), SubResource("EnemyMove_weakening_claw"), SubResource("EnemyMove_slam"), SubResource("EnemyMove_guard"), SubResource("EnemyMove_grave_strength")])

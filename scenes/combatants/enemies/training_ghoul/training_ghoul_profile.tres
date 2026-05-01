@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="CombatantProfile" format=3 uid="uid://q6rixmj2hsjf"]
+
+[ext_resource type="Script" uid="uid://pfsnfnt6ugqn" path="res://scenes/combatants/combatant_profile.gd" id="1_profile"]
+[ext_resource type="Script" uid="uid://cpn8kixh6g3yf" path="res://scenes/ui/common/resource_bar_config.gd" id="2_bar_config"]
+[ext_resource type="Resource" path="res://core/rewards/training_ghoul_rewards.tres" id="3_rewards"]
+[ext_resource type="Resource" uid="uid://b6gu4avfgu60p" path="res://scenes/combatants/enemies/training_ghoul/training_ghoul_ai.tres" id="5_ai_profile"]
+
+[sub_resource type="Resource" id="ResourceBarConfig_health"]
+script = ExtResource("2_bar_config")
+resource_id = "health"
+label = "HP"
+over_reference_color = Color(0, 0, 0, 0)
+bonus_label = "Block"
+
+[resource]
+script = ExtResource("1_profile")
+display_name = "Training Ghoul"
+placeholder_color = Color(0.32, 0.48, 0.28, 1)
+timeline_initial = "G"
+timeline_color = Color(0.68, 0.9, 0.52, 1)
+strength = 4
+dexterity = 5
+intelligence = 5
+vitality = 7
+enemy_ai_profile = ExtResource("5_ai_profile")
+reward_profile = ExtResource("3_rewards")
+health_bar = SubResource("ResourceBarConfig_health")

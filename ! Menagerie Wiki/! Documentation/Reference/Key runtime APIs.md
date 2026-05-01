@@ -93,7 +93,7 @@ This page summarizes the most important runtime APIs new developers usually need
 | --- | --- | --- |
 | `apply_effect(effect, source, targets, action)` | static method | Dispatches effect behavior by canonical effect ID. |
 | `estimate_power(effect, source, targets, action)` | static method | Estimates damage/block/strength value for AI. |
-| `status_path_for_id(status_id)` | static method | Resolves `status.foo` and `foo` to `res://data/statuses/foo.tres`. |
+| `status_path_for_id(status_id)` | static method | Resolves `status.foo` and `foo` to `res://core/statuses/foo.tres`. |
 | `combat.damage` | effect ID | Deals damage. |
 | `combat.block` | effect ID | Grants source block. |
 | `status.apply` | effect ID | Applies status resource to targets. |

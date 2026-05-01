@@ -4,21 +4,21 @@ page-type: guide
 status: draft
 ---
 
-Gameplay data is authored as Godot `.tres` resources that point to resource scripts under `res://scripts/data`.
+Gameplay data is authored as Godot `.tres` resources that point to resource scripts near their owning system. Shared combat data scripts live under `res://core`, while combatant-specific profiles, movesets, AI data, and visuals live with their combatant folders under `res://scenes/combatants`.
 
 ## Resource categories
 
 | Category | Resource script | Current authored data |
 | --- | --- | --- |
-| Character profile | `CombatantProfile` | `res://data/characters/Warrior/warrior_profile.tres` |
-| Moveset | `CombatMovesetData` | `res://data/characters/Warrior/warrior_moveset.tres` |
-| Enemy profile | `CombatantProfile` | `res://data/enemies/Training_Ghoul/training_ghoul_profile.tres` |
-| Enemy AI profile | `EnemyAIProfile` | `res://data/enemies/Training_Ghoul/training_ghoul_ai.tres` |
-| Difficulty | `DifficultyProfile` | `easy.tres`, `normal.tres`, `hard.tres` |
-| Status | `StatusData` | `weaken.tres`, `vulnerable.tres` |
-| Reward | `RewardProfile` | `training_ghoul_rewards.tres` |
+| Character profile | `CombatantProfile` | `res://scenes/combatants/characters/warrior/warrior_profile.tres` |
+| Moveset | `CombatMovesetData` | `res://scenes/combatants/characters/warrior/warrior_moveset.tres` |
+| Enemy profile | `CombatantProfile` | `res://scenes/combatants/enemies/training_ghoul/training_ghoul_profile.tres` |
+| Enemy AI profile | `EnemyAIProfile` | `res://scenes/combatants/enemies/training_ghoul/training_ghoul_ai.tres` |
+| Difficulty | `DifficultyProfile` | `res://core/difficulty/easy.tres`, `res://core/difficulty/normal.tres`, `res://core/difficulty/hard.tres` |
+| Status | `StatusData` | `res://core/statuses/weaken.tres`, `res://core/statuses/vulnerable.tres` |
+| Reward | `RewardProfile` | `res://core/rewards/training_ghoul_rewards.tres` |
 | UI resource bar | `ResourceBarConfig` | Embedded in combatant profiles. |
-| Audio library | `AudioLibraryData` | `res://data/audio/common_audio_library.tres` |
+| Audio library | `AudioLibraryData` | `res://assets/audio/common_audio_library.tres` |
 | Visual state machine | Easy State Machine `SMConfig` | Warrior and Training Ghoul visual configs. |
 
 ## Character and enemy data flow
@@ -41,13 +41,13 @@ Gameplay data is authored as Godot `.tres` resources that point to resource scri
 
 ## Status data flow
 
-Statuses live under `res://data/statuses`.
+Statuses live under `res://core/statuses`.
 
 `CombatEffectLibrary.status_path_for_id()` accepts:
 
-- `status.weaken` -> `res://data/statuses/weaken.tres`
-- `weaken` -> `res://data/statuses/weaken.tres`
-- `res://data/statuses/weaken.tres` -> exact path
+- `status.weaken` -> `res://core/statuses/weaken.tres`
+- `weaken` -> `res://core/statuses/weaken.tres`
+- `res://core/statuses/weaken.tres` -> exact path
 
 ## Godot resource practices
 

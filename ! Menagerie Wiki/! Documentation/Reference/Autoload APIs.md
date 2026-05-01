@@ -10,8 +10,8 @@ Autoloads are the closest thing this project has to global service endpoints.
 
 | Autoload | Source | Purpose |
 | --- | --- | --- |
-| `GameManager` | `res://scripts/game_manager.gd` | Run setup, scene routing, rewards, timers, and scene music. |
-| `SoundManager` | `res://scripts/audio/sound_manager.gd` | Audio cue catalog, SFX/UI playback, music, buses, and audio debug data. |
+| `GameManager` | `res://core/game_manager.gd` | Run setup, scene routing, rewards, timers, and scene music. |
+| `SoundManager` | `res://core/audio/sound_manager.gd` | Audio cue catalog, SFX/UI playback, music, buses, and audio debug data. |
 | `_mcp_game_helper` | `res://addons/godot_ai/runtime/game_helper.gd` | Godot AI MCP runtime helper. Do not document as project gameplay API. |
 
 ## GameManager
@@ -109,7 +109,7 @@ GameManager.go_to_scene("dungeon")
 ```
 
 ```gdscript
-SoundManager.play_sfx(&"sfx.boss.boss_start_fight", {"priority": 7})
+SoundManager.play_sfx(&"sfx.global.boss.boss_start_fight", {"priority": 7})
 SoundManager.play_music(&"music.dungeon")
 SoundManager.set_music_state(&"combat_tense", 0.5)
 ```

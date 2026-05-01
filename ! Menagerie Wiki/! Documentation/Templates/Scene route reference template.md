@@ -21,7 +21,7 @@ One sentence explaining when this route is used.
 | --- | --- |
 | Route ref | `route_id` |
 | Scene | `res://scenes/... .tscn` |
-| Main script | `res://scripts/... .gd` |
+| Main script | `res://scenes/... .gd` |
 | Music ID | `music.id` |
 
 ## Entry points
