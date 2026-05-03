@@ -71,39 +71,47 @@ func _scan_combatant_audio_folder(combatant_root_path: String, combatant_type: S
 func _register_audio_path(audio_path: String, stream_id: StringName) -> void:
 	if String(stream_id).is_empty():
 		return
-	if streams_by_id.has(stream_id):
+	if paths_by_id.has(stream_id):
 		if not duplicate_paths.has(stream_id):
 			duplicate_paths[stream_id] = [paths_by_id.get(stream_id, "")]
 		duplicate_paths[stream_id].append(audio_path)
 		return
 
-	var stream := ResourceLoader.load(audio_path) as AudioStream
-	if stream == null:
-		failed_paths.append(audio_path)
-		return
-
-	streams_by_id[stream_id] = stream
 	paths_by_id[stream_id] = audio_path
 	ids_by_path[audio_path] = stream_id
 
 func has_stream(stream_id: StringName) -> bool:
-	return streams_by_id.has(stream_id)
+	return paths_by_id.has(stream_id)
 
 func get_stream(stream_id: StringName) -> AudioStream:
-	return streams_by_id.get(stream_id, null) as AudioStream
+	if streams_by_id.has(stream_id):
+		return streams_by_id.get(stream_id, null) as AudioStream
+
+	var audio_path := get_path(stream_id)
+	if audio_path.is_empty():
+		return null
+
+	var stream := ResourceLoader.load(audio_path) as AudioStream
+	if stream == null:
+		if not failed_paths.has(audio_path):
+			failed_paths.append(audio_path)
+		return null
+
+	streams_by_id[stream_id] = stream
+	return stream
 
 func get_path(stream_id: StringName) -> String:
 	return str(paths_by_id.get(stream_id, ""))
 
 func get_stream_ids() -> Array[StringName]:
 	var ids: Array[StringName] = []
-	for raw_id in streams_by_id.keys():
+	for raw_id in paths_by_id.keys():
 		ids.append(StringName(raw_id))
 	ids.sort()
 	return ids
 
 func get_stream_count() -> int:
-	return streams_by_id.size()
+	return paths_by_id.size()
 
 static func stream_id_for_path(audio_path: String, root_path: String = DEFAULT_ROOT_PATH) -> StringName:
 	var normalized_root := root_path.trim_suffix("/")

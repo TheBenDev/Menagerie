@@ -30,7 +30,7 @@ Autoloads are the closest thing this project has to global service endpoints.
 | --- | --- | --- |
 | `start_new_run(character, difficulty)` | `Variant` | Creates a fresh `RunData`, applies selection, emits run HUD state. |
 | `clear_run()` | `void` | Clears `current_run_data`. |
-| `start_combat(node_id, node_type, enemy_profile_path, is_boss)` | `void` | Stores encounter data, advances travel time, routes to `Battle/BattleScene`. |
+| `start_combat(node_id, node_type, enemy_profile_path, is_boss)` | `void` | Stores encounter data, advances travel time, routes to `combat/BattleScene`. |
 | `complete_combat(result)` | `void` | Stores a pending combat result and routes back to `dungeon`. |
 | `consume_last_combat_result()` | `Variant` | Returns and clears the pending result. |
 | `has_pending_combat_result()` | `bool` | Checks whether dungeon should apply a completed combat result. |
@@ -86,8 +86,8 @@ Autoloads are the closest thing this project has to global service endpoints.
 | `get_current_music_id()` | `StringName` | Returns current music track ID. |
 | `get_current_music_state_id()` | `StringName` | Returns current adaptive music state ID. |
 | `is_music_playing()` | `bool` | Checks if any music player is active. |
-| `has_audio_stream(id)` | `bool` | Checks if the scanned registry contains a stream ID or alias. |
-| `get_registered_audio_stream_ids()` | `Array[StringName]` | Lists scanned audio stream IDs. |
+| `has_audio_stream(id)` | `bool` | Checks if the scanned registry contains a stream ID. Streams are loaded lazily when played. |
+| `get_registered_audio_stream_ids()` | `Array[StringName]` | Lists scanned audio stream IDs without forcing stream loads. |
 | `get_music_debug_state()` | `Dictionary` | Returns registry, track, bus, and player debug data. |
 
 ### Cue options

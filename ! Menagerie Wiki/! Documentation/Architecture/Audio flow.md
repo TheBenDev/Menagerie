@@ -11,7 +11,7 @@ Audio is driven by a `SoundManager` autoload that scans `res://assets/audio`, me
 | Actor | Source | Responsibility |
 | --- | --- | --- |
 | `SoundManager` | `res://core/audio/sound_manager.gd` | Autoload for cue registration, SFX/UI playback, music crossfades, buses, and debug state. |
-| `AudioRegistry` | `res://core/audio/audio_registry.gd` | Scans sound files and derives stable stream IDs from paths. |
+| `AudioRegistry` | `res://core/audio/audio_registry.gd` | Scans sound files, derives stable stream IDs from paths, and lazy-loads streams on first use. |
 | `AudioLibraryData` | `res://core/audio/audio_library_data.gd` | Resource catalog for authored cues and music tracks. |
 | `AudioCueData` | `res://core/audio/audio_cue_data.gd` | SFX/UI cue settings such as bus, volume, pitch, cooldown, instances, and priority. |
 | `MusicTrackData` | `res://core/audio/music_track_data.gd` | Music base stream, playlists, state variants, bus, volume, fade, and loop behavior. |
@@ -22,7 +22,7 @@ Audio is driven by a `SoundManager` autoload that scans `res://assets/audio`, me
 
 1. `project.godot` autoloads `SoundManager`.
 2. `SoundManager._ready()` ensures runtime buses, creates player pools, scans `res://assets/audio`, loads `res://assets/audio/common_audio_library.tres`, and connects existing/new buttons.
-3. `AudioRegistry.scan()` maps sound paths to normalized stream IDs.
+3. `AudioRegistry.scan()` maps sound paths to normalized stream IDs without loading every stream.
 4. `SoundManager._register_scanned_cues()` creates default cues for scanned streams.
 5. Authored `AudioCueData` and `MusicTrackData` override or extend the scanned catalog.
 
@@ -40,7 +40,7 @@ Audio is driven by a `SoundManager` autoload that scans `res://assets/audio`, me
 | `main_menu` | `music.main_menu` |
 | `waiting_room` | `music.waiting_room` |
 | `dungeon` | `music.dungeon` |
-| `battle/battlescene` | `music.dungeon` |
+| `combat/BattleScene` | `music.combat` |
 | `run_summary` | `music.main_menu` |
 
 ## Adaptive combat states

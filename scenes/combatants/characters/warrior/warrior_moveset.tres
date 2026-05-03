@@ -5,13 +5,13 @@
 [ext_resource type="Script" uid="uid://did5gnthi0qvc" path="res://core/combat/data/actions/combat_action_data.gd" id="3_combat_action"]
 [ext_resource type="Script" uid="uid://bj802nmis6fsn" path="res://core/combat/data/effects/action_effect.gd" id="4_action_effect"]
 
-[sub_resource type="Resource" id="DamageEffect_quick_strike"]
+[sub_resource type="Resource" id="ActionEffect_quick_strike_damage"]
 script = ExtResource("4_action_effect")
 effect_id = &"combat.damage"
 base_damage = 4
 scaling_multiplier = 1.0
 
-[sub_resource type="Resource" id="RageGainEffect_quick_strike"]
+[sub_resource type="Resource" id="ActionEffect_quick_strike_rage_gain"]
 script = ExtResource("4_action_effect")
 effect_id = &"resource.rage.gain"
 amount = 3
@@ -21,20 +21,20 @@ script = ExtResource("2_player_action")
 id = "quick_strike"
 display_name = "Quick Strike"
 time_cost = 3.0
-effects = Array[ExtResource("4_action_effect")]([SubResource("DamageEffect_quick_strike"), SubResource("RageGainEffect_quick_strike")])
+effects = Array[ExtResource("4_action_effect")]([SubResource("ActionEffect_quick_strike_damage"), SubResource("ActionEffect_quick_strike_rage_gain")])
 
-[sub_resource type="Resource" id="DamageEffect_heavy_strike"]
+[sub_resource type="Resource" id="ActionEffect_heavy_strike_damage"]
 script = ExtResource("4_action_effect")
 effect_id = &"combat.damage"
 base_damage = 14
 scaling_multiplier = 1.5
 
-[sub_resource type="Resource" id="ApplyStatusEffect_heavy_strike_vulnerable"]
+[sub_resource type="Resource" id="ActionEffect_heavy_strike_vulnerable_status"]
 script = ExtResource("4_action_effect")
 effect_id = &"status.apply"
 status_id = &"status.vulnerable"
 
-[sub_resource type="Resource" id="RageGainEffect_heavy_strike"]
+[sub_resource type="Resource" id="ActionEffect_heavy_strike_rage_gain"]
 script = ExtResource("4_action_effect")
 effect_id = &"resource.rage.gain"
 amount = 6
@@ -44,9 +44,9 @@ script = ExtResource("2_player_action")
 id = "heavy_strike"
 display_name = "Heavy Strike"
 time_cost = 8.0
-effects = Array[ExtResource("4_action_effect")]([SubResource("DamageEffect_heavy_strike"), SubResource("ApplyStatusEffect_heavy_strike_vulnerable"), SubResource("RageGainEffect_heavy_strike")])
+effects = Array[ExtResource("4_action_effect")]([SubResource("ActionEffect_heavy_strike_damage"), SubResource("ActionEffect_heavy_strike_vulnerable_status"), SubResource("ActionEffect_heavy_strike_rage_gain")])
 
-[sub_resource type="Resource" id="BlockEffect_guard"]
+[sub_resource type="Resource" id="ActionEffect_guard_block"]
 script = ExtResource("4_action_effect")
 effect_id = &"combat.block"
 amount = 12
@@ -55,7 +55,7 @@ amount = 12
 script = ExtResource("2_player_action")
 id = "guard"
 display_name = "Guard"
-effects = Array[ExtResource("4_action_effect")]([SubResource("BlockEffect_guard")])
+effects = Array[ExtResource("4_action_effect")]([SubResource("ActionEffect_guard_block")])
 target_enemy = false
 
 [resource]

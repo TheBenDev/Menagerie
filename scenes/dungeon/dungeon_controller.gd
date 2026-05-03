@@ -10,21 +10,20 @@ const DungeonNodeViewScript := preload("res://scenes/dungeon/dungeon_node_view.g
 
 const GRID_CELL_SIZE := 72.0
 const START_NODE_ID := 0
-const DEFAULT_ENEMY_PROFILE_PATH := "res://scenes/combatants/enemies/training_ghoul/training_ghoul_profile.tres"
 const DEFAULT_NODE_DESCRIPTORS := [
 	{"id": 0, "type": "Haven", "grid": Vector2i(0, 0), "size": Vector2i(3, 3)},
 	{"id": 1, "type": "Empty", "grid": Vector2i(3, 1), "size": Vector2i(1, 1)},
 	{"id": 2, "type": "Empty", "grid": Vector2i(4, 1), "size": Vector2i(1, 1)},
-	{"id": 3, "type": "Fight", "grid": Vector2i(5, 0), "size": Vector2i(3, 3), "enemy": DEFAULT_ENEMY_PROFILE_PATH},
+	{"id": 3, "type": "Fight", "grid": Vector2i(5, 0), "size": Vector2i(3, 3)},
 	{"id": 4, "type": "Empty", "grid": Vector2i(8, 1), "size": Vector2i(1, 1)},
 	{"id": 5, "type": "Empty", "grid": Vector2i(9, 1), "size": Vector2i(1, 1)},
-	{"id": 6, "type": "Fight", "grid": Vector2i(10, 0), "size": Vector2i(3, 3), "enemy": DEFAULT_ENEMY_PROFILE_PATH},
+	{"id": 6, "type": "Fight", "grid": Vector2i(10, 0), "size": Vector2i(3, 3)},
 	{"id": 7, "type": "Empty", "grid": Vector2i(13, 1), "size": Vector2i(1, 1)},
 	{"id": 8, "type": "Empty", "grid": Vector2i(14, 1), "size": Vector2i(1, 1)},
-	{"id": 9, "type": "Fight", "grid": Vector2i(15, 0), "size": Vector2i(3, 3), "enemy": DEFAULT_ENEMY_PROFILE_PATH},
+	{"id": 9, "type": "Fight", "grid": Vector2i(15, 0), "size": Vector2i(3, 3)},
 	{"id": 10, "type": "Empty", "grid": Vector2i(18, 1), "size": Vector2i(1, 1)},
 	{"id": 11, "type": "Empty", "grid": Vector2i(19, 1), "size": Vector2i(1, 1)},
-	{"id": 12, "type": "Boss", "grid": Vector2i(20, 0), "size": Vector2i(3, 3), "enemy": DEFAULT_ENEMY_PROFILE_PATH, "is_boss": true},
+	{"id": 12, "type": "Boss", "grid": Vector2i(20, 0), "size": Vector2i(3, 3), "is_boss": true},
 ]
 
 @export var map_viewport_path: NodePath

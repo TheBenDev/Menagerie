@@ -1,10 +1,10 @@
 [gd_scene format=3 uid="uid://bwaqvcas6sofl"]
 
-[ext_resource type="Script" uid="uid://bnaj0n6rnipmk" path="res://scenes/combatants/combatant_battle_visual.gd" id="1_3dphm"]
+[ext_resource type="Script" path="res://scenes/combatants/combatant_battle_visual.gd" id="1_3dphm"]
 [ext_resource type="SpriteFrames" path="res://scenes/combatants/enemies/training_ghoul/textures/training_ghoul_visual_frames.tres" id="2_l82p7"]
 [ext_resource type="Script" uid="uid://j82drq6ytcgo" path="res://addons/easystatemachine/nodes/easy_state_machine.gd" id="3_7rh73"]
 [ext_resource type="Resource" path="res://scenes/combatants/enemies/training_ghoul/training_ghoul_visual_state_machine_config.tres" id="4_hmm8j"]
-[ext_resource type="Script" uid="uid://d3oru52qiy0x6" path="res://scenes/combatants/combatant_static_state.gd" id="5_v7h81"]
+[ext_resource type="Script" path="res://scenes/combatants/combatant_static_state.gd" id="5_v7h81"]
 
 [node name="TrainingGhoulBattleVisual" type="Control" unique_id=1601618043]
 clip_contents = true

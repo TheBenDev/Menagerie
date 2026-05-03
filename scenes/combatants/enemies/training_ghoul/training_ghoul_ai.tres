@@ -4,7 +4,7 @@
 [ext_resource type="Script" uid="uid://dc786e3pylw3d" path="res://core/combat/data/actions/enemy_move_data.gd" id="2_enemy_move_data"]
 [ext_resource type="Script" uid="uid://bj802nmis6fsn" path="res://core/combat/data/effects/action_effect.gd" id="3_action_effect"]
 
-[sub_resource type="Resource" id="DamageEffect_bite"]
+[sub_resource type="Resource" id="ActionEffect_bite_damage"]
 script = ExtResource("3_action_effect")
 effect_id = &"combat.damage"
 base_damage = 5
@@ -16,15 +16,15 @@ weight = 5.0
 id = "bite"
 display_name = "Bite"
 time_cost = 4.0
-effects = Array[ExtResource("3_action_effect")]([SubResource("DamageEffect_bite")])
+effects = Array[ExtResource("3_action_effect")]([SubResource("ActionEffect_bite_damage")])
 
-[sub_resource type="Resource" id="DamageEffect_weakening_claw"]
+[sub_resource type="Resource" id="ActionEffect_weakening_claw_damage"]
 script = ExtResource("3_action_effect")
 effect_id = &"combat.damage"
 base_damage = 3
 scaling_multiplier = 0.5
 
-[sub_resource type="Resource" id="ApplyStatusEffect_weakening_claw_weaken"]
+[sub_resource type="Resource" id="ActionEffect_weakening_claw_weaken_status"]
 script = ExtResource("3_action_effect")
 effect_id = &"status.apply"
 status_id = &"status.weaken"
@@ -37,15 +37,15 @@ status_id = "weaken"
 id = "weakening_claw"
 display_name = "Weakening Claw"
 time_cost = 3.0
-effects = Array[ExtResource("3_action_effect")]([SubResource("DamageEffect_weakening_claw"), SubResource("ApplyStatusEffect_weakening_claw_weaken")])
+effects = Array[ExtResource("3_action_effect")]([SubResource("ActionEffect_weakening_claw_damage"), SubResource("ActionEffect_weakening_claw_weaken_status")])
 
-[sub_resource type="Resource" id="DamageEffect_slam"]
+[sub_resource type="Resource" id="ActionEffect_slam_damage"]
 script = ExtResource("3_action_effect")
 effect_id = &"combat.damage"
 base_damage = 12
 scaling_multiplier = 1.2
 
-[sub_resource type="Resource" id="ApplyStatusEffect_slam_vulnerable"]
+[sub_resource type="Resource" id="ActionEffect_slam_vulnerable_status"]
 script = ExtResource("3_action_effect")
 effect_id = &"status.apply"
 status_id = &"status.vulnerable"
@@ -57,9 +57,9 @@ status_id = "vulnerable"
 id = "slam"
 display_name = "Heavy Slam"
 time_cost = 8.0
-effects = Array[ExtResource("3_action_effect")]([SubResource("DamageEffect_slam"), SubResource("ApplyStatusEffect_slam_vulnerable")])
+effects = Array[ExtResource("3_action_effect")]([SubResource("ActionEffect_slam_damage"), SubResource("ActionEffect_slam_vulnerable_status")])
 
-[sub_resource type="Resource" id="BlockEffect_guard"]
+[sub_resource type="Resource" id="ActionEffect_guard_block"]
 script = ExtResource("3_action_effect")
 effect_id = &"combat.block"
 amount = 12
@@ -71,10 +71,10 @@ target_rule = "Self"
 ai_role = "Defense"
 id = "guard"
 display_name = "Guard"
-effects = Array[ExtResource("3_action_effect")]([SubResource("BlockEffect_guard")])
+effects = Array[ExtResource("3_action_effect")]([SubResource("ActionEffect_guard_block")])
 target_enemy = false
 
-[sub_resource type="Resource" id="StrengthIncreaseEffect_grave_strength"]
+[sub_resource type="Resource" id="ActionEffect_grave_strength_strength_add"]
 script = ExtResource("3_action_effect")
 effect_id = &"stat.strength.add"
 amount = 1
@@ -86,7 +86,7 @@ target_rule = "Self"
 ai_role = "Setup"
 id = "grave_strength"
 display_name = "Grave Strength"
-effects = Array[ExtResource("3_action_effect")]([SubResource("StrengthIncreaseEffect_grave_strength")])
+effects = Array[ExtResource("3_action_effect")]([SubResource("ActionEffect_grave_strength_strength_add")])
 target_enemy = false
 
 [resource]

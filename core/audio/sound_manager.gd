@@ -21,6 +21,8 @@ var library: Resource = null
 var _audio_registry = AudioRegistryScript.new()
 var _cues: Dictionary = {}
 var _music_tracks: Dictionary = {}
+var _cue_stream_cache: Dictionary = {}
+var _playlist_stream_cache: Dictionary = {}
 var _missing_warnings: Dictionary = {}
 var _cue_last_played_seconds: Dictionary = {}
 var _active_instances_by_cue: Dictionary = {}
@@ -81,6 +83,8 @@ func _exit_tree() -> void:
 	_audio_registry.ids_by_path.clear()
 	_cues.clear()
 	_music_tracks.clear()
+	_cue_stream_cache.clear()
+	_playlist_stream_cache.clear()
 	_current_music_track = null
 	_music_player_loop_flags.clear()
 	_connected_button_ids.clear()
@@ -104,6 +108,8 @@ func set_library(new_library: Resource) -> void:
 func _reset_audio_catalog(active_library: Resource) -> void:
 	_cues.clear()
 	_music_tracks.clear()
+	_cue_stream_cache.clear()
+	_playlist_stream_cache.clear()
 	_register_scanned_cues()
 
 	if active_library == null:
@@ -395,7 +401,8 @@ func _play_cue(id: StringName, pool: Array[AudioStreamPlayer], default_bus: Stri
 	if cue == null:
 		_warn_once(StringName("cue:%s" % cue_id), "Audio cue is not registered: %s" % cue_id)
 		return
-	if _cue_streams(cue).is_empty():
+	var streams := _cue_streams(cue)
+	if streams.is_empty():
 		_warn_once(StringName("cue_streams:%s" % cue_id), "Audio cue has no streams: %s" % cue_id)
 		return
 	if _should_suppress_playback():
@@ -412,7 +419,7 @@ func _play_cue(id: StringName, pool: Array[AudioStreamPlayer], default_bus: Stri
 	if player == null:
 		return
 
-	var stream := _random_stream(cue)
+	var stream := _random_stream(streams)
 	if stream == null:
 		_warn_once(StringName("cue_stream_null:%s" % cue_id), "Audio cue selected a null stream: %s" % cue_id)
 		return
@@ -453,8 +460,10 @@ func _player_for_cue(
 	stealable_player.stop()
 	return stealable_player
 
-func _random_stream(cue: Resource) -> AudioStream:
-	var streams: Array = _cue_streams(cue)
+func _random_stream(streams: Array) -> AudioStream:
+	if streams.is_empty():
+		return null
+
 	var stream_index := _rng.randi_range(0, streams.size() - 1)
 	return streams[stream_index] as AudioStream
 
@@ -615,7 +624,7 @@ func _stream_for_track(track: Resource) -> AudioStream:
 
 	var playlist_streams := _track_playlist_streams(track)
 	if not playlist_streams.is_empty():
-		return _choose_playlist_stream(track, null)
+		return _choose_playlist_stream(track, null, playlist_streams)
 
 	return _resource_audio_stream_from_id(track, "base_stream_id", "base_stream")
 
@@ -753,6 +762,10 @@ func _cue_streams(cue: Resource) -> Array:
 	if cue == null:
 		return []
 
+	var cache_key := cue.get_instance_id()
+	if _cue_stream_cache.has(cache_key):
+		return _cue_stream_cache[cache_key]
+
 	var streams: Array[AudioStream] = []
 	for stream_id in _raw_stream_ids(cue, "stream_ids"):
 		var stream := _audio_registry.get_stream(stream_id)
@@ -765,6 +778,7 @@ func _cue_streams(cue: Resource) -> Array:
 		streams.append(stream)
 
 	streams.append_array(_raw_audio_streams(cue, "streams"))
+	_cue_stream_cache[cache_key] = streams
 	return streams
 
 func _track_state_variant(track: Resource, state_id: StringName) -> Resource:
@@ -843,6 +857,10 @@ func _track_playlist_streams(track: Resource) -> Array:
 	if track == null:
 		return []
 
+	var cache_key := track.get_instance_id()
+	if _playlist_stream_cache.has(cache_key):
+		return _playlist_stream_cache[cache_key]
+
 	var streams: Array[AudioStream] = []
 	for stream_id in _raw_stream_ids(track, "playlist_stream_ids"):
 		var stream := _audio_registry.get_stream(stream_id)
@@ -855,10 +873,12 @@ func _track_playlist_streams(track: Resource) -> Array:
 		streams.append(stream)
 
 	streams.append_array(_raw_audio_streams(track, "playlist_streams"))
+	_playlist_stream_cache[cache_key] = streams
 	return streams
 
-func _choose_playlist_stream(track: Resource, previous_stream: AudioStream) -> AudioStream:
-	var streams := _track_playlist_streams(track)
+func _choose_playlist_stream(track: Resource, previous_stream: AudioStream, streams: Array = []) -> AudioStream:
+	if streams.is_empty():
+		streams = _track_playlist_streams(track)
 	if streams.is_empty():
 		return null
 

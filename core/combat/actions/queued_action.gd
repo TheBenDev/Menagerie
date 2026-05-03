@@ -1,4 +1,4 @@
-## Represents an action waiting on the combat timeline, including timing, status, and tie-break data.
+## Represents an action waiting on the combat timeline, including status, resolve timing, and tie-break data.
 class_name QueuedAction
 extends RefCounted
 
@@ -9,8 +9,6 @@ const STATUS_CANCELLED := "cancelled"
 var id: int = 0
 var actor: Combatant
 var action: CombatActionData
-var targets: Array[Combatant] = []
-var start_time: float = 0.0
 var resolve_time: float = 0.0
 var status: String = STATUS_PENDING
 var resolved_time: float = -1.0
@@ -21,15 +19,11 @@ func _init(
 	_id: int,
 	_actor: Combatant,
 	_action: CombatActionData,
-	_targets: Array[Combatant],
-	_start_time: float,
 	_resolve_time: float
 ) -> void:
 	id = _id
 	actor = _actor
 	action = _action
-	targets = _targets.duplicate()
-	start_time = _start_time
 	resolve_time = _resolve_time
 
 func is_pending() -> bool:

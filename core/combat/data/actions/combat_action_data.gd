@@ -13,6 +13,7 @@ extends Resource
 @export var resolve_sfx_id: StringName = &""
 
 @export var hp_cost: int = 0
+## Reserved for future mana users; current resolution intentionally does not spend mana.
 @export var mana_cost: int = 0
 
 @export var target_enemy: bool = true

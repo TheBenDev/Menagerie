@@ -21,7 +21,7 @@ Audio IDs are stable `StringName`s used by `SoundManager` to find scanned stream
 | `music.main_menu` | `music.bgtheme` | Main menu and run summary. |
 | `music.waiting_room` | `music.bgtheme` | Waiting room. |
 | `music.dungeon` | `music.dungeon.eerie_exploration` | Uses randomized dungeon playlist. |
-| `music.combat` | `music.bgtheme` | Registered but current route mapping sends battle scene to `music.dungeon`. |
+| `music.combat` | `music.bgtheme` | Combat scene track; ready for later adaptive state variants. |
 
 ## Scanned stream IDs
 

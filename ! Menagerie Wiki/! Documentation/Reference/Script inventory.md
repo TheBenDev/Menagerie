@@ -11,7 +11,7 @@ This inventory lists runtime `.gd` scripts under `res://core` and `res://scenes`
 | Group | Count |
 | --- | ---: |
 | `core/audio` | 7 |
-| `core/combat` | 19 |
+| `core/combat` | 14 |
 | `core/dungeon` | 2 |
 | `core/input` | 1 |
 | `core/difficulty`, `core/rewards`, `core/statuses` | 3 |
@@ -20,7 +20,7 @@ This inventory lists runtime `.gd` scripts under `res://core` and `res://scenes`
 | `scenes/dungeon` | 4 |
 | `scenes/ui` | 8 |
 | Root scripts | 2 |
-| Total | 60 |
+| Total | 55 |
 
 ## Root scripts
 
@@ -39,7 +39,7 @@ This inventory lists runtime `.gd` scripts under `res://core` and `res://scenes`
 
 | Script | Class | Purpose |
 | --- | --- | --- |
-| `res://core/audio/audio_registry.gd` | `AudioRegistry` | Scans `res://assets/audio` and exposes streams by stable IDs derived from paths. |
+| `res://core/audio/audio_registry.gd` | `AudioRegistry` | Scans `res://assets/audio`, exposes stable IDs from paths, and lazy-loads streams on first use. |
 | `res://core/audio/combat_audio_bridge.gd` | None | Bridges combat signals to SFX and adaptive music states. |
 | `res://core/audio/sound_manager.gd` | Autoload, no `class_name` | Registers cues, plays SFX/UI sounds, crossfades music, manages runtime buses. |
 
@@ -58,10 +58,10 @@ This inventory lists runtime `.gd` scripts under `res://core` and `res://scenes`
 | `res://scenes/combatants/combatant_animation_state_helper.gd` | `CombatantAnimationStateHelper` | Shared helper for combatant animation state scripts. |
 | `res://scenes/combatants/combatant_battle_visual.gd` | `CombatantBattleVisual` | Fits battle sprite visuals inside a control. |
 | `res://scenes/combatants/combatant_static_state.gd` | `CombatantStaticState` | Easy State Machine state that shows one static frame. |
-| `res://scenes/combatants/enemies/enemy_combatant.gd` | `EnemyCombatant` | Marks itself as an enemy before applying profile data. |
+| `res://scenes/combatants/enemies/enemy_combatant.gd` | `EnemyCombatant` | Enemy combatant specialization used for type-specific references. |
 | `res://scenes/combatants/characters/warrior/warrior_combatant.gd` | `WarriorCombatant` | Adds rage gain/decay and rage resource snapshots. |
 | `res://scenes/combatants/characters/warrior/states/warrior_idle_state.gd` | `WarriorIdleState` | Warrior Easy State Machine state that plays idle animation. |
-| `res://core/combat/damage/damage_packet.gd` | `DamagePacket` | Carries source, target, amount, and tags before damage is applied. |
+| `res://core/combat/damage/damage_packet.gd` | `DamagePacket` | Carries source, target, and amount before damage is applied. |
 | `res://core/combat/time/combat_time.gd` | `CombatTime` | Snaps combat timing to fixed ticks and formats durations. |
 | `res://scenes/combat/timeline_view.gd` | `TimelineView` | Draws and scrolls combat action timeline markers. |
 
@@ -81,11 +81,6 @@ This inventory lists runtime `.gd` scripts under `res://core` and `res://scenes`
 | `res://scenes/combatants/combatant_profile.gd` | `CombatantProfile` | Identity, stats, moveset, rewards, AI, SFX IDs, and UI bars. |
 | `res://core/difficulty/difficulty_profile.gd` | `DifficultyProfile` | Enemy stat/reward multipliers and AI tuning values. |
 | `res://core/combat/data/effects/action_effect.gd` | `ActionEffect` | Namespaced data effect resolved by `CombatEffectLibrary`. |
-| `res://core/combat/data/effects/apply_status_effect.gd` | `ApplyStatusEffect` | Direct status-application effect variant. |
-| `res://core/combat/data/effects/block_effect.gd` | `BlockEffect` | Direct block-granting effect variant. |
-| `res://core/combat/data/effects/damage_effect.gd` | `DamageEffect` | Direct stat-scaled damage effect variant. |
-| `res://core/combat/data/effects/rage_gain_effect.gd` | `RageGainEffect` | Direct rage-gain effect variant. |
-| `res://core/combat/data/effects/strength_increase_effect.gd` | `StrengthIncreaseEffect` | Direct strength adjustment effect variant. |
 | `res://core/rewards/reward_profile.gd` | `RewardProfile` | Base memory/gold rewards and boss multiplier. |
 | `res://core/statuses/status_data.gd` | `StatusData` | Timed status and outgoing/incoming damage multipliers. |
 | `res://scenes/ui/common/resource_bar_config.gd` | `ResourceBarConfig` | Combatant resource bar display config. |

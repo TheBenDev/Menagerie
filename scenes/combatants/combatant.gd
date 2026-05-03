@@ -10,7 +10,6 @@ signal action_started(combatant: Combatant, action: CombatActionData)
 signal action_resolved(combatant: Combatant, action: CombatActionData)
 
 @export var display_name: String = "Combatant"
-@export var is_enemy: bool = false
 @export var profile: Resource = null
 
 var strength: int = 5

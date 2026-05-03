@@ -66,7 +66,7 @@ func player_choose_action(action: CombatActionData) -> void:
 
 	waiting_for_player_input = false
 	player.start_action(action, targets, current_time)
-	_enqueue_action(player, action, targets)
+	_enqueue_action(player, action)
 	battle_log.emit(player.display_name + " starts " + action.display_name + ".")
 
 	if not enemy.is_busy:
@@ -172,7 +172,7 @@ func _enemy_choose_action() -> void:
 		return
 
 	enemy.start_action(action, targets, current_time)
-	_enqueue_action(enemy, action, targets)
+	_enqueue_action(enemy, action)
 	battle_log.emit(enemy.display_name + " starts " + action.display_name + ".")
 
 func _active_difficulty_profile() -> DifficultyProfile:
@@ -226,13 +226,11 @@ func _on_combatant_died(combatant: Combatant) -> void:
 	_cancel_pending_actions_for(combatant)
 	battle_log.emit(combatant.display_name + " has fallen.")
 
-func _enqueue_action(actor: Combatant, action: CombatActionData, targets: Array[Combatant]) -> void:
+func _enqueue_action(actor: Combatant, action: CombatActionData) -> void:
 	var entry := QueuedAction.new(
 		_next_queue_id,
 		actor,
 		action,
-		targets,
-		current_time,
 		actor.action_finish_time
 	)
 	_next_queue_id += 1
