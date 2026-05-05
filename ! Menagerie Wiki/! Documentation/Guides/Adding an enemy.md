@@ -26,7 +26,7 @@ Use existing Training Ghoul resources as the pattern:
 
 1. Create an `EnemyAIProfile` resource.
 2. Add `EnemyMoveData` subresources for each move.
-3. Add effects directly before the move that uses them.
+3. Add inline `effect_data` dictionaries to each move.
 4. Set AI role metadata so `EnemyBrain` can score moves in context.
 
 ## Create enemy profile

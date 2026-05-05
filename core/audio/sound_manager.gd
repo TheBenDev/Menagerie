@@ -23,6 +23,7 @@ var _cues: Dictionary = {}
 var _music_tracks: Dictionary = {}
 var _cue_stream_cache: Dictionary = {}
 var _playlist_stream_cache: Dictionary = {}
+var _playlist_stream_by_track_id: Dictionary = {}
 var _missing_warnings: Dictionary = {}
 var _cue_last_played_seconds: Dictionary = {}
 var _active_instances_by_cue: Dictionary = {}
@@ -85,6 +86,7 @@ func _exit_tree() -> void:
 	_music_tracks.clear()
 	_cue_stream_cache.clear()
 	_playlist_stream_cache.clear()
+	_playlist_stream_by_track_id.clear()
 	_current_music_track = null
 	_music_player_loop_flags.clear()
 	_connected_button_ids.clear()
@@ -110,6 +112,7 @@ func _reset_audio_catalog(active_library: Resource) -> void:
 	_music_tracks.clear()
 	_cue_stream_cache.clear()
 	_playlist_stream_cache.clear()
+	_playlist_stream_by_track_id.clear()
 	_register_scanned_cues()
 
 	if active_library == null:
@@ -288,7 +291,11 @@ func play_music(id: StringName, fade_seconds: float = -1.0, restart: bool = fals
 	if resolved_fade_seconds < 0.0:
 		resolved_fade_seconds = _default_music_switch_fade_seconds(track)
 
-	var stream := _stream_for_track(track)
+	var preferred_stream: AudioStream = null
+	if not restart and _current_music_id == track_id and active_player != null:
+		preferred_stream = active_player.stream
+
+	var stream := _stream_for_track(track, preferred_stream, not restart)
 	if not restart and _can_continue_current_music(active_player, stream):
 		_continue_current_music(track, active_player, resolved_fade_seconds)
 		return
@@ -580,6 +587,7 @@ func _start_music_stream(track: Resource, stream: AudioStream, fade_seconds: flo
 	_active_music_player_index = target_player_index
 	_current_music_id = track_id
 	_current_music_track = track
+	_remember_playlist_stream(track, stream)
 	_reset_playlist_schedule(track)
 
 	if fade_seconds > 0.0:
@@ -603,6 +611,7 @@ func _continue_current_music(track: Resource, active_player: AudioStreamPlayer, 
 
 	_current_music_id = _resource_string_name(track, "id")
 	_current_music_track = track
+	_remember_playlist_stream(track, active_player.stream)
 	_reset_playlist_schedule(track)
 	active_player.bus = _valid_bus_or_master(_resource_string_name(track, "bus", BUS_MUSIC))
 	_music_player_loop_flags[active_player.get_instance_id()] = _resource_bool(track, "loop", true)
@@ -614,7 +623,11 @@ func _continue_current_music(track: Resource, active_player: AudioStreamPlayer, 
 	else:
 		active_player.volume_db = target_volume_db
 
-func _stream_for_track(track: Resource) -> AudioStream:
+func _stream_for_track(
+	track: Resource,
+	preferred_stream: AudioStream = null,
+	use_cached_playlist_stream: bool = true
+) -> AudioStream:
 	if not String(_current_music_state_id).is_empty():
 		var variant: Resource = _track_state_variant(track, _current_music_state_id)
 		if variant != null:
@@ -624,6 +637,13 @@ func _stream_for_track(track: Resource) -> AudioStream:
 
 	var playlist_streams := _track_playlist_streams(track)
 	if not playlist_streams.is_empty():
+		if _playlist_has_stream(playlist_streams, preferred_stream):
+			return preferred_stream
+		if use_cached_playlist_stream:
+			var track_id := _resource_string_name(track, "id")
+			var cached_stream := _playlist_stream_by_track_id.get(track_id, null) as AudioStream
+			if _playlist_has_stream(playlist_streams, cached_stream):
+				return cached_stream
 		return _choose_playlist_stream(track, null, playlist_streams)
 
 	return _resource_audio_stream_from_id(track, "base_stream_id", "base_stream")
@@ -875,6 +895,27 @@ func _track_playlist_streams(track: Resource) -> Array:
 	streams.append_array(_raw_audio_streams(track, "playlist_streams"))
 	_playlist_stream_cache[cache_key] = streams
 	return streams
+
+func _remember_playlist_stream(track: Resource, stream: AudioStream) -> void:
+	if track == null:
+		return
+
+	var track_id := _resource_string_name(track, "id")
+	if String(track_id).is_empty():
+		return
+
+	if _playlist_has_stream(_track_playlist_streams(track), stream):
+		_playlist_stream_by_track_id[track_id] = stream
+
+func _playlist_has_stream(streams: Array, target_stream: AudioStream) -> bool:
+	if target_stream == null:
+		return false
+
+	for raw_stream in streams:
+		if _is_same_audio_stream(raw_stream as AudioStream, target_stream):
+			return true
+
+	return false
 
 func _choose_playlist_stream(track: Resource, previous_stream: AudioStream, streams: Array = []) -> AudioStream:
 	if streams.is_empty():

@@ -11,7 +11,7 @@ config_version=5
 [application]
 
 config/name="Menagerie"
-run/main_scene="res://scenes/ui/main_menu/main_menu.tscn"
+run/main_scene="res://scenes/ui/main_menu/MainMenu.tscn"
 config/features=PackedStringArray("4.6", "Forward Plus")
 config/icon="res://assets/ui/AppIcon.png"
 

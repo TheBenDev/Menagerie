@@ -22,20 +22,20 @@ func _ready() -> void:
 
 func _on_viewport_gui_input(event: InputEvent) -> void:
 	var action := KeybindsHelperScript.process_map_navigation_event(event, is_panning)
-	match action.get(KeybindsHelperScript.KEY_ACTION, KeybindsHelperScript.ACTION_NONE):
-		KeybindsHelperScript.ACTION_ZOOM_IN:
-			_zoom_at_viewport_position(float(zoom_step), action.get(KeybindsHelperScript.KEY_POSITION, Vector2.ZERO))
+	match action.get(KeybindsHelperScript.ACTION, KeybindsHelperScript.NONE):
+		KeybindsHelperScript.ZOOM_IN:
+			_zoom_at_viewport_position(float(zoom_step), action.get(KeybindsHelperScript.POSITION, Vector2.ZERO))
 			viewport.accept_event()
-		KeybindsHelperScript.ACTION_ZOOM_OUT:
-			_zoom_at_viewport_position(1.0 / float(zoom_step), action.get(KeybindsHelperScript.KEY_POSITION, Vector2.ZERO))
+		KeybindsHelperScript.ZOOM_OUT:
+			_zoom_at_viewport_position(1.0 / float(zoom_step), action.get(KeybindsHelperScript.POSITION, Vector2.ZERO))
 			viewport.accept_event()
-		KeybindsHelperScript.ACTION_PAN_START:
+		KeybindsHelperScript.PAN_START:
 			is_panning = true
 			viewport.accept_event()
-		KeybindsHelperScript.ACTION_PAN_MOVE:
-			map_content.position += action.get(KeybindsHelperScript.KEY_DELTA, Vector2.ZERO)
+		KeybindsHelperScript.PAN_MOVE:
+			map_content.position += action.get(KeybindsHelperScript.DELTA, Vector2.ZERO)
 			viewport.accept_event()
-		KeybindsHelperScript.ACTION_PAN_END:
+		KeybindsHelperScript.PAN_END:
 			is_panning = false
 			viewport.accept_event()
 

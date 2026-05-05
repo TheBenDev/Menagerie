@@ -85,32 +85,30 @@ This page summarizes the most important runtime APIs new developers usually need
 | `id` | `String` | Stable action ID. |
 | `display_name` | `String` | UI label and battle log text. |
 | `time_cost` | `float` | Base action duration before multipliers. |
-| `effects` | `Array[ActionEffect]` | Ordered effect resources. |
+| `effect_data` | `Array[Dictionary]` | Ordered effect calls. Each dictionary uses `id` plus fields for that effect. |
 | `start_sfx_id` | `StringName` | Played by `CombatAudioBridge` when action starts. |
 | `resolve_sfx_id` | `StringName` | Played by `CombatAudioBridge` when action resolves. |
 | `hp_cost`, `mana_cost` | `int` | HP cost is applied by `ActionResolver`; mana is reserved. |
 | `target_enemy` | `bool` | Player action targeting side. |
 
-## ActionEffect
+## Effect Data
 
-| Field/method | Type | Notes |
+| Key | Type | Notes |
 | --- | --- | --- |
-| `effect_id` | `StringName` | Namespaced behavior ID. |
+| `id` | `StringName` | Namespaced behavior ID. |
 | `amount` | `int` | Generic amount used by block, rage, strength, etc. |
 | `base_damage` | `int` | Damage base value. |
 | `scaling_stat` | `String` | One of `STR`, `DEX`, `INT`, `VIT`. |
 | `scaling_multiplier` | `float` | Multiplied by source stat, floored, added to base. |
 | `status_id` | `StringName` | Status ID or path for `status.apply`. |
 | `duration_override_seconds` | `float` | Optional status duration override. |
-| `apply(source, targets, action)` | method | Dispatches to `CombatEffectLibrary`. |
-| `estimate_power(source, targets, action)` | method | Used by enemy AI scoring. |
 
 ## CombatEffectLibrary
 
 | Surface | Type | Notes |
 | --- | --- | --- |
-| `apply_effect(effect, source, targets, action)` | static method | Dispatches effect behavior by canonical effect ID. |
-| `estimate_power(effect, source, targets, action)` | static method | Estimates damage/block/strength value for AI. |
+| `apply_effect(effect_data, source, targets, action)` | static method | Dispatches effect behavior by canonical effect ID. |
+| `estimate_power(effect_data, source, targets, action)` | static method | Estimates damage/block/strength value for AI. |
 | `status_path_for_id(status_id)` | static method | Resolves `status.foo` and `foo` to `res://core/statuses/foo.tres`. |
 | `combat.damage` | effect ID | Deals damage. |
 | `combat.block` | effect ID | Grants source block. |

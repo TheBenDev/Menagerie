@@ -15,23 +15,23 @@ Use this guide to add a player action or enemy move backed by `CombatActionData`
 ## Add a player action
 
 1. Open `res://scenes/combatants/characters/warrior/warrior_moveset.tres` in Godot.
-2. Add any needed `ActionEffect` subresources directly before the action that uses them.
-3. Add a `PlayerActionData` subresource.
+2. Add a `PlayerActionData` subresource.
+3. Add ordered `effect_data` dictionaries to the action.
 4. Set the action fields:
    - `id`: stable lower_snake_case action ID.
    - `display_name`: UI label.
    - `time_cost`: base duration in seconds.
    - `target_enemy`: true for attacks, false for self-targeting actions.
-   - `effects`: ordered effect resources.
+   - `effect_data`: ordered effect dictionaries such as `{"id": &"combat.damage", "base_damage": 4}`.
    - `start_sfx_id` and `resolve_sfx_id` if needed.
 5. Add the action to the moveset `actions` array.
-6. Keep related subresources grouped together.
+6. Keep related action subresources grouped together.
 
 ## Add an enemy move
 
 1. Open the enemy AI profile, such as `res://scenes/combatants/enemies/training_ghoul/training_ghoul_ai.tres`.
-2. Add `ActionEffect` subresources directly before the move that uses them.
-3. Add an `EnemyMoveData` subresource.
+2. Add an `EnemyMoveData` subresource.
+3. Add ordered `effect_data` dictionaries to the move.
 4. Set base action fields from `CombatActionData`.
 5. Set enemy-only fields:
    - `weight`: authored random/scored weight.

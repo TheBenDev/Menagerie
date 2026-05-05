@@ -1,19 +1,19 @@
-[gd_scene format=3 uid="uid://p3trc6v5764w"]
+[gd_scene format=3 uid="uid://ihugd5hr2yw4"]
 
-[ext_resource type="Theme" uid="uid://blcilhxj3ejys" path="res://assets/ui/menagerie_theme.tres" id="1_bqqt6"]
-[ext_resource type="Script" uid="uid://dvqn1oi2rnqx7" path="res://scenes/ui/main_menu/main_menu.gd" id="1_main_menu"]
-[ext_resource type="Texture2D" uid="uid://ejb5obnuu1g7" path="res://assets/ui/main_menu/main_menu_bg.png" id="3_wu84c"]
-[ext_resource type="Texture2D" uid="uid://dx028tcstvctq" path="res://assets/ui/TitleIcon.png" id="4_title_icon"]
-[ext_resource type="Texture2D" uid="uid://wstjlxkplwax" path="res://assets/ui/main_menu/buttons/VentureButton.png" id="5_venture_normal"]
-[ext_resource type="Texture2D" uid="uid://b7kp7f8viod3b" path="res://assets/ui/main_menu/buttons/VentureButton_hover.png" id="6_venture_hover"]
-[ext_resource type="Texture2D" uid="uid://kd1y0ahy3v03" path="res://assets/ui/main_menu/buttons/EscapeButton.png" id="7_1ajci"]
-[ext_resource type="Texture2D" uid="uid://bvvmce5btjx1" path="res://assets/ui/main_menu/buttons/EscapeButton_hover.png" id="8_7b55j"]
-[ext_resource type="Texture2D" uid="uid://0006b57uvbvg" path="res://assets/ui/main_menu/buttons/CreditsButton.png" id="9_5pajh"]
-[ext_resource type="Texture2D" uid="uid://0210e71fmeio" path="res://assets/ui/main_menu/buttons/CreditsButton_hover.png" id="10_j7ex8"]
-[ext_resource type="Texture2D" uid="uid://bp8txg3bnys4v" path="res://assets/ui/main_menu/buttons/SettingsButton.png" id="11_a8gd2"]
-[ext_resource type="Texture2D" uid="uid://cto4im6e6ykdj" path="res://assets/ui/main_menu/buttons/SettingsButton_hover.png" id="12_hstxw"]
-[ext_resource type="Texture2D" uid="uid://d08y3r3yu6mah" path="res://assets/ui/main_menu/buttons/CloseButton.png" id="13_8egab"]
-[ext_resource type="Texture2D" uid="uid://b608w8dfsipha" path="res://assets/ui/main_menu/buttons/CloseButton_hover.png" id="14_gw5y6"]
+[ext_resource type="Theme" uid="uid://blcilhxj3ejys" path="res://assets/ui/menagerie_theme.tres" id="1_spgn3"]
+[ext_resource type="Script" uid="uid://dvqn1oi2rnqx7" path="res://scenes/ui/main_menu/main_menu.gd" id="2_p1xdv"]
+[ext_resource type="Texture2D" uid="uid://ejb5obnuu1g7" path="res://assets/ui/main_menu/main_menu_bg.png" id="3_mlyw7"]
+[ext_resource type="Texture2D" uid="uid://dx028tcstvctq" path="res://assets/ui/TitleIcon.png" id="4_lmqau"]
+[ext_resource type="Texture2D" uid="uid://wstjlxkplwax" path="res://assets/ui/main_menu/buttons/VentureButton.png" id="5_aatsh"]
+[ext_resource type="Texture2D" uid="uid://b7kp7f8viod3b" path="res://assets/ui/main_menu/buttons/VentureButton_hover.png" id="6_ln5bi"]
+[ext_resource type="Texture2D" uid="uid://kd1y0ahy3v03" path="res://assets/ui/main_menu/buttons/EscapeButton.png" id="7_l3vdy"]
+[ext_resource type="Texture2D" uid="uid://bvvmce5btjx1" path="res://assets/ui/main_menu/buttons/EscapeButton_hover.png" id="8_gvk2w"]
+[ext_resource type="Texture2D" uid="uid://0006b57uvbvg" path="res://assets/ui/main_menu/buttons/CreditsButton.png" id="9_01aqp"]
+[ext_resource type="Texture2D" uid="uid://0210e71fmeio" path="res://assets/ui/main_menu/buttons/CreditsButton_hover.png" id="10_h2ntk"]
+[ext_resource type="Texture2D" uid="uid://bp8txg3bnys4v" path="res://assets/ui/main_menu/buttons/SettingsButton.png" id="11_ps6mf"]
+[ext_resource type="Texture2D" uid="uid://cto4im6e6ykdj" path="res://assets/ui/main_menu/buttons/SettingsButton_hover.png" id="12_l14fm"]
+[ext_resource type="Texture2D" uid="uid://d08y3r3yu6mah" path="res://assets/ui/main_menu/buttons/CloseButton.png" id="13_rvuwh"]
+[ext_resource type="Texture2D" uid="uid://b608w8dfsipha" path="res://assets/ui/main_menu/buttons/CloseButton_hover.png" id="14_jnx5x"]
 
 [node name="MainMenu" type="Control" unique_id=1033853935]
 layout_mode = 3
@@ -22,14 +22,14 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme = ExtResource("1_bqqt6")
-script = ExtResource("1_main_menu")
+theme = ExtResource("1_spgn3")
+script = ExtResource("2_p1xdv")
 
 [node name="Backdrop" type="TextureRect" parent="." unique_id=1837859559]
 layout_mode = 0
 anchor_right = 1.0
 anchor_bottom = 1.0
-texture = ExtResource("3_wu84c")
+texture = ExtResource("3_mlyw7")
 expand_mode = 1
 stretch_mode = 6
 
@@ -65,7 +65,7 @@ theme_override_constants/separation = 16
 custom_minimum_size = Vector2(780, 260)
 layout_mode = 2
 size_flags_horizontal = 4
-texture = ExtResource("4_title_icon")
+texture = ExtResource("4_lmqau")
 expand_mode = 1
 stretch_mode = 5
 
@@ -73,8 +73,8 @@ stretch_mode = 5
 custom_minimum_size = Vector2(260, 62)
 layout_mode = 2
 size_flags_horizontal = 4
-texture_normal = ExtResource("5_venture_normal")
-texture_hover = ExtResource("6_venture_hover")
+texture_normal = ExtResource("5_aatsh")
+texture_hover = ExtResource("6_ln5bi")
 ignore_texture_size = true
 stretch_mode = 0
 
@@ -82,8 +82,8 @@ stretch_mode = 0
 custom_minimum_size = Vector2(260, 62)
 layout_mode = 2
 size_flags_horizontal = 4
-texture_normal = ExtResource("7_1ajci")
-texture_hover = ExtResource("8_7b55j")
+texture_normal = ExtResource("7_l3vdy")
+texture_hover = ExtResource("8_gvk2w")
 ignore_texture_size = true
 stretch_mode = 0
 
@@ -101,23 +101,23 @@ theme_override_constants/separation = 8
 [node name="CreditsButton" type="TextureButton" parent="TopRightButtons" unique_id=1607433141]
 custom_minimum_size = Vector2(128, 104)
 layout_mode = 2
-texture_normal = ExtResource("9_5pajh")
-texture_hover = ExtResource("10_j7ex8")
+texture_normal = ExtResource("9_01aqp")
+texture_hover = ExtResource("10_h2ntk")
 ignore_texture_size = true
 stretch_mode = 5
 
 [node name="SettingsButton" type="TextureButton" parent="TopRightButtons" unique_id=860827401]
 custom_minimum_size = Vector2(128, 104)
 layout_mode = 2
-texture_normal = ExtResource("11_a8gd2")
-texture_hover = ExtResource("12_hstxw")
+texture_normal = ExtResource("11_ps6mf")
+texture_hover = ExtResource("12_l14fm")
 ignore_texture_size = true
 stretch_mode = 5
 
 [node name="CloseButton" type="TextureButton" parent="TopRightButtons" unique_id=915850641]
 custom_minimum_size = Vector2(128, 104)
 layout_mode = 2
-texture_normal = ExtResource("13_8egab")
-texture_hover = ExtResource("14_gw5y6")
+texture_normal = ExtResource("13_rvuwh")
+texture_hover = ExtResource("14_jnx5x")
 ignore_texture_size = true
 stretch_mode = 5

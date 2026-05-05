@@ -32,11 +32,11 @@ Gameplay data is authored as Godot `.tres` resources that point to resource scri
 
 ## Action data flow
 
-1. `CombatActionData` defines ID, display name, time cost, costs, target side, SFX IDs, and effects.
+1. `CombatActionData` defines ID, display name, time cost, costs, target side, SFX IDs, and `effect_data`.
 2. `PlayerActionData` adds player-only fields such as rage cost and tooltip text.
 3. `EnemyMoveData` adds AI metadata such as weights, HP gates, target rules, roles, and status preferences.
-4. Each action owns an ordered `effects` array.
-5. Effects are `ActionEffect` resources with a namespaced `effect_id`.
+4. Each action owns an ordered `effect_data` array of dictionaries.
+5. Each effect dictionary uses `id` for the namespaced effect behavior and adds the fields needed by that behavior.
 6. `CombatEffectLibrary` maps the ID to runtime behavior.
 
 ## Status data flow
@@ -55,7 +55,7 @@ Statuses live under `res://core/statuses`.
 - Do not manually create or edit `.uid` files.
 - Prefer plain `path="res://..."` references when adding a new script or resource by hand.
 - Use `;` comments in `.tres` and `.tscn` files.
-- Keep subresources near the action or move that uses them.
+- Keep action and move subresources grouped with their inline `effect_data`.
 
 ## See also
 

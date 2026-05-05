@@ -10,7 +10,7 @@ signal action_started(combatant: Combatant, action: CombatActionData)
 signal action_resolved(combatant: Combatant, action: CombatActionData)
 
 @export var display_name: String = "Combatant"
-@export var profile: Resource = null
+@export var profile: CombatantProfile = null
 
 var strength: int = 5
 var dexterity: int = 5
@@ -38,23 +38,19 @@ func apply_profile() -> void:
 	if profile == null:
 		return
 
-	var profile_display_name: Variant = profile.get("display_name")
-	if profile_display_name is String and not profile_display_name.is_empty():
-		display_name = profile_display_name
+	if not profile.display_name.is_empty():
+		display_name = profile.display_name
 
-	strength = _profile_int("strength", strength)
-	dexterity = _profile_int("dexterity", dexterity)
-	intelligence = _profile_int("intelligence", intelligence)
-	vitality = _profile_int("vitality", vitality)
+	strength = profile.strength
+	dexterity = profile.dexterity
+	intelligence = profile.intelligence
+	vitality = profile.vitality
 
 	actions.clear()
-	var profile_moveset := profile.get("moveset") as Resource
-	if profile_moveset != null:
-		var moveset_actions: Variant = profile_moveset.get("actions")
-		if moveset_actions is Array:
-			for action in moveset_actions:
-				if action is CombatActionData:
-					actions.append(action)
+	if profile.moveset != null:
+		for action in profile.moveset.actions:
+			if action != null:
+				actions.append(action)
 
 func reset_runtime_state() -> void:
 	max_hp = max(vitality, 1) * 10
@@ -85,36 +81,32 @@ func get_placeholder_color() -> Color:
 	if profile == null:
 		return Color(0.22, 0.24, 0.28)
 
-	return profile.get("placeholder_color") as Color
+	return profile.placeholder_color
 
 func get_timeline_initial() -> String:
 	if profile == null:
 		return "?"
 
-	return str(profile.get("timeline_initial"))
+	return profile.timeline_initial
 
 func get_timeline_color() -> Color:
 	if profile == null:
 		return Color.WHITE
 
-	return profile.get("timeline_color") as Color
+	return profile.timeline_color
 
 func get_health_bar_config() -> Resource:
 	if profile == null:
 		return null
 
-	return profile.get("health_bar") as Resource
+	return profile.health_bar
 
 func get_resource_bar_configs() -> Array[Resource]:
 	var configs: Array[Resource] = []
 	if profile == null:
 		return configs
 
-	var raw_configs: Variant = profile.get("resource_bars")
-	if raw_configs is Array:
-		for config in raw_configs:
-			if config is Resource:
-				configs.append(config)
+	configs.append_array(profile.resource_bars)
 
 	return configs
 
@@ -283,10 +275,3 @@ func _apply_damage_multiplier(packet: DamagePacket, multiplier_field: String) ->
 
 	if not is_equal_approx(multiplier, 1.0):
 		packet.amount = max(int(round(float(packet.amount) * multiplier)), 0)
-
-func _profile_int(field_name: String, default_value: int) -> int:
-	var value: Variant = profile.get(field_name)
-	if value is int:
-		return value
-
-	return default_value

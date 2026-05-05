@@ -10,7 +10,7 @@ Autoloads are the closest thing this project has to global service endpoints.
 
 | Autoload | Source | Purpose |
 | --- | --- | --- |
-| `GameManager` | `res://core/game_manager.gd` | Run setup, scene routing, rewards, timers, and scene music. |
+| `GameManager` | `res://core/game_manager.gd` | Run setup, scene routing, rewards, timers, and explicit music routing. |
 | `SoundManager` | `res://core/audio/sound_manager.gd` | Audio cue catalog, SFX/UI playback, music, buses, and audio debug data. |
 | `_mcp_game_helper` | `res://addons/godot_ai/runtime/game_helper.gd` | Godot AI MCP runtime helper. Do not document as project gameplay API. |
 
@@ -28,7 +28,7 @@ Autoloads are the closest thing this project has to global service endpoints.
 
 | Method | Returns | Use |
 | --- | --- | --- |
-| `start_new_run(character, difficulty)` | `Variant` | Creates a fresh `RunData`, applies selection, emits run HUD state. |
+| `start_new_run(character, difficulty)` | `Variant` | Creates a fresh `RunData`, applies selection, emits run HUD state, and starts run music. |
 | `clear_run()` | `void` | Clears `current_run_data`. |
 | `start_combat(node_id, node_type, enemy_profile_path, is_boss)` | `void` | Stores encounter data, advances travel time, routes to `combat/BattleScene`. |
 | `complete_combat(result)` | `void` | Stores a pending combat result and routes back to `dungeon`. |
@@ -41,14 +41,15 @@ Autoloads are the closest thing this project has to global service endpoints.
 | `export_current_run_memories()` | `int` | Exports earned memories into `pending_class_memory_awards` once. |
 | `calculate_rewards_for_profile(profile, is_boss)` | `Dictionary` | Calculates memory/gold from reward profile, difficulty, and boss multiplier. |
 | `get_selected_difficulty_profile()` | `Resource` | Loads the selected difficulty resource. |
-| `get_selected_character_profile()` | `Resource` | Loads the selected character profile. |
+| `get_selected_character_profile()` | `CombatantProfile` | Loads the selected character profile. |
 | `get_selected_character_id()` | `String` | Gets current or setup character ID. |
 | `get_selected_difficulty_id()` | `String` | Gets current or setup difficulty ID. |
 | `get_selected_difficulty_profile_path()` | `String` | Gets selected difficulty resource path. |
 | `get_selected_difficulty_display_name()` | `String` | Gets selected difficulty display name. |
 | `get_current_encounter()` | `Dictionary` | Gets current encounter route data with fallback enemy profile. |
-| `go_to_scene(scene_ref)` | `void` | Resolves and changes scenes, then requests route music. |
+| `go_to_scene(scene_ref)` | `void` | Resolves and changes scenes without changing music. |
 | `play_music_for_scene(scene_ref)` | `void` | Applies the route-to-music mapping without changing scenes. |
+| `play_run_music(restart := false)` | `void` | Starts or resumes the dungeon run playlist. |
 | `scene_path_for(scene_ref)` | `String` | Normalizes route refs to `res://scenes/... .tscn` paths. |
 
 ### Data contracts

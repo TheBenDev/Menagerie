@@ -36,11 +36,7 @@ static func _ai_profile_for(enemy: Combatant) -> EnemyAIProfile:
 	if enemy == null or enemy.profile == null:
 		return null
 
-	var raw_profile: Variant = enemy.profile.get("enemy_ai_profile")
-	if raw_profile is EnemyAIProfile:
-		return raw_profile
-
-	return null
+	return enemy.profile.enemy_ai_profile
 
 static func _valid_moves(
 	ai_profile: EnemyAIProfile,
@@ -49,14 +45,10 @@ static func _valid_moves(
 	allies: Array[Combatant]
 ) -> Array[EnemyMoveData]:
 	var moves: Array[EnemyMoveData] = []
-	var raw_moves: Variant = ai_profile.get("moves")
-	if not raw_moves is Array:
-		return moves
 
-	for raw_move in raw_moves:
-		if not raw_move is EnemyMoveData:
+	for move in ai_profile.moves:
+		if move == null:
 			continue
-		var move := raw_move as EnemyMoveData
 		if not _is_enemy_hp_in_range(enemy, move):
 			continue
 		if _targets_for_move(move, enemy, opponents, allies).is_empty():
@@ -79,7 +71,7 @@ static func _choose_move(
 	opponents: Array[Combatant],
 	difficulty_profile: Resource
 ) -> EnemyMoveData:
-	match str(ai_profile.get("behavior_mode")):
+	match ai_profile.behavior_mode:
 		BEHAVIOR_RANDOM_WEIGHTED:
 			return _choose_random_or_scored(moves, enemy, opponents, difficulty_profile)
 		_:
@@ -199,10 +191,8 @@ static func _score_targets_for_move(
 
 static func _estimate_action_power(move: EnemyMoveData, enemy: Combatant, targets: Array[Combatant]) -> float:
 	var total_power := 0.0
-	for effect in move.effects:
-		if effect == null:
-			continue
-		total_power += max(effect.estimate_power(enemy, targets, move), 0.0)
+	for effect_data in move.effect_data:
+		total_power += max(CombatEffectLibrary.estimate_power(effect_data, enemy, targets, move), 0.0)
 
 	return total_power
 

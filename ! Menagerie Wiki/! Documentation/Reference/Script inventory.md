@@ -11,7 +11,7 @@ This inventory lists runtime `.gd` scripts under `res://core` and `res://scenes`
 | Group | Count |
 | --- | ---: |
 | `core/audio` | 7 |
-| `core/combat` | 14 |
+| `core/combat` | 13 |
 | `core/dungeon` | 2 |
 | `core/input` | 1 |
 | `core/difficulty`, `core/rewards`, `core/statuses` | 3 |
@@ -20,7 +20,7 @@ This inventory lists runtime `.gd` scripts under `res://core` and `res://scenes`
 | `scenes/dungeon` | 4 |
 | `scenes/ui` | 8 |
 | Root scripts | 2 |
-| Total | 55 |
+| Total | 54 |
 
 ## Root scripts
 
@@ -47,7 +47,7 @@ This inventory lists runtime `.gd` scripts under `res://core` and `res://scenes`
 
 | Script | Class | Purpose |
 | --- | --- | --- |
-| `res://core/combat/actions/action_resolver.gd` | `ActionResolver` | Applies action costs and effects. |
+| `res://core/combat/actions/action_resolver.gd` | `ActionResolver` | Applies action costs and effect data. |
 | `res://core/combat/actions/combat_effect_library.gd` | `CombatEffectLibrary` | Resolves namespaced effect IDs and shared runtime effect behavior. |
 | `res://core/combat/actions/queued_action.gd` | `QueuedAction` | Represents timeline queue entries, status, resolution order, and tie rolls. |
 | `res://core/combat/ai/enemy_brain.gd` | `EnemyBrain` | Chooses enemy actions and targets using authored move weights and difficulty scoring. |
@@ -69,10 +69,10 @@ This inventory lists runtime `.gd` scripts under `res://core` and `res://scenes`
 
 | Script | Class | Purpose |
 | --- | --- | --- |
-| `res://core/combat/data/actions/combat_action_data.gd` | `CombatActionData` | Base combat action resource fields. |
-| `res://core/combat/data/actions/combat_moveset_data.gd` | `CombatMovesetData` | Container for actions available to a profile. |
-| `res://core/combat/data/actions/enemy_move_data.gd` | `EnemyMoveData` | Enemy action data with AI weights, target rules, HP gates, and role metadata. |
-| `res://core/combat/data/actions/player_action_data.gd` | `PlayerActionData` | Player action fields for rage, stance, action bar visibility, and tooltip. |
+| `res://core/combat/actions/combat_action_data.gd` | `CombatActionData` | Base combat action resource fields. |
+| `res://core/combat/actions/combat_moveset_data.gd` | `CombatMovesetData` | Container for actions available to a profile. |
+| `res://core/combat/actions/enemy_move_data.gd` | `EnemyMoveData` | Enemy action data with AI weights, target rules, HP gates, and role metadata. |
+| `res://core/combat/actions/player_action_data.gd` | `PlayerActionData` | Player action fields for rage, stance, action bar visibility, and tooltip. |
 | `res://core/combat/ai/enemy_ai_profile.gd` | `EnemyAIProfile` | Enemy move list and behavior mode. |
 | `res://core/audio/audio_cue_data.gd` | `AudioCueData` | Sound cue streams, bus, volume, pitch, cooldown, instances, and priority. |
 | `res://core/audio/audio_library_data.gd` | `AudioLibraryData` | Catalog for authored cues and music tracks. |
@@ -80,7 +80,6 @@ This inventory lists runtime `.gd` scripts under `res://core` and `res://scenes`
 | `res://core/audio/music_track_data.gd` | `MusicTrackData` | Music track, playlist, state variants, bus, volume, fades, and looping. |
 | `res://scenes/combatants/combatant_profile.gd` | `CombatantProfile` | Identity, stats, moveset, rewards, AI, SFX IDs, and UI bars. |
 | `res://core/difficulty/difficulty_profile.gd` | `DifficultyProfile` | Enemy stat/reward multipliers and AI tuning values. |
-| `res://core/combat/data/effects/action_effect.gd` | `ActionEffect` | Namespaced data effect resolved by `CombatEffectLibrary`. |
 | `res://core/rewards/reward_profile.gd` | `RewardProfile` | Base memory/gold rewards and boss multiplier. |
 | `res://core/statuses/status_data.gd` | `StatusData` | Timed status and outgoing/incoming damage multipliers. |
 | `res://scenes/ui/common/resource_bar_config.gd` | `ResourceBarConfig` | Combatant resource bar display config. |

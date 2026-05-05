@@ -15,8 +15,8 @@ Combat is a time-based queue where the player chooses actions, the enemy AI choo
 | `Combatant`           | `res://scenes/combatants/combatant.gd`          | Holds stats, HP, block, statuses, available actions, and pending action state.                  |
 | `WarriorCombatant`    | `res://scenes/combatants/characters/warrior/warrior_combatant.gd`  | Adds rage gain/decay and rage snapshots for the HUD.                                            |
 | `EnemyBrain`          | `res://core/combat/ai/enemy_brain.gd`                | Chooses enemy moves from authored weights and difficulty-aware scoring.                         |
-| `ActionResolver`      | `res://core/combat/actions/action_resolver.gd`       | Applies action costs and calls each action effect.                                              |
-| `CombatEffectLibrary` | `res://core/combat/actions/combat_effect_library.gd` | Resolves namespaced effect IDs such as `combat.damage` and `status.apply`.                      |
+| `ActionResolver`      | `res://core/combat/actions/action_resolver.gd`       | Applies action costs and sends each effect data dictionary to the effect library.                |
+| `CombatEffectLibrary` | `res://core/combat/actions/combat_effect_library.gd` | Resolves namespaced effect data IDs such as `combat.damage` and `status.apply`.                 |
 
 ## Runtime sequence
 
@@ -29,7 +29,7 @@ Combat is a time-based queue where the player chooses actions, the enemy AI choo
 7. Each tick emits `time_changed`, ticks statuses/resources, resolves due actions, and asks the enemy to act if needed.
 8. Due queue entries are ordered by resolve time, then highest dexterity, then rerolled d6 ties.
 9. `Combatant.resolve_pending_action()` calls `ActionResolver.resolve_action()`.
-10. `ActionResolver` applies HP costs, then calls each `ActionEffect.apply()`.
+10. `ActionResolver` applies HP costs, then dispatches each `effect_data` dictionary.
 11. Damage/status/block/rage behavior is dispatched through `CombatEffectLibrary`.
 12. Death signals mark the battle over and `BattleScene` creates a `CombatResult`.
 

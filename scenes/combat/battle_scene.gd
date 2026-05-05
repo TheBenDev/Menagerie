@@ -131,7 +131,7 @@ func _configure_encounter_from_game_manager() -> void:
 	var encounter := GameManager.get_current_encounter()
 	var enemy_profile_path: String = str(encounter.get("enemy_profile_path", ""))
 	if not enemy_profile_path.is_empty():
-		var enemy_profile: Resource = load(enemy_profile_path)
+		var enemy_profile := load(enemy_profile_path) as CombatantProfile
 		if enemy_profile != null:
 			enemy.profile = enemy_profile
 

@@ -1,14 +1,7 @@
 [gd_resource type="Resource" script_class="EnemyAIProfile" format=3 uid="uid://b6gu4avfgu60p"]
 
 [ext_resource type="Script" uid="uid://cklhp8le7oiy8" path="res://core/combat/ai/enemy_ai_profile.gd" id="1_enemy_ai_profile"]
-[ext_resource type="Script" uid="uid://dc786e3pylw3d" path="res://core/combat/data/actions/enemy_move_data.gd" id="2_enemy_move_data"]
-[ext_resource type="Script" uid="uid://bj802nmis6fsn" path="res://core/combat/data/effects/action_effect.gd" id="3_action_effect"]
-
-[sub_resource type="Resource" id="ActionEffect_bite_damage"]
-script = ExtResource("3_action_effect")
-effect_id = &"combat.damage"
-base_damage = 5
-scaling_multiplier = 0.8
+[ext_resource type="Script" path="res://core/combat/actions/enemy_move_data.gd" id="2_enemy_move_data"]
 
 [sub_resource type="Resource" id="EnemyMove_bite"]
 script = ExtResource("2_enemy_move_data")
@@ -16,18 +9,11 @@ weight = 5.0
 id = "bite"
 display_name = "Bite"
 time_cost = 4.0
-effects = Array[ExtResource("3_action_effect")]([SubResource("ActionEffect_bite_damage")])
-
-[sub_resource type="Resource" id="ActionEffect_weakening_claw_damage"]
-script = ExtResource("3_action_effect")
-effect_id = &"combat.damage"
-base_damage = 3
-scaling_multiplier = 0.5
-
-[sub_resource type="Resource" id="ActionEffect_weakening_claw_weaken_status"]
-script = ExtResource("3_action_effect")
-effect_id = &"status.apply"
-status_id = &"status.weaken"
+effect_data = Array[Dictionary]([{
+"base_damage": 5,
+"id": &"combat.damage",
+"scaling_multiplier": 0.8
+}])
 
 [sub_resource type="Resource" id="EnemyMove_weakening_claw"]
 script = ExtResource("2_enemy_move_data")
@@ -37,18 +23,14 @@ status_id = "weaken"
 id = "weakening_claw"
 display_name = "Weakening Claw"
 time_cost = 3.0
-effects = Array[ExtResource("3_action_effect")]([SubResource("ActionEffect_weakening_claw_damage"), SubResource("ActionEffect_weakening_claw_weaken_status")])
-
-[sub_resource type="Resource" id="ActionEffect_slam_damage"]
-script = ExtResource("3_action_effect")
-effect_id = &"combat.damage"
-base_damage = 12
-scaling_multiplier = 1.2
-
-[sub_resource type="Resource" id="ActionEffect_slam_vulnerable_status"]
-script = ExtResource("3_action_effect")
-effect_id = &"status.apply"
-status_id = &"status.vulnerable"
+effect_data = Array[Dictionary]([{
+"base_damage": 3,
+"id": &"combat.damage",
+"scaling_multiplier": 0.5
+}, {
+"id": &"status.apply",
+"status_id": &"status.weaken"
+}])
 
 [sub_resource type="Resource" id="EnemyMove_slam"]
 script = ExtResource("2_enemy_move_data")
@@ -57,12 +39,14 @@ status_id = "vulnerable"
 id = "slam"
 display_name = "Heavy Slam"
 time_cost = 8.0
-effects = Array[ExtResource("3_action_effect")]([SubResource("ActionEffect_slam_damage"), SubResource("ActionEffect_slam_vulnerable_status")])
-
-[sub_resource type="Resource" id="ActionEffect_guard_block"]
-script = ExtResource("3_action_effect")
-effect_id = &"combat.block"
-amount = 12
+effect_data = Array[Dictionary]([{
+"base_damage": 12,
+"id": &"combat.damage",
+"scaling_multiplier": 1.2
+}, {
+"id": &"status.apply",
+"status_id": &"status.vulnerable"
+}])
 
 [sub_resource type="Resource" id="EnemyMove_guard"]
 script = ExtResource("2_enemy_move_data")
@@ -71,13 +55,11 @@ target_rule = "Self"
 ai_role = "Defense"
 id = "guard"
 display_name = "Guard"
-effects = Array[ExtResource("3_action_effect")]([SubResource("ActionEffect_guard_block")])
+effect_data = Array[Dictionary]([{
+"amount": 12,
+"id": &"combat.block"
+}])
 target_enemy = false
-
-[sub_resource type="Resource" id="ActionEffect_grave_strength_strength_add"]
-script = ExtResource("3_action_effect")
-effect_id = &"stat.strength.add"
-amount = 1
 
 [sub_resource type="Resource" id="EnemyMove_grave_strength"]
 script = ExtResource("2_enemy_move_data")
@@ -86,7 +68,10 @@ target_rule = "Self"
 ai_role = "Setup"
 id = "grave_strength"
 display_name = "Grave Strength"
-effects = Array[ExtResource("3_action_effect")]([SubResource("ActionEffect_grave_strength_strength_add")])
+effect_data = Array[Dictionary]([{
+"amount": 1,
+"id": &"stat.strength.add"
+}])
 target_enemy = false
 
 [resource]

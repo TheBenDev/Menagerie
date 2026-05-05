@@ -1,6 +1,6 @@
 ## Player-only combat action data with rage cost, stance requirement, action bar visibility, and tooltip text.
 class_name PlayerActionData
-extends "res://core/combat/data/actions/combat_action_data.gd"
+extends "res://core/combat/actions/combat_action_data.gd"
 
 ## Reserved for future class resources; current action resolution intentionally does not spend rage.
 @export var rage_cost: int = 0

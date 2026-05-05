@@ -10,12 +10,12 @@ The UI layer is scene-driven: scene scripts call `GameManager`, reusable control
 
 | Scene | Script | Role |
 | --- | --- | --- |
-| `main_menu.tscn` | `res://scenes/ui/main_menu/main_menu.gd` | Routes to waiting room, handles escape/close, requests menu music. |
-| `waiting_room.tscn` | `res://scenes/ui/waiting_room/waiting_room.gd` | Selects character/difficulty and starts runs. |
+| `MainMenu.tscn` | `res://scenes/ui/main_menu/main_menu.gd` | Routes to waiting room, handles escape/close, requests menu music. |
+| `WaitingRoom.tscn` | `res://scenes/ui/waiting_room/waiting_room.gd` | Selects character/difficulty and starts runs. |
 | `DungeonMap.tscn` | `res://scenes/dungeon/dungeon_controller.gd` | Shows grid map progression and starts routed node encounters. |
 | `Battle/UI/BattleHUD.tscn` | `res://scenes/combat/ui/battle_hud.gd` | Shows combat state, timeline, panels, action bar, and time controls. |
 | `UI/GlobalHUD/GlobalHUD.tscn` | `res://scenes/ui/global_hud/global_hud.gd` | Shows run timer, currencies, and selected character stats. |
-| `run_summary.tscn` | `res://scenes/ui/run_summary/run_summary.gd` | Shows final run stats and returns to waiting room. |
+| `RunSummary.tscn` | `res://scenes/ui/run_summary/run_summary.gd` | Shows final run stats and returns to waiting room. |
 
 ## Global HUD flow
 

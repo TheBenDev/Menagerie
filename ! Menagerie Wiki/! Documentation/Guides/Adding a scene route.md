@@ -28,7 +28,7 @@ Prefer a short route ref without extension for call sites.
 If the scene needs route music:
 
 1. Add or reuse a music track in `res://assets/audio/common_audio_library.tres`.
-2. Update `GameManager._music_id_for_scene_path()`.
+2. Update `GameManager`'s scene music map.
 3. Confirm `GameManager.play_music_for_scene(route)` resolves the new mapping.
 
 ## Add call sites

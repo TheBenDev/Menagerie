@@ -20,8 +20,8 @@ Audio IDs are stable `StringName`s used by `SoundManager` to find scanned stream
 | --- | --- | --- |
 | `music.main_menu` | `music.bgtheme` | Main menu and run summary. |
 | `music.waiting_room` | `music.bgtheme` | Waiting room. |
-| `music.dungeon` | `music.dungeon.eerie_exploration` | Uses randomized dungeon playlist. |
-| `music.combat` | `music.bgtheme` | Combat scene track; ready for later adaptive state variants. |
+| `music.dungeon` | `music.dungeon.eerie_exploration` | Run playlist started by `GameManager.start_new_run()`. |
+| `music.combat` | `music.bgtheme` | Event-triggered combat override; ready for later adaptive state variants. |
 
 ## Scanned stream IDs
 

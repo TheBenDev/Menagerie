@@ -30,7 +30,8 @@ Audio is driven by a `SoundManager` autoload that scans `res://assets/audio`, me
 
 - UI buttons are automatically connected to `ui.button.click`.
 - Gameplay scripts call `SoundManager.play_sfx(id, options)`.
-- Scene routing calls `GameManager.play_music_for_scene(scene_ref)`, which maps route IDs to music IDs.
+- Menu/setup screens call `GameManager.play_music_for_scene(scene_ref)` explicitly when they own the music change.
+- `GameManager.start_new_run()` starts `music.dungeon`; dungeon, combat, and run events keep that run playlist until an event explicitly requests a different track.
 - Combat uses `CombatAudioBridge.setup(battle, player, enemy, is_boss)` and listens for action, HP, block, death, time, and queue signals.
 
 ## Music route mapping
@@ -45,7 +46,7 @@ Audio is driven by a `SoundManager` autoload that scans `res://assets/audio`, me
 
 ## Adaptive combat states
 
-`CombatAudioBridge` sends these state IDs to `SoundManager.set_music_state()`:
+`CombatAudioBridge` sends these state IDs to `SoundManager.set_music_state()` only when `music.combat` is the current track:
 
 | State | Trigger |
 | --- | --- |

@@ -72,28 +72,38 @@ func _refresh_player_panel() -> void:
 		_set_stat_values(null)
 		return
 
-	var profile := GameManager.get_selected_character_profile()
+	var profile: CombatantProfile = GameManager.get_selected_character_profile()
 	if profile == null:
 		character_value.text = GameManager.get_selected_character_id()
 		_set_stat_values(null)
 		return
 
-	var display_name: String = str(profile.get("display_name"))
+	var display_name := profile.display_name
 	character_value.text = display_name if not display_name.is_empty() else GameManager.get_selected_character_id()
-	player_button.text = str(profile.get("timeline_initial"))
+	player_button.text = profile.timeline_initial
 	_set_stat_values(profile)
 
-func _set_stat_values(profile: Resource) -> void:
+func _set_stat_values(profile: CombatantProfile) -> void:
 	strength_value.text = _profile_stat(profile, "strength")
 	dexterity_value.text = _profile_stat(profile, "dexterity")
 	intelligence_value.text = _profile_stat(profile, "intelligence")
 	vitality_value.text = _profile_stat(profile, "vitality")
 
-func _profile_stat(profile: Resource, field_name: String) -> String:
+func _profile_stat(profile: CombatantProfile, field_name: String) -> String:
 	if profile == null:
 		return "-"
 
-	return str(int(profile.get(field_name)))
+	match field_name:
+		"strength":
+			return str(profile.strength)
+		"dexterity":
+			return str(profile.dexterity)
+		"intelligence":
+			return str(profile.intelligence)
+		"vitality":
+			return str(profile.vitality)
+		_:
+			return "-"
 
 func _format_time(value: float) -> String:
 	var total_seconds: int = max(int(ceil(value)), 0)

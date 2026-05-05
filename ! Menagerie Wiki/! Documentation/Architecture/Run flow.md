@@ -19,14 +19,14 @@ The run flow describes how menu selection becomes dungeon state, combat, rewards
 
 ## Flow
 
-1. `main_menu.tscn` calls `GameManager.go_to_scene("waiting_room")`.
+1. `MainMenu.tscn` calls `GameManager.go_to_scene("waiting_room")`.
 2. `waiting_room.gd` calls `GameManager.start_new_run(selected_character, selected_difficulty)`.
 3. `GameManager` creates a fresh `RunData`, stores the selected setup, emits run HUD signals, and routes to `dungeon`.
 4. `dungeon_controller.gd` creates runtime `DungeonNodeData` from grid descriptors and instantiates `DungeonNodeView` buttons.
 5. Haven starts revealed but unvisited. Clicking a reachable node emits a node event through `DungeonNodeEventHelper`.
 6. Empty and placeholder event nodes complete immediately unless a route is later added for their event type.
 7. Selecting a fight or boss calls `GameManager.start_combat(node_id, node_type, enemy_profile_path, is_boss)`.
-8. `GameManager` stores encounter metadata, advances travel time by `RunData.NODE_TRAVEL_TIME_SECONDS`, then routes to `Battle/BattleScene`.
+8. `GameManager` stores encounter metadata, advances travel time by `RunData.NODE_TRAVEL_TIME_SECONDS`, then routes to `combat/BattleScene`.
 9. `battle_scene.gd` loads the encounter profile from `GameManager.get_current_encounter()`, runs combat, and creates a `CombatResult`.
 10. `GameManager.complete_combat(result)` stores the result and routes back to `dungeon`.
 11. `dungeon_controller.gd` consumes the pending result, updates `RunData`, emits HUD state, and either continues or routes to `run_summary`.

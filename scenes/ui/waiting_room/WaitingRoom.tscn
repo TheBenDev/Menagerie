@@ -1,0 +1,123 @@
+[gd_scene format=3 uid="uid://cw6kbd0opxiyr"]
+
+[ext_resource type="Theme" uid="uid://blcilhxj3ejys" path="res://assets/ui/menagerie_theme.tres" id="1_dx8qc"]
+[ext_resource type="Script" uid="uid://3h5v2kkgn257" path="res://scenes/ui/waiting_room/waiting_room.gd" id="2_w3vi2"]
+
+[node name="WaitingRoom" type="Control" unique_id=178498347]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("1_dx8qc")
+script = ExtResource("2_w3vi2")
+
+[node name="Backdrop" type="ColorRect" parent="." unique_id=1282049250]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.08, 0.08, 0.09, 1)
+
+[node name="MarginContainer" type="MarginContainer" parent="." unique_id=1290273450]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 48
+theme_override_constants/margin_top = 44
+theme_override_constants/margin_right = 48
+theme_override_constants/margin_bottom = 44
+
+[node name="Layout" type="VBoxContainer" parent="MarginContainer" unique_id=1816336021]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 18
+
+[node name="TitleLabel" type="Label" parent="MarginContainer/Layout" unique_id=1733407582]
+layout_mode = 2
+theme_override_font_sizes/font_size = 44
+text = "Waiting Room"
+
+[node name="SetupPanel" type="PanelContainer" parent="MarginContainer/Layout" unique_id=1624647741]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="PanelMargin" type="MarginContainer" parent="MarginContainer/Layout/SetupPanel" unique_id=1328250863]
+layout_mode = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 18
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 18
+
+[node name="SetupLayout" type="VBoxContainer" parent="MarginContainer/Layout/SetupPanel/PanelMargin" unique_id=1645660034]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="CharacterLabel" type="Label" parent="MarginContainer/Layout/SetupPanel/PanelMargin/SetupLayout" unique_id=1044937123]
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "Character"
+
+[node name="CharacterRow" type="HBoxContainer" parent="MarginContainer/Layout/SetupPanel/PanelMargin/SetupLayout" unique_id=1504443608]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="WarriorButton" type="Button" parent="MarginContainer/Layout/SetupPanel/PanelMargin/SetupLayout/CharacterRow" unique_id=110163395]
+custom_minimum_size = Vector2(220, 54)
+layout_mode = 2
+toggle_mode = true
+button_pressed = true
+text = "Warrior"
+
+[node name="DifficultyLabel" type="Label" parent="MarginContainer/Layout/SetupPanel/PanelMargin/SetupLayout" unique_id=1409122491]
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "Difficulty"
+
+[node name="DifficultyRow" type="HBoxContainer" parent="MarginContainer/Layout/SetupPanel/PanelMargin/SetupLayout" unique_id=57986056]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="EasyButton" type="Button" parent="MarginContainer/Layout/SetupPanel/PanelMargin/SetupLayout/DifficultyRow" unique_id=847453672]
+custom_minimum_size = Vector2(150, 54)
+layout_mode = 2
+toggle_mode = true
+text = "Easy"
+
+[node name="NormalButton" type="Button" parent="MarginContainer/Layout/SetupPanel/PanelMargin/SetupLayout/DifficultyRow" unique_id=754374197]
+custom_minimum_size = Vector2(150, 54)
+layout_mode = 2
+toggle_mode = true
+button_pressed = true
+text = "Normal"
+
+[node name="HardButton" type="Button" parent="MarginContainer/Layout/SetupPanel/PanelMargin/SetupLayout/DifficultyRow" unique_id=1119795073]
+custom_minimum_size = Vector2(150, 54)
+layout_mode = 2
+toggle_mode = true
+text = "Hard"
+
+[node name="Spacer" type="Control" parent="MarginContainer/Layout" unique_id=1873680072]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="ActionRow" type="HBoxContainer" parent="MarginContainer/Layout" unique_id=300327210]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="StartRunButton" type="Button" parent="MarginContainer/Layout/ActionRow" unique_id=550212150]
+custom_minimum_size = Vector2(180, 54)
+layout_mode = 2
+text = "Start Run"
+
+[node name="BackButton" type="Button" parent="MarginContainer/Layout/ActionRow" unique_id=1607708675]
+custom_minimum_size = Vector2(140, 54)
+layout_mode = 2
+text = "Back"

@@ -48,7 +48,7 @@ Use `play_sfx()` for gameplay and `play_ui()` for interface sounds. Button click
 1. Add the stream under `res://assets/audio/music`.
 2. Add or update a `MusicTrackData` in `common_audio_library.tres`.
 3. Set `base_stream_id` or playlist fields.
-4. Add route mapping in `GameManager._music_id_for_scene_path()` if needed.
+4. Add route mapping in `GameManager`'s scene music map if needed.
 5. Use `SoundManager.set_music_state()` only when the track has state variants.
 
 ## Validate behavior

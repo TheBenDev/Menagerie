@@ -1,4 +1,4 @@
-## Applies a combat action's costs and effects from a source combatant to the chosen targets.
+## Applies a combat action's costs and effect data from a source combatant to the chosen targets.
 class_name ActionResolver
 extends RefCounted
 
@@ -15,6 +15,5 @@ static func _apply_costs(source: Combatant, action: CombatActionData) -> void:
 		source.hp_changed.emit(source)
 
 static func _apply_effects(source: Combatant, targets: Array[Combatant], action: CombatActionData) -> void:
-	for effect in action.effects:
-		if effect != null and effect.has_method("apply"):
-			effect.apply(source, targets, action)
+	for effect_data in action.effect_data:
+		CombatEffectLibrary.apply_effect(effect_data, source, targets, action)

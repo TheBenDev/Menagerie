@@ -1,61 +1,48 @@
 [gd_resource type="Resource" script_class="CombatMovesetData" format=3 uid="uid://dmirfj36xyajo"]
 
-[ext_resource type="Script" uid="uid://3btd2ryissk0" path="res://core/combat/data/actions/combat_moveset_data.gd" id="1_moveset"]
-[ext_resource type="Script" uid="uid://bvhvlkmv0thup" path="res://core/combat/data/actions/player_action_data.gd" id="2_player_action"]
-[ext_resource type="Script" uid="uid://did5gnthi0qvc" path="res://core/combat/data/actions/combat_action_data.gd" id="3_combat_action"]
-[ext_resource type="Script" uid="uid://bj802nmis6fsn" path="res://core/combat/data/effects/action_effect.gd" id="4_action_effect"]
-
-[sub_resource type="Resource" id="ActionEffect_quick_strike_damage"]
-script = ExtResource("4_action_effect")
-effect_id = &"combat.damage"
-base_damage = 4
-scaling_multiplier = 1.0
-
-[sub_resource type="Resource" id="ActionEffect_quick_strike_rage_gain"]
-script = ExtResource("4_action_effect")
-effect_id = &"resource.rage.gain"
-amount = 3
+[ext_resource type="Script" path="res://core/combat/actions/combat_moveset_data.gd" id="1_moveset"]
+[ext_resource type="Script" path="res://core/combat/actions/player_action_data.gd" id="2_player_action"]
+[ext_resource type="Script" path="res://core/combat/actions/combat_action_data.gd" id="3_combat_action"]
 
 [sub_resource type="Resource" id="PlayerAction_quick_strike"]
 script = ExtResource("2_player_action")
 id = "quick_strike"
 display_name = "Quick Strike"
 time_cost = 3.0
-effects = Array[ExtResource("4_action_effect")]([SubResource("ActionEffect_quick_strike_damage"), SubResource("ActionEffect_quick_strike_rage_gain")])
-
-[sub_resource type="Resource" id="ActionEffect_heavy_strike_damage"]
-script = ExtResource("4_action_effect")
-effect_id = &"combat.damage"
-base_damage = 14
-scaling_multiplier = 1.5
-
-[sub_resource type="Resource" id="ActionEffect_heavy_strike_vulnerable_status"]
-script = ExtResource("4_action_effect")
-effect_id = &"status.apply"
-status_id = &"status.vulnerable"
-
-[sub_resource type="Resource" id="ActionEffect_heavy_strike_rage_gain"]
-script = ExtResource("4_action_effect")
-effect_id = &"resource.rage.gain"
-amount = 6
+effect_data = Array[Dictionary]([{
+"base_damage": 4,
+"id": &"combat.damage",
+"scaling_multiplier": 1.0
+}, {
+"amount": 3,
+"id": &"resource.rage.gain"
+}])
 
 [sub_resource type="Resource" id="PlayerAction_heavy_strike"]
 script = ExtResource("2_player_action")
 id = "heavy_strike"
 display_name = "Heavy Strike"
 time_cost = 8.0
-effects = Array[ExtResource("4_action_effect")]([SubResource("ActionEffect_heavy_strike_damage"), SubResource("ActionEffect_heavy_strike_vulnerable_status"), SubResource("ActionEffect_heavy_strike_rage_gain")])
-
-[sub_resource type="Resource" id="ActionEffect_guard_block"]
-script = ExtResource("4_action_effect")
-effect_id = &"combat.block"
-amount = 12
+effect_data = Array[Dictionary]([{
+"base_damage": 14,
+"id": &"combat.damage",
+"scaling_multiplier": 1.5
+}, {
+"id": &"status.apply",
+"status_id": &"status.vulnerable"
+}, {
+"amount": 6,
+"id": &"resource.rage.gain"
+}])
 
 [sub_resource type="Resource" id="PlayerAction_guard"]
 script = ExtResource("2_player_action")
 id = "guard"
 display_name = "Guard"
-effects = Array[ExtResource("4_action_effect")]([SubResource("ActionEffect_guard_block")])
+effect_data = Array[Dictionary]([{
+"amount": 12,
+"id": &"combat.block"
+}])
 target_enemy = false
 
 [resource]

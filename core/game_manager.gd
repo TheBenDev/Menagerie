@@ -1,4 +1,4 @@
-## Autoload that owns run setup, scene transitions, rewards, run timers, and scene music routing.
+## Autoload that owns run setup, scene transitions, rewards, run timers, and explicit music routing.
 extends Node
 
 const RunDataScript := preload("res://core/run_data.gd")
@@ -10,14 +10,19 @@ signal run_ended(reason: String)
 const SCENE_ROOT_PATH := "res://scenes"
 const SCENE_EXTENSION := ".tscn"
 const SCENE_ROUTE_PATHS := {
-	"main_menu": "ui/main_menu/main_menu",
-	"waiting_room": "ui/waiting_room/waiting_room",
-	"run_summary": "ui/run_summary/run_summary",
+	"main_menu": "ui/main_menu/MainMenu",
+	"waiting_room": "ui/waiting_room/WaitingRoom",
+	"run_summary": "ui/run_summary/RunSummary",
 	"dungeon": "dungeon/DungeonMap",
-	"dungeon/dungeon": "dungeon/DungeonMap",
-	"battle/battlescene": "combat/BattleScene",
-	"combat/battlescene": "combat/BattleScene",
 }
+const SCENE_MUSIC_IDS := {
+	"res://scenes/ui/main_menu/MainMenu.tscn": &"music.main_menu",
+	"res://scenes/ui/waiting_room/WaitingRoom.tscn": &"music.waiting_room",
+	"res://scenes/dungeon/DungeonMap.tscn": &"music.dungeon",
+	"res://scenes/combat/BattleScene.tscn": &"music.combat",
+	"res://scenes/ui/run_summary/RunSummary.tscn": &"music.main_menu",
+}
+const RUN_MUSIC_ID := &"music.dungeon"
 
 const DEFAULT_ENEMY_PROFILE_PATH := "res://scenes/combatants/enemies/training_ghoul/training_ghoul_profile.tres"
 const CHARACTER_PROFILE_PATHS := {
@@ -41,6 +46,7 @@ func start_new_run(character: String, difficulty: String) -> Variant:
 	current_run_data.start_run(character, difficulty, RunDataScript.DEFAULT_RUN_TIME_SECONDS, DEFAULT_ENEMY_PROFILE_PATH)
 	run_setup_data.configure_selection(current_run_data.selected_character, current_run_data.selected_difficulty)
 	emit_run_state()
+	play_run_music(true)
 	return current_run_data
 
 func clear_run() -> void:
@@ -122,7 +128,7 @@ func export_current_run_memories() -> int:
 
 	return current_run_data.export_memories_to(pending_class_memory_awards)
 
-func calculate_rewards_for_profile(profile: Resource, is_boss: bool) -> Dictionary:
+func calculate_rewards_for_profile(profile: CombatantProfile, is_boss: bool) -> Dictionary:
 	var rewards := {
 		"memories_awarded": 0,
 		"gold_awarded": 0,
@@ -130,7 +136,7 @@ func calculate_rewards_for_profile(profile: Resource, is_boss: bool) -> Dictiona
 	if profile == null:
 		return rewards
 
-	var reward_profile := profile.get("reward_profile") as Resource
+	var reward_profile := profile.reward_profile
 	if reward_profile == null:
 		return rewards
 
@@ -151,12 +157,12 @@ func get_selected_difficulty_profile() -> Resource:
 
 	return load(profile_path)
 
-func get_selected_character_profile() -> Resource:
+func get_selected_character_profile() -> CombatantProfile:
 	var profile_path := str(CHARACTER_PROFILE_PATHS.get(get_selected_character_id(), CHARACTER_PROFILE_PATHS[RunDataScript.DEFAULT_CHARACTER]))
 	if profile_path.is_empty():
 		return null
 
-	return load(profile_path)
+	return load(profile_path) as CombatantProfile
 
 func get_selected_character_id() -> String:
 	if current_run_data != null:
@@ -202,10 +208,16 @@ func go_to_scene(scene_ref: String) -> void:
 		push_error("Failed to change scene to %s. Error: %s" % [scene_path, error])
 		return
 
-	play_music_for_scene(scene_path)
-
 func play_music_for_scene(scene_ref: String) -> void:
 	_play_music_for_scene_path(scene_path_for(scene_ref))
+
+func play_run_music(restart: bool = false) -> void:
+	var sound_manager := _sound_manager()
+	if sound_manager == null:
+		return
+
+	sound_manager.call("play_music", RUN_MUSIC_ID, -1.0, restart)
+	sound_manager.call("set_music_state", &"", 0.0)
 
 func scene_path_for(scene_ref: String) -> String:
 	var normalized_ref := scene_ref.strip_edges().replace("\\", "/")
@@ -218,7 +230,7 @@ func scene_path_for(scene_ref: String) -> String:
 	normalized_ref = normalized_ref.trim_prefix("/")
 	if normalized_ref.begins_with("scenes/"):
 		normalized_ref = normalized_ref.substr("scenes/".length())
-	normalized_ref = str(SCENE_ROUTE_PATHS.get(normalized_ref.to_lower(), normalized_ref))
+	normalized_ref = _scene_route_path_for(normalized_ref)
 
 	return _with_scene_extension(SCENE_ROOT_PATH.path_join(normalized_ref))
 
@@ -245,30 +257,15 @@ func _play_music_for_scene_path(scene_path: String) -> void:
 		sound_manager.call("set_music_state", &"", 0.0)
 
 func _music_id_for_scene_path(scene_path: String) -> StringName:
-	match _scene_id_for_path(scene_path).to_lower():
-		"main_menu", "ui/main_menu/main_menu":
-			return &"music.main_menu"
-		"waiting_room", "ui/waiting_room/waiting_room":
-			return &"music.waiting_room"
-		"dungeon", "dungeon/dungeon", "dungeon/dungeonmap":
-			return &"music.dungeon"
-		"battle/battlescene", "combat/battlescene":
-			return &"music.combat"
-		"run_summary", "ui/run_summary/run_summary":
-			return &"music.main_menu"
+	var normalized_scene_path := scene_path_for(scene_path)
+	return StringName(SCENE_MUSIC_IDS.get(normalized_scene_path, &""))
 
-	return &""
+func _scene_route_path_for(scene_ref: String) -> String:
+	var route_key := scene_ref
+	if route_key.ends_with(SCENE_EXTENSION):
+		route_key = route_key.substr(0, route_key.length() - SCENE_EXTENSION.length())
 
-func _scene_id_for_path(scene_ref: String) -> String:
-	var scene_path := scene_path_for(scene_ref)
-	var scene_prefix := SCENE_ROOT_PATH + "/"
-	var scene_id := scene_path
-	if scene_id.begins_with(scene_prefix):
-		scene_id = scene_id.substr(scene_prefix.length())
-	if scene_id.ends_with(SCENE_EXTENSION):
-		scene_id = scene_id.substr(0, scene_id.length() - SCENE_EXTENSION.length())
-
-	return scene_id
+	return str(SCENE_ROUTE_PATHS.get(route_key, scene_ref))
 
 func _with_scene_extension(scene_path: String) -> String:
 	if scene_path.ends_with(SCENE_EXTENSION):

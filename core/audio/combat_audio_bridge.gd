@@ -1,6 +1,7 @@
 ## Bridges combat events to SoundManager by playing action SFX and updating adaptive combat music states.
 extends Node
 
+const COMBAT_MUSIC_ID := &"music.combat"
 const MUSIC_STATE_BASE := &"combat_base"
 const MUSIC_STATE_TENSE := &"combat_tense"
 const MUSIC_STATE_CRITICAL := &"combat_critical"
@@ -96,9 +97,17 @@ func _refresh_music_state() -> void:
 	var sound_manager := _sound_manager()
 	if sound_manager == null or player == null or enemy == null:
 		return
+	if not _should_update_music_state(sound_manager):
+		return
 
 	var intensity := _combat_intensity()
 	sound_manager.call("set_music_state", _music_state_for_intensity(intensity), intensity)
+
+func _should_update_music_state(sound_manager: Node) -> bool:
+	if sound_manager == null or not sound_manager.has_method("get_current_music_id"):
+		return false
+
+	return StringName(sound_manager.call("get_current_music_id")) == COMBAT_MUSIC_ID
 
 func _combat_intensity() -> float:
 	var player_pressure: float = 1.0 - _hp_percent(player)
@@ -137,13 +146,15 @@ func _profile_sfx_id(combatant: Combatant, field_name: String) -> StringName:
 	if combatant == null or combatant.profile == null:
 		return &""
 
-	var value: Variant = combatant.profile.get(field_name)
-	if value is StringName:
-		return value
-	if value is String:
-		return StringName(value)
-
-	return &""
+	match field_name:
+		"hit_sfx_id":
+			return combatant.profile.hit_sfx_id
+		"block_sfx_id":
+			return combatant.profile.block_sfx_id
+		"death_sfx_id":
+			return combatant.profile.death_sfx_id
+		_:
+			return &""
 
 func _play_sfx(sfx_id: StringName, priority: int) -> void:
 	var sound_manager := _sound_manager()

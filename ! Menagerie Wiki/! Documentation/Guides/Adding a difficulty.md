@@ -20,7 +20,7 @@ Use this guide to add a new difficulty profile and expose it to run setup.
 ## Register the profile
 
 1. Update `GameManager.DIFFICULTY_PROFILE_PATHS` in `res://core/game_manager.gd`.
-2. If this difficulty should be selectable in the waiting room, update `res://scenes/ui/waiting_room/waiting_room.tscn` and `res://scenes/ui/waiting_room/waiting_room.gd`.
+2. If this difficulty should be selectable in the waiting room, update `res://scenes/ui/waiting_room/WaitingRoom.tscn` and `res://scenes/ui/waiting_room/waiting_room.gd`.
 3. Keep `RunData.DEFAULT_DIFFICULTY` unchanged unless the project default should move.
 
 ## Runtime effects
