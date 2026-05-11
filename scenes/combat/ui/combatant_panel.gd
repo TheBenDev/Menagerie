@@ -1,12 +1,11 @@
-## HUD panel for one combatant, including name, placeholder art, health, extra resources, and statuses.
+## HUD panel for one combatant's combat UI: name, health, resources, and statuses.
 class_name CombatantPanel
 extends PanelContainer
 
 const ResourceBarScript := preload("res://scenes/ui/common/resource_bar.gd")
 
 @onready var name_label: Label = $PanelMargin/PanelLayout/NameLabel
-@onready var placeholder_art: ColorRect = $PanelMargin/PanelLayout/PlaceHolderArt
-@onready var status_label: RichTextLabel = $PanelMargin/PanelLayout/PlaceHolderArt/StatusLabel
+@onready var status_label: RichTextLabel = $PanelMargin/PanelLayout/StatusLabel
 @onready var health_bar: ResourceBarScript = $PanelMargin/PanelLayout/HealthBar
 @onready var resource_bars: VBoxContainer = $PanelMargin/PanelLayout/ResourceBars
 
@@ -50,7 +49,6 @@ func _apply_profile() -> void:
 		return
 
 	name_label.text = combatant.display_name
-	placeholder_art.color = combatant.get_placeholder_color()
 	health_bar.configure_from_config(combatant.get_health_bar_config())
 	_build_extra_resource_bars()
 	_update_status_label()

@@ -11,10 +11,10 @@ Use this guide to add or extend HUD UI without breaking the signal-driven refres
 | HUD | Use for |
 | --- | --- |
 | `GlobalHUD` | Run timer, currencies, selected character stats, persistent run-level data. |
-| `BattleHUD` | Current battle state, action choice, timeline, combatants, queue, time controls. |
-| `CombatantPanel` | Per-combatant health, resources, statuses, identity, visual surface. |
+| `BattleHUD` | Current battle state, action choice, timeline, hotbar, and time controls. |
+| `CombatantPanel` | Per-combatant health, resources, statuses, and identity. |
 | `ActionQueuePanel` | Pending/resolved action queue display. |
-| `TimelineView` | Visual timeline markers. |
+| `TimelineView` | Visual combat timeline ruler and action markers. |
 
 ## Add data first
 
@@ -31,6 +31,15 @@ Use this guide to add or extend HUD UI without breaking the signal-driven refres
    - `BattleHUD.refresh()`
    - `CombatantPanel.refresh()`
 4. Keep layout dimensions stable so changing text does not shift battle controls.
+
+## Hover info
+
+Use `HoverInfoPanel` for fixed-position hover details instead of mouse tooltips.
+
+1. Put static button text on a `HoverInfoButton` with `hover_info_title`, `hover_info_description`, and optional `hover_info_details`.
+2. For dynamic controls, set `hover_info_title`, `hover_info_description`, or `hover_info_details` metadata on the hovered `Control`.
+3. Call `HoverInfoPanel.bind_source(control)` so the panel can render that control's metadata on hover.
+4. Prefer authored resource descriptions, such as `CombatActionData.description` and `StatusData.description`, over formatting item-specific text in hover handlers.
 
 ## Resource bars
 

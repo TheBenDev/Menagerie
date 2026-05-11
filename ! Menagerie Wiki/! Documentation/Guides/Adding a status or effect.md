@@ -13,10 +13,15 @@ Use this guide to add reusable status data or new combat effect behavior.
 3. Set:
    - `id`
    - `display_name`
+   - `description`
+   - `icon_atlas_coords`
+   - `icon_atlas_cell_size`
    - `duration_seconds`
    - `outgoing_damage_multiplier`
    - `incoming_damage_multiplier`
-4. Reference the status from action `effect_data` with `id = &"status.apply"` and `status_id = &"status.<id>"`.
+4. Use atlas coordinates from `res://assets/ui/global/icons/statuses/statuses_13.png` when the status should appear in the battle HUD status bar. The first status icon is `(0, 0)`, the second is `(1, 0)`, and unimplemented statuses can stay at `(-1, -1)`.
+5. Open `res://scenes/combat/ui/StatusIconView.tscn` to visually preview icon sizing by changing `atlas_coords` and `atlas_cell_size`.
+6. Reference the status from action `effect_data` with `id = &"status.apply"` and `status_id = &"status.<id>"`.
 
 `CombatEffectLibrary.status_path_for_id()` resolves `status.<id>` to `res://core/statuses/<id>.tres`.
 
@@ -42,7 +47,8 @@ Prefer inline `effect_data` dictionaries with a namespaced `id`:
 
 ## Validate behavior
 
-- Confirm status labels update in `CombatantPanel`.
+- Confirm the battle HUD status bar appears for player statuses and hides when no statuses remain.
+- Confirm hovering the status icon shows the authored `description` in the battle info panel.
 - Confirm outgoing/incoming multipliers affect `DamagePacket` before `take_damage()`.
 - Confirm enemy AI estimates the effect if it should influence move choice.
 - Run the headless load command after script/resource changes.

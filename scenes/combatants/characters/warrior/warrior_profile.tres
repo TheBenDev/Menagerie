@@ -3,6 +3,7 @@
 [ext_resource type="Script" uid="uid://pfsnfnt6ugqn" path="res://scenes/combatants/combatant_profile.gd" id="1_profile"]
 [ext_resource type="Script" uid="uid://cpn8kixh6g3yf" path="res://scenes/ui/common/resource_bar_config.gd" id="2_bar_config"]
 [ext_resource type="Resource" uid="uid://dmirfj36xyajo" path="res://scenes/combatants/characters/warrior/warrior_moveset.tres" id="3_moveset"]
+[ext_resource type="PackedScene" uid="uid://dgvhkii1e8r8j" path="res://scenes/combatants/characters/warrior/WarriorBattleVisual.tscn" id="4_visual"]
 
 [sub_resource type="Resource" id="ResourceBarConfig_health"]
 script = ExtResource("2_bar_config")
@@ -27,6 +28,7 @@ display_name = "Warrior"
 placeholder_color = Color(0.18, 0.36, 0.54, 1)
 timeline_initial = "W"
 timeline_color = Color(0.54, 0.74, 1, 1)
+battle_visual_scene = ExtResource("4_visual")
 strength = 5
 dexterity = 5
 intelligence = 5

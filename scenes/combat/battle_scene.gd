@@ -4,10 +4,13 @@ extends Node
 const CombatResultScript := preload("res://core/combat/combat_result.gd")
 const BattleHudScript := preload("res://scenes/combat/ui/battle_hud.gd")
 const CombatAudioBridgeScript := preload("res://core/audio/combat_audio_bridge.gd")
+const CombatantDisplayScript := preload("res://scenes/combat/ui/combatant_display.gd")
 
 @onready var battle: BattleController = $BattleController
 @onready var warrior: WarriorCombatant = $Warrior
 @onready var enemy: EnemyCombatant = $Enemy
+@onready var warrior_display: CombatantDisplayScript = $WarriorDisplay
+@onready var enemy_display: CombatantDisplayScript = $EnemyDisplay
 @onready var hud: Control = $BattleHUD
 
 var actions_used: int = 0
@@ -28,6 +31,8 @@ func _ready() -> void:
 		hud.set_script(BattleHudScript)
 
 	hud.call("setup", battle, warrior, enemy)
+	warrior_display.setup(warrior)
+	enemy_display.setup(enemy)
 	hud.connect("action_selected", Callable(self, "_choose_warrior_action"))
 	hud.connect("speed_requested", Callable(self, "_on_speed_requested"))
 	hud.connect("pause_requested", Callable(self, "_on_pause_requested"))
@@ -37,9 +42,9 @@ func _ready() -> void:
 	_connect_combatant_signals(enemy)
 	_connect_combat_result_signals()
 	_connect_run_signals()
-	_setup_audio_bridge()
 
 	battle.start_battle()
+	_setup_audio_bridge()
 	_refresh_hud()
 
 func _input(event: InputEvent) -> void:
@@ -117,6 +122,8 @@ func _on_battle_time_changed(current_time: float) -> void:
 
 func _refresh_hud(_arg_a: Variant = null, _arg_b: Variant = null) -> void:
 	hud.call("refresh")
+	warrior_display.refresh()
+	enemy_display.refresh()
 
 func _action_index_for_key(keycode: int) -> int:
 	if keycode >= KEY_1 and keycode <= KEY_9:

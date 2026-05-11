@@ -95,6 +95,12 @@ func get_timeline_color() -> Color:
 
 	return profile.timeline_color
 
+func get_battle_visual_scene() -> PackedScene:
+	if profile == null:
+		return null
+
+	return profile.battle_visual_scene
+
 func get_health_bar_config() -> Resource:
 	if profile == null:
 		return null
@@ -167,13 +173,15 @@ func take_damage(packet: DamagePacket) -> void:
 		incoming_damage -= blocked
 		block_changed.emit(self)
 
+	var previous_hp := hp
 	hp = max(hp - incoming_damage, 0)
+	var actual_damage := previous_hp - hp
 	hp_changed.emit(self)
 
 	if packet.source != null and packet.source.has_method("on_damage_dealt"):
-		packet.source.on_damage_dealt(incoming_damage)
+		packet.source.on_damage_dealt(actual_damage)
 
-	on_damage_taken(incoming_damage)
+	on_damage_taken(actual_damage)
 
 	if hp <= 0:
 		died.emit(self)

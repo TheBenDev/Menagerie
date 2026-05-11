@@ -32,10 +32,11 @@ These are real scenes but are not direct route targets today:
 
 | Scene | Purpose |
 | --- | --- |
-| `res://scenes/combat/ui/BattleHUD.tscn` | Battle HUD instance used inside `BattleScene`. |
-| `res://scenes/ui/global_hud/GlobalHUD.tscn` | Persistent run HUD layer instantiated by route scenes. |
-| `res://scenes/combatants/characters/warrior/WarriorBattleVisual.tscn` | Player battle visual used by the battle HUD. |
-| `res://scenes/combatants/enemies/training_ghoul/TrainingGhoulBattleVisual.tscn` | Enemy battle visual used by the battle HUD. |
+| `res://scenes/combat/ui/BattleHUD.tscn` | Battle HUD instance used inside `BattleScene`; embeds `GlobalHUD` for combat. |
+| `res://scenes/combat/ui/CombatantDisplay.tscn` | Reusable combatant display instanced by `BattleScene` for player and enemy combatants. |
+| `res://scenes/ui/global_hud/GlobalHUD.tscn` | Persistent run HUD layer instantiated by route scenes or embedded by `BattleHUD`. |
+| `res://scenes/combatants/characters/warrior/WarriorBattleVisual.tscn` | Player battle visual loaded through the warrior profile's `battle_visual_scene`. |
+| `res://scenes/combatants/enemies/training_ghoul/TrainingGhoulBattleVisual.tscn` | Enemy battle visual loaded through the enemy profile's `battle_visual_scene`. |
 
 ## Route call sites
 

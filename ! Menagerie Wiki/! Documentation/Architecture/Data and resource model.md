@@ -23,11 +23,11 @@ Gameplay data is authored as Godot `.tres` resources that point to resource scri
 
 ## Character and enemy data flow
 
-1. A `CombatantProfile` stores display data, stats, moveset, audio IDs, reward/AI references, and resource bar configs.
+1. A `CombatantProfile` stores display data, battle visual scene, stats, moveset, audio IDs, reward/AI references, and resource bar configs.
 2. `Combatant.apply_profile()` copies stats and actions from the profile into runtime fields.
 3. A player combatant reads `profile.moveset.actions`.
 4. An enemy combatant reads `profile.enemy_ai_profile.moves`.
-5. The HUD reads `profile.health_bar` and `profile.resource_bars` through `Combatant.get_*_config()`.
+5. `BattleScene` owns combatant display nodes, and each `CombatantDisplay` reads `profile.battle_visual_scene`, `profile.health_bar`, and `profile.resource_bars` through `Combatant` accessors.
 6. `CombatAudioBridge` reads profile SFX IDs for hit, block, and death events.
 
 ## Action data flow

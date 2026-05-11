@@ -1,3 +1,4 @@
+## Easy State Machine state that plays the Warrior idle animation.
 @tool
 class_name WarriorIdleState
 extends EasyState

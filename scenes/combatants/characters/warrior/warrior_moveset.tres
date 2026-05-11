@@ -1,14 +1,14 @@
 [gd_resource type="Resource" script_class="CombatMovesetData" format=3 uid="uid://dmirfj36xyajo"]
 
-[ext_resource type="Script" path="res://core/combat/actions/combat_moveset_data.gd" id="1_moveset"]
-[ext_resource type="Script" path="res://core/combat/actions/player_action_data.gd" id="2_player_action"]
-[ext_resource type="Script" path="res://core/combat/actions/combat_action_data.gd" id="3_combat_action"]
+[ext_resource type="Script" uid="uid://3btd2ryissk0" path="res://core/combat/actions/combat_moveset_data.gd" id="1_moveset"]
+[ext_resource type="Script" uid="uid://bvhvlkmv0thup" path="res://core/combat/actions/player_action_data.gd" id="2_player_action"]
+[ext_resource type="Script" uid="uid://did5gnthi0qvc" path="res://core/combat/actions/combat_action_data.gd" id="3_combat_action"]
 
 [sub_resource type="Resource" id="PlayerAction_quick_strike"]
 script = ExtResource("2_player_action")
 id = "quick_strike"
 display_name = "Quick Strike"
-time_cost = 3.0
+description = "A fast attack that generates rage."
 effect_data = Array[Dictionary]([{
 "base_damage": 4,
 "id": &"combat.damage",
@@ -17,12 +17,13 @@ effect_data = Array[Dictionary]([{
 "amount": 3,
 "id": &"resource.rage.gain"
 }])
+time_cost = 3.0
 
 [sub_resource type="Resource" id="PlayerAction_heavy_strike"]
 script = ExtResource("2_player_action")
 id = "heavy_strike"
 display_name = "Heavy Strike"
-time_cost = 8.0
+description = "A slower heavy attack that applies Vulnerable."
 effect_data = Array[Dictionary]([{
 "base_damage": 14,
 "id": &"combat.damage",
@@ -34,11 +35,13 @@ effect_data = Array[Dictionary]([{
 "amount": 6,
 "id": &"resource.rage.gain"
 }])
+time_cost = 8.0
 
 [sub_resource type="Resource" id="PlayerAction_guard"]
 script = ExtResource("2_player_action")
 id = "guard"
 display_name = "Guard"
+description = "Gain block instead of attacking."
 effect_data = Array[Dictionary]([{
 "amount": 12,
 "id": &"combat.block"

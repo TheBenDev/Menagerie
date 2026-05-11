@@ -16,6 +16,8 @@ const NumberFontHelper := preload("res://scenes/ui/common/number_font.gd")
 @export var bonus_label: String = ""
 @export var bonus_value: int = 0
 @export var bonus_text_color: Color = Color(0.34, 0.64, 1.0)
+@export var fill_start_value: int = 0
+@export var draw_text: bool = true
 
 func _ready() -> void:
 	custom_minimum_size = Vector2(0, 28)
@@ -61,16 +63,30 @@ func set_values(new_current_value: int, new_reference_value: int = -1, new_bonus
 	bonus_value = max(new_bonus_value, 0)
 	queue_redraw()
 
+func set_segment_values(new_start_value: int, new_current_value: int, new_reference_value: int = -1) -> void:
+	fill_start_value = max(new_start_value, 0)
+	set_values(new_current_value, new_reference_value, 0)
+
 func _draw() -> void:
-	var rect := Rect2(Vector2.ZERO, size)
-	var percent: float = clamp(float(current_value) / float(max(reference_value, 1)), 0.0, 1.0)
-	var fill_color := _fill_color(percent)
+	var rect: Rect2 = Rect2(Vector2.ZERO, size)
+	var reference: int = max(reference_value, 1)
+	var start_percent: float = clamp(float(fill_start_value) / float(reference), 0.0, 1.0)
+	var percent: float = clamp(float(current_value) / float(reference), 0.0, 1.0)
+	var fill_color: Color = _fill_color(percent)
+	var fill_rect: Rect2 = Rect2(
+		Vector2(size.x * start_percent, 0.0),
+		Vector2(size.x * max(percent - start_percent, 0.0), size.y)
+	)
 
-	draw_rect(rect, background_color, true)
-	draw_rect(Rect2(Vector2.ZERO, Vector2(size.x * percent, size.y)), fill_color, true)
-	draw_rect(rect, border_color, false, 1.0)
+	if background_color.a > 0.0:
+		draw_rect(rect, background_color, true)
+	if fill_rect.size.x > 0.0 and fill_color.a > 0.0:
+		draw_rect(fill_rect, fill_color, true)
+	if border_color.a > 0.0:
+		draw_rect(rect, border_color, false, 1.0)
 
-	_draw_text()
+	if draw_text:
+		_draw_text()
 
 func _fill_color(percent: float) -> Color:
 	if current_value > reference_value and over_reference_color.a > 0.0:

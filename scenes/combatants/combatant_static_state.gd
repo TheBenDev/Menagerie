@@ -1,3 +1,4 @@
+## Easy State Machine state that pins a combatant visual to a static animation frame.
 @tool
 class_name CombatantStaticState
 extends EasyState

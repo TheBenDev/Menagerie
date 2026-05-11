@@ -47,7 +47,7 @@ Use existing Training Ghoul resources as the pattern:
 
 ## Optional battle visual
 
-If the enemy needs unique art, follow [[Adding a battle visual]] and then wire the scene into the battle HUD layout.
+If the enemy needs unique art, follow [[Adding a battle visual]] and then assign the scene to the enemy `CombatantProfile.battle_visual_scene`.
 
 ## Validate behavior
 

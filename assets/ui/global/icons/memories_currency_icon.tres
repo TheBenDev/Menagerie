@@ -1,0 +1,8 @@
+[gd_resource type="AtlasTexture" load_steps=2 format=3]
+
+[ext_resource type="Texture2D" uid="uid://d1mru8eafa66" path="res://assets/ui/global/icons/currencies.png" id="1_currencies"]
+
+[resource]
+atlas = ExtResource("1_currencies")
+region = Rect2(128, 0, 128, 128)
+filter_clip = true

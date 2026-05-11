@@ -3,17 +3,17 @@ extends CanvasLayer
 
 const NumberFontHelper := preload("res://scenes/ui/common/number_font.gd")
 
-@onready var player_button: Button = $HUDRoot/TopMargin/TopBar/BarMargin/BarRow/PlayerButton
-@onready var timer_bar: TimeProgressBar = $HUDRoot/TopMargin/TopBar/BarMargin/BarRow/TimerStack/TimerProgress
-@onready var timer_label: Label = $HUDRoot/TopMargin/TopBar/BarMargin/BarRow/TimerStack/TimerLabel
-@onready var memories_value: Label = $HUDRoot/TopMargin/TopBar/BarMargin/BarRow/CurrencyRow/MemoriesBox/MemoryMargin/MemoryLayout/MemoryValue
-@onready var gold_value: Label = $HUDRoot/TopMargin/TopBar/BarMargin/BarRow/CurrencyRow/GoldBox/GoldMargin/GoldLayout/GoldValue
-@onready var player_panel: PanelContainer = $HUDRoot/PlayerPanel
-@onready var character_value: Label = $HUDRoot/PlayerPanel/PanelMargin/StatsLayout/CharacterValue
-@onready var strength_value: Label = $HUDRoot/PlayerPanel/PanelMargin/StatsLayout/StatsGrid/StrengthValue
-@onready var dexterity_value: Label = $HUDRoot/PlayerPanel/PanelMargin/StatsLayout/StatsGrid/DexterityValue
-@onready var intelligence_value: Label = $HUDRoot/PlayerPanel/PanelMargin/StatsLayout/StatsGrid/IntelligenceValue
-@onready var vitality_value: Label = $HUDRoot/PlayerPanel/PanelMargin/StatsLayout/StatsGrid/VitalityValue
+@onready var player_button: TextureButton = $HUDRoot/TopLeftPanel/PlayerButton
+@onready var timer_bar: TimeProgressBar = $HUDRoot/TopMargin/BarMargin/BarRow/TimerStack/TimerProgress
+@onready var timer_label: Label = $HUDRoot/TopMargin/BarMargin/BarRow/TimerStack/TimerLabel
+@onready var memories_value: Label = $HUDRoot/TopRightPanel/TopRightMargin/TopRightRow/VBoxContainer/MemoriesItem/MemoriesValue
+@onready var gold_value: Label = $HUDRoot/TopRightPanel/TopRightMargin/TopRightRow/VBoxContainer/GoldItem/GoldValue
+@onready var player_panel: Control = $HUDRoot/TopLeftPanel/PlayerButton/PlayerPanel
+@onready var character_value: Label = $HUDRoot/TopLeftPanel/HeaderRow/CharacterValue
+@onready var strength_value: Label = $HUDRoot/TopLeftPanel/PlayerButton/PlayerPanel/PanelMargin/PanelLayout/StatsRow/StrengthStat/StrengthValue
+@onready var dexterity_value: Label = $HUDRoot/TopLeftPanel/PlayerButton/PlayerPanel/PanelMargin/PanelLayout/StatsRow/DexterityStat/DexterityValue
+@onready var intelligence_value: Label = $HUDRoot/TopLeftPanel/PlayerButton/PlayerPanel/PanelMargin/PanelLayout/StatsRow/IntelligenceStat/IntelligenceValue
+@onready var vitality_value: Label = $HUDRoot/TopLeftPanel/PlayerButton/PlayerPanel/PanelMargin/PanelLayout/StatsRow/VitalityStat/VitalityValue
 
 func _ready() -> void:
 	player_button.pressed.connect(_on_player_button_pressed)
@@ -80,7 +80,6 @@ func _refresh_player_panel() -> void:
 
 	var display_name := profile.display_name
 	character_value.text = display_name if not display_name.is_empty() else GameManager.get_selected_character_id()
-	player_button.text = profile.timeline_initial
 	_set_stat_values(profile)
 
 func _set_stat_values(profile: CombatantProfile) -> void:

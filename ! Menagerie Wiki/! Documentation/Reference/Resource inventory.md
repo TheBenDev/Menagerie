@@ -44,13 +44,13 @@ This inventory lists authored gameplay, audio, UI, and visual `.tres` files unde
 
 | Script class | Exported data |
 | --- | --- |
-| `CombatantProfile` | `display_name`, `placeholder_color`, `timeline_initial`, `timeline_color`, `strength`, `dexterity`, `intelligence`, `vitality`, `moveset`, `enemy_ai_profile`, `reward_profile`, `hit_sfx_id`, `block_sfx_id`, `death_sfx_id`, `health_bar`, `resource_bars`. |
+| `CombatantProfile` | `display_name`, `placeholder_color`, `timeline_initial`, `timeline_color`, `battle_visual_scene`, `strength`, `dexterity`, `intelligence`, `vitality`, `moveset`, `enemy_ai_profile`, `reward_profile`, `hit_sfx_id`, `block_sfx_id`, `death_sfx_id`, `health_bar`, `resource_bars`. |
 | `CombatMovesetData` | `actions`. |
-| `CombatActionData` | `id`, `display_name`, `time_cost`, `effect_data`, `start_sfx_id`, `resolve_sfx_id`, `hp_cost`, `mana_cost`, `target_enemy`. |
+| `CombatActionData` | `id`, `display_name`, `description`, `time_cost`, `effect_data`, `start_sfx_id`, `resolve_sfx_id`, `hp_cost`, `mana_cost`, `target_enemy`. |
 | `PlayerActionData` | Inherits `CombatActionData`; adds `rage_cost`, `required_stance`, `appears_on_action_bar`, `tooltip_text`. |
 | `EnemyMoveData` | Inherits `CombatActionData`; adds `weight`, `target_rule`, `min_hp_percent`, `max_hp_percent`, `cooldown_seconds`, `ai_role`, `status_id`, preference/avoidance booleans. |
 | `DifficultyProfile` | Enemy health/damage/time multipliers, reward multiplier, and AI tuning weights. |
-| `StatusData` | `id`, `display_name`, `duration_seconds`, `outgoing_damage_multiplier`, `incoming_damage_multiplier`. |
+| `StatusData` | `id`, `display_name`, `description`, `icon_atlas_coords`, `icon_atlas_cell_size`, `duration_seconds`, `outgoing_damage_multiplier`, `incoming_damage_multiplier`. |
 | `RewardProfile` | `base_memories`, `base_gold`, `boss_multiplier`. |
 | `ResourceBarConfig` | `resource_id`, `label`, `reference_value`, `display_reference_value`, colors, and `bonus_label`. |
 | `AudioLibraryData` | `cues`, `music_tracks`. |

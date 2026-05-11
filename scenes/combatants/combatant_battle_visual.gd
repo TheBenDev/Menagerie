@@ -1,3 +1,4 @@
+## Control that fits a combatant AnimatedSprite2D inside battle HUD art bounds.
 class_name CombatantBattleVisual
 extends Control
 

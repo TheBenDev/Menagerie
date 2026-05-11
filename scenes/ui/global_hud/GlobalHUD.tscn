@@ -2,8 +2,19 @@
 
 [ext_resource type="Script" uid="uid://cnd5q856ybw2y" path="res://scenes/ui/global_hud/global_hud.gd" id="1_global_hud"]
 [ext_resource type="Script" uid="uid://blspjgl4hh08k" path="res://scenes/ui/common/time_progress_bar.gd" id="2_time_progress_bar"]
+[ext_resource type="Texture2D" uid="uid://dtwndpur2bln3" path="res://assets/ui/global/character/Warrior/Warrior_headshot_square.png" id="3_hsjfk"]
 [ext_resource type="Theme" uid="uid://blcilhxj3ejys" path="res://assets/ui/menagerie_theme.tres" id="3_theme"]
-[ext_resource type="Texture2D" uid="uid://f8prumodqbsn" path="res://assets/ui/TimeProgressBar.png" id="4_f6cab"]
+[ext_resource type="Texture2D" uid="uid://bxa3hhtlwo0g4" path="res://assets/ui/TimeProgressBar_simple.png" id="4_jd5ac"]
+[ext_resource type="Texture2D" uid="uid://pjy6c0r1kws4" path="res://assets/ui/global/panel/menu_panel_small.png" id="5_jd5ac"]
+[ext_resource type="Texture2D" path="res://assets/ui/global/icons/gold_currency_icon.tres" id="6_jd5ac"]
+[ext_resource type="Texture2D" path="res://assets/ui/global/icons/memories_currency_icon.tres" id="7_hsjfk"]
+[ext_resource type="Texture2D" uid="uid://cborrss1hxbkg" path="res://assets/ui/global/button/menu_button.png" id="7_jd5ac"]
+[ext_resource type="Texture2D" uid="uid://cgill4ug8wkyu" path="res://assets/ui/global/panel/default_panel_tall.png" id="10_31cy7"]
+[ext_resource type="Texture2D" path="res://assets/ui/global/icons/strength_stat_icon.tres" id="11_a0w35"]
+[ext_resource type="Texture2D" path="res://assets/ui/global/icons/dexterity_stat_icon.tres" id="12_8t2nd"]
+[ext_resource type="Texture2D" path="res://assets/ui/global/icons/intelligence_stat_icon.tres" id="13_1q4uo"]
+[ext_resource type="Texture2D" path="res://assets/ui/global/icons/vitality_stat_icon.tres" id="14_07myk"]
+[ext_resource type="Texture2D" uid="uid://c42otk406arl2" path="res://assets/ui/global/separator/panel_separator_1.png" id="15_8t2nd"]
 
 [node name="GlobalHUD" type="CanvasLayer" unique_id=539725267]
 layer = 20
@@ -26,71 +37,55 @@ anchor_right = 1.0
 offset_left = 24.0
 offset_top = 16.0
 offset_right = -24.0
-offset_bottom = 124.0
+offset_bottom = 144.0
 grow_horizontal = 2
 theme_override_constants/margin_left = 0
 theme_override_constants/margin_top = 0
 theme_override_constants/margin_right = 0
 theme_override_constants/margin_bottom = 0
 
-[node name="TopBar" type="PanelContainer" parent="HUDRoot/TopMargin" unique_id=507517478]
-layout_mode = 2
-size_flags_horizontal = 3
-
-[node name="BarMargin" type="MarginContainer" parent="HUDRoot/TopMargin/TopBar" unique_id=1675116466]
+[node name="BarMargin" type="MarginContainer" parent="HUDRoot/TopMargin" unique_id=1675116466]
 layout_mode = 2
 theme_override_constants/margin_left = 12
 theme_override_constants/margin_top = 10
 theme_override_constants/margin_right = 12
 theme_override_constants/margin_bottom = 10
 
-[node name="BarRow" type="HBoxContainer" parent="HUDRoot/TopMargin/TopBar/BarMargin" unique_id=1518562439]
+[node name="BarRow" type="HBoxContainer" parent="HUDRoot/TopMargin/BarMargin" unique_id=1518562439]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 14
+alignment = 1
 
-[node name="PlayerButton" type="Button" parent="HUDRoot/TopMargin/TopBar/BarMargin/BarRow" unique_id=1499938644]
-custom_minimum_size = Vector2(54, 54)
+[node name="TimerStack" type="Control" parent="HUDRoot/TopMargin/BarMargin/BarRow" unique_id=1466625188]
+custom_minimum_size = Vector2(1000, 100)
 layout_mode = 2
-tooltip_text = "Player"
-text = "W"
 
-[node name="LeftBalanceSpacer" type="Control" parent="HUDRoot/TopMargin/TopBar/BarMargin/BarRow" unique_id=1302573181]
-custom_minimum_size = Vector2(216, 0)
-layout_mode = 2
-mouse_filter = 2
-
-[node name="TimerStack" type="Control" parent="HUDRoot/TopMargin/TopBar/BarMargin/BarRow" unique_id=1466625188]
-custom_minimum_size = Vector2(960, 90)
-layout_mode = 2
-size_flags_horizontal = 3
-
-[node name="TimerProgress" type="Control" parent="HUDRoot/TopMargin/TopBar/BarMargin/BarRow/TimerStack" unique_id=595503681]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
+[node name="TimerProgress" type="Control" parent="HUDRoot/TopMargin/BarMargin/BarRow/TimerStack" unique_id=595503681]
+anchors_preset = 0
+offset_left = 30.0
+offset_top = 34.0
+offset_right = 970.0
+offset_bottom = 73.0
 mouse_filter = 2
 script = ExtResource("2_time_progress_bar")
 
-[node name="TimerFrame" type="TextureRect" parent="HUDRoot/TopMargin/TopBar/BarMargin/BarRow/TimerStack" unique_id=551597624]
+[node name="TimerFrame" type="TextureRect" parent="HUDRoot/TopMargin/BarMargin/BarRow/TimerStack" unique_id=551597624]
 layout_mode = 0
 anchor_right = 1.0
 anchor_bottom = 1.0
 mouse_filter = 2
-texture = ExtResource("4_f6cab")
+texture = ExtResource("4_jd5ac")
 expand_mode = 1
 stretch_mode = 5
 
-[node name="TimerLabel" type="Label" parent="HUDRoot/TopMargin/TopBar/BarMargin/BarRow/TimerStack" unique_id=1421849171]
+[node name="TimerLabel" type="Label" parent="HUDRoot/TopMargin/BarMargin/BarRow/TimerStack" unique_id=1421849171]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_top = 24.0
-offset_bottom = 4.0
+offset_top = 10.0
+offset_bottom = -10.0
 grow_horizontal = 2
 grow_vertical = 2
 theme_override_colors/font_color = Color(0.6457142, 0, 0, 1)
@@ -102,122 +97,281 @@ text = "05:00"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="CurrencyRow" type="HBoxContainer" parent="HUDRoot/TopMargin/TopBar/BarMargin/BarRow" unique_id=1974478289]
-layout_mode = 2
-theme_override_constants/separation = 10
+[node name="TopRightPanel" type="NinePatchRect" parent="HUDRoot" unique_id=500034575]
+custom_minimum_size = Vector2(420, 128)
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -444.0
+offset_top = 16.0
+offset_right = -24.0
+offset_bottom = 144.0
+grow_horizontal = 0
+texture = ExtResource("5_jd5ac")
 
-[node name="MemoriesBox" type="PanelContainer" parent="HUDRoot/TopMargin/TopBar/BarMargin/BarRow/CurrencyRow" unique_id=556433665]
-custom_minimum_size = Vector2(150, 54)
+[node name="TopRightMargin" type="MarginContainer" parent="HUDRoot/TopRightPanel" unique_id=209785711]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -10.0
+offset_top = -23.0
+offset_right = 30.0
+offset_bottom = 21.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 52
+theme_override_constants/margin_top = 22
+theme_override_constants/margin_right = 30
+theme_override_constants/margin_bottom = 22
+
+[node name="TopRightRow" type="HBoxContainer" parent="HUDRoot/TopRightPanel/TopRightMargin" unique_id=2032963728]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 16
+alignment = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="HUDRoot/TopRightPanel/TopRightMargin/TopRightRow" unique_id=1540431712]
 layout_mode = 2
 
-[node name="MemoryMargin" type="MarginContainer" parent="HUDRoot/TopMargin/TopBar/BarMargin/BarRow/CurrencyRow/MemoriesBox" unique_id=590799880]
-layout_mode = 2
-theme_override_constants/margin_left = 10
-theme_override_constants/margin_top = 6
-theme_override_constants/margin_right = 10
-theme_override_constants/margin_bottom = 6
-
-[node name="MemoryLayout" type="VBoxContainer" parent="HUDRoot/TopMargin/TopBar/BarMargin/BarRow/CurrencyRow/MemoriesBox/MemoryMargin" unique_id=853288411]
+[node name="Spacer" type="Control" parent="HUDRoot/TopRightPanel/TopRightMargin/TopRightRow/VBoxContainer" unique_id=1559395343]
+custom_minimum_size = Vector2(0, 25)
 layout_mode = 2
 
-[node name="MemoryLabel" type="Label" parent="HUDRoot/TopMargin/TopBar/BarMargin/BarRow/CurrencyRow/MemoriesBox/MemoryMargin/MemoryLayout" unique_id=1537368532]
+[node name="GoldItem" type="HBoxContainer" parent="HUDRoot/TopRightPanel/TopRightMargin/TopRightRow/VBoxContainer" unique_id=481969815]
 layout_mode = 2
-text = "Memories"
-horizontal_alignment = 1
+size_flags_vertical = 4
+theme_override_constants/separation = 6
+alignment = 1
 
-[node name="MemoryValue" type="Label" parent="HUDRoot/TopMargin/TopBar/BarMargin/BarRow/CurrencyRow/MemoriesBox/MemoryMargin/MemoryLayout" unique_id=1315097257]
+[node name="GoldIcon" type="TextureRect" parent="HUDRoot/TopRightPanel/TopRightMargin/TopRightRow/VBoxContainer/GoldItem" unique_id=2080876022]
+custom_minimum_size = Vector2(34, 34)
 layout_mode = 2
-theme_override_font_sizes/font_size = 18
+size_flags_vertical = 4
+tooltip_text = "Gold"
+texture = ExtResource("6_jd5ac")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="GoldValue" type="Label" parent="HUDRoot/TopRightPanel/TopRightMargin/TopRightRow/VBoxContainer/GoldItem" unique_id=1814407884]
+custom_minimum_size = Vector2(48, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
 text = "0"
-horizontal_alignment = 1
+vertical_alignment = 1
 
-[node name="GoldBox" type="PanelContainer" parent="HUDRoot/TopMargin/TopBar/BarMargin/BarRow/CurrencyRow" unique_id=1250276728]
-custom_minimum_size = Vector2(120, 54)
+[node name="MemoriesItem" type="HBoxContainer" parent="HUDRoot/TopRightPanel/TopRightMargin/TopRightRow/VBoxContainer" unique_id=1476549106]
 layout_mode = 2
+size_flags_vertical = 4
+theme_override_constants/separation = 6
+alignment = 1
 
-[node name="GoldMargin" type="MarginContainer" parent="HUDRoot/TopMargin/TopBar/BarMargin/BarRow/CurrencyRow/GoldBox" unique_id=740871107]
+[node name="MemoriesIcon" type="TextureRect" parent="HUDRoot/TopRightPanel/TopRightMargin/TopRightRow/VBoxContainer/MemoriesItem" unique_id=1313064086]
+custom_minimum_size = Vector2(34, 34)
 layout_mode = 2
-theme_override_constants/margin_left = 10
-theme_override_constants/margin_top = 6
-theme_override_constants/margin_right = 10
-theme_override_constants/margin_bottom = 6
+size_flags_vertical = 4
+tooltip_text = "Memories"
+texture = ExtResource("7_hsjfk")
+expand_mode = 1
+stretch_mode = 5
 
-[node name="GoldLayout" type="VBoxContainer" parent="HUDRoot/TopMargin/TopBar/BarMargin/BarRow/CurrencyRow/GoldBox/GoldMargin" unique_id=1803326267]
+[node name="MemoriesValue" type="Label" parent="HUDRoot/TopRightPanel/TopRightMargin/TopRightRow/VBoxContainer/MemoriesItem" unique_id=1722744855]
+custom_minimum_size = Vector2(48, 0)
 layout_mode = 2
-
-[node name="GoldLabel" type="Label" parent="HUDRoot/TopMargin/TopBar/BarMargin/BarRow/CurrencyRow/GoldBox/GoldMargin/GoldLayout" unique_id=895612561]
-layout_mode = 2
-text = "Gold"
-horizontal_alignment = 1
-
-[node name="GoldValue" type="Label" parent="HUDRoot/TopMargin/TopBar/BarMargin/BarRow/CurrencyRow/GoldBox/GoldMargin/GoldLayout" unique_id=1038588581]
-layout_mode = 2
-theme_override_font_sizes/font_size = 18
+theme_override_font_sizes/font_size = 24
 text = "0"
-horizontal_alignment = 1
+vertical_alignment = 1
 
-[node name="PlayerPanel" type="PanelContainer" parent="HUDRoot" unique_id=1563346750]
+[node name="Spacer" type="Control" parent="HUDRoot/TopRightPanel/TopRightMargin/TopRightRow" unique_id=1203231873]
+custom_minimum_size = Vector2(150, 0)
+layout_mode = 2
+
+[node name="MenuButton" type="TextureButton" parent="HUDRoot/TopRightPanel/TopRightMargin/TopRightRow" unique_id=605842407]
+custom_minimum_size = Vector2(128, 128)
+layout_mode = 2
+size_flags_vertical = 4
+tooltip_text = "Menu"
+texture_normal = ExtResource("7_jd5ac")
+ignore_texture_size = true
+stretch_mode = 5
+
+[node name="TopLeftPanel" type="NinePatchRect" parent="HUDRoot" unique_id=1628951336]
+custom_minimum_size = Vector2(420, 128)
+layout_mode = 1
+offset_left = 24.0
+offset_top = 16.0
+offset_right = 444.0
+offset_bottom = 144.0
+texture = ExtResource("5_jd5ac")
+
+[node name="PlayerButton" type="TextureButton" parent="HUDRoot/TopLeftPanel" unique_id=773018040]
+custom_minimum_size = Vector2(128, 128)
+layout_mode = 1
+offset_right = 128.0
+offset_bottom = 128.0
+tooltip_text = "Player"
+texture_normal = ExtResource("3_hsjfk")
+ignore_texture_size = true
+stretch_mode = 5
+
+[node name="PlayerPanel" type="NinePatchRect" parent="HUDRoot/TopLeftPanel/PlayerButton" unique_id=1823734058]
 visible = false
-custom_minimum_size = Vector2(260, 0)
+show_behind_parent = true
+custom_minimum_size = Vector2(420, 666)
 layout_mode = 1
 anchors_preset = -1
-offset_left = 24.0
-offset_top = 132.0
-offset_right = 284.0
-offset_bottom = 312.0
+offset_left = -8.0
+offset_top = 121.0
+offset_right = 412.0
+offset_bottom = 787.0
+texture = ExtResource("10_31cy7")
 
-[node name="PanelMargin" type="MarginContainer" parent="HUDRoot/PlayerPanel" unique_id=1712135014]
-layout_mode = 2
-theme_override_constants/margin_left = 14
-theme_override_constants/margin_top = 12
-theme_override_constants/margin_right = 14
-theme_override_constants/margin_bottom = 12
+[node name="PanelMargin" type="MarginContainer" parent="HUDRoot/TopLeftPanel/PlayerButton/PlayerPanel" unique_id=465787421]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -1.0
+offset_top = 20.0
+offset_right = -1.0
+offset_bottom = 20.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 28
+theme_override_constants/margin_top = 28
+theme_override_constants/margin_right = 28
+theme_override_constants/margin_bottom = 28
 
-[node name="StatsLayout" type="VBoxContainer" parent="HUDRoot/PlayerPanel/PanelMargin" unique_id=1385700264]
+[node name="PanelLayout" type="VBoxContainer" parent="HUDRoot/TopLeftPanel/PlayerButton/PlayerPanel/PanelMargin" unique_id=809958803]
 layout_mode = 2
-theme_override_constants/separation = 8
+mouse_filter = 2
+theme_override_constants/separation = 18
 
-[node name="CharacterLabel" type="Label" parent="HUDRoot/PlayerPanel/PanelMargin/StatsLayout" unique_id=1672868482]
+[node name="StatsRow" type="HBoxContainer" parent="HUDRoot/TopLeftPanel/PlayerButton/PlayerPanel/PanelMargin/PanelLayout" unique_id=1433336037]
 layout_mode = 2
-text = "Character"
+mouse_filter = 2
+theme_override_constants/separation = 12
+alignment = 1
 
-[node name="CharacterValue" type="Label" parent="HUDRoot/PlayerPanel/PanelMargin/StatsLayout" unique_id=1621933486]
+[node name="StrengthStat" type="VBoxContainer" parent="HUDRoot/TopLeftPanel/PlayerButton/PlayerPanel/PanelMargin/PanelLayout/StatsRow" unique_id=1159673321]
+custom_minimum_size = Vector2(72, 92)
 layout_mode = 2
-theme_override_font_sizes/font_size = 20
+mouse_filter = 2
+theme_override_constants/separation = 4
+alignment = 1
+
+[node name="StrengthIcon" type="TextureRect" parent="HUDRoot/TopLeftPanel/PlayerButton/PlayerPanel/PanelMargin/PanelLayout/StatsRow/StrengthStat" unique_id=79314867]
+custom_minimum_size = Vector2(56, 56)
+layout_mode = 2
+size_flags_horizontal = 4
+tooltip_text = "Strength"
+texture = ExtResource("11_a0w35")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="StrengthValue" type="Label" parent="HUDRoot/TopLeftPanel/PlayerButton/PlayerPanel/PanelMargin/PanelLayout/StatsRow/StrengthStat" unique_id=165605317]
+custom_minimum_size = Vector2(72, 28)
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "5"
+horizontal_alignment = 1
+
+[node name="DexterityStat" type="VBoxContainer" parent="HUDRoot/TopLeftPanel/PlayerButton/PlayerPanel/PanelMargin/PanelLayout/StatsRow" unique_id=1052084444]
+custom_minimum_size = Vector2(72, 92)
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 4
+alignment = 1
+
+[node name="DexterityIcon" type="TextureRect" parent="HUDRoot/TopLeftPanel/PlayerButton/PlayerPanel/PanelMargin/PanelLayout/StatsRow/DexterityStat" unique_id=619169089]
+custom_minimum_size = Vector2(56, 56)
+layout_mode = 2
+size_flags_horizontal = 4
+tooltip_text = "Dexterity"
+texture = ExtResource("12_8t2nd")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="DexterityValue" type="Label" parent="HUDRoot/TopLeftPanel/PlayerButton/PlayerPanel/PanelMargin/PanelLayout/StatsRow/DexterityStat" unique_id=1511478385]
+custom_minimum_size = Vector2(72, 28)
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "5"
+horizontal_alignment = 1
+
+[node name="IntelligenceStat" type="VBoxContainer" parent="HUDRoot/TopLeftPanel/PlayerButton/PlayerPanel/PanelMargin/PanelLayout/StatsRow" unique_id=397297400]
+custom_minimum_size = Vector2(72, 92)
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 4
+alignment = 1
+
+[node name="IntelligenceIcon" type="TextureRect" parent="HUDRoot/TopLeftPanel/PlayerButton/PlayerPanel/PanelMargin/PanelLayout/StatsRow/IntelligenceStat" unique_id=1492311194]
+custom_minimum_size = Vector2(56, 56)
+layout_mode = 2
+size_flags_horizontal = 4
+tooltip_text = "Intelligence"
+texture = ExtResource("13_1q4uo")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="IntelligenceValue" type="Label" parent="HUDRoot/TopLeftPanel/PlayerButton/PlayerPanel/PanelMargin/PanelLayout/StatsRow/IntelligenceStat" unique_id=1013279258]
+custom_minimum_size = Vector2(72, 28)
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "5"
+horizontal_alignment = 1
+
+[node name="VitalityStat" type="VBoxContainer" parent="HUDRoot/TopLeftPanel/PlayerButton/PlayerPanel/PanelMargin/PanelLayout/StatsRow" unique_id=2129897003]
+custom_minimum_size = Vector2(72, 92)
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 4
+alignment = 1
+
+[node name="VitalityIcon" type="TextureRect" parent="HUDRoot/TopLeftPanel/PlayerButton/PlayerPanel/PanelMargin/PanelLayout/StatsRow/VitalityStat" unique_id=1157386326]
+custom_minimum_size = Vector2(56, 56)
+layout_mode = 2
+size_flags_horizontal = 4
+tooltip_text = "Vitality"
+texture = ExtResource("14_07myk")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="VitalityValue" type="Label" parent="HUDRoot/TopLeftPanel/PlayerButton/PlayerPanel/PanelMargin/PanelLayout/StatsRow/VitalityStat" unique_id=1160384091]
+custom_minimum_size = Vector2(72, 28)
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "5"
+horizontal_alignment = 1
+
+[node name="TextureRect" type="TextureRect" parent="HUDRoot/TopLeftPanel/PlayerButton/PlayerPanel/PanelMargin/PanelLayout" unique_id=865816810]
+custom_minimum_size = Vector2(256, 32)
+layout_mode = 2
+texture = ExtResource("15_8t2nd")
+expand_mode = 2
+
+[node name="HeaderRow" type="HBoxContainer" parent="HUDRoot/TopLeftPanel" unique_id=539744353]
+layout_mode = 0
+offset_left = 12.0
+offset_top = 2.0
+offset_right = 376.0
+offset_bottom = 130.0
+mouse_filter = 2
+theme_override_constants/separation = 16
+
+[node name="PortraitSpace" type="Control" parent="HUDRoot/TopLeftPanel/HeaderRow" unique_id=1417574832]
+custom_minimum_size = Vector2(128, 128)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="CharacterValue" type="Label" parent="HUDRoot/TopLeftPanel/HeaderRow" unique_id=2136511654]
+custom_minimum_size = Vector2(220, 64)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 32
 text = "Warrior"
-
-[node name="StatsGrid" type="GridContainer" parent="HUDRoot/PlayerPanel/PanelMargin/StatsLayout" unique_id=707806412]
-layout_mode = 2
-columns = 2
-
-[node name="StrengthLabel" type="Label" parent="HUDRoot/PlayerPanel/PanelMargin/StatsLayout/StatsGrid" unique_id=1175255407]
-layout_mode = 2
-text = "STR"
-
-[node name="StrengthValue" type="Label" parent="HUDRoot/PlayerPanel/PanelMargin/StatsLayout/StatsGrid" unique_id=418974646]
-layout_mode = 2
-text = "5"
-
-[node name="DexterityLabel" type="Label" parent="HUDRoot/PlayerPanel/PanelMargin/StatsLayout/StatsGrid" unique_id=954488657]
-layout_mode = 2
-text = "DEX"
-
-[node name="DexterityValue" type="Label" parent="HUDRoot/PlayerPanel/PanelMargin/StatsLayout/StatsGrid" unique_id=53488561]
-layout_mode = 2
-text = "5"
-
-[node name="IntelligenceLabel" type="Label" parent="HUDRoot/PlayerPanel/PanelMargin/StatsLayout/StatsGrid" unique_id=944729938]
-layout_mode = 2
-text = "INT"
-
-[node name="IntelligenceValue" type="Label" parent="HUDRoot/PlayerPanel/PanelMargin/StatsLayout/StatsGrid" unique_id=390891960]
-layout_mode = 2
-text = "5"
-
-[node name="VitalityLabel" type="Label" parent="HUDRoot/PlayerPanel/PanelMargin/StatsLayout/StatsGrid" unique_id=1390083493]
-layout_mode = 2
-text = "VIT"
-
-[node name="VitalityValue" type="Label" parent="HUDRoot/PlayerPanel/PanelMargin/StatsLayout/StatsGrid" unique_id=655899582]
-layout_mode = 2
-text = "5"
+vertical_alignment = 1

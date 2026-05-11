@@ -41,17 +41,17 @@ The scene should contain:
 | `bottom_padding` | Pixels reserved at bottom of the control. |
 | `visual_offset` | Final sprite position offset. |
 
-## Wire into battle UI
+## Wire into the battle scene
 
-1. Open `res://scenes/combat/ui/BattleHUD.tscn` in Godot.
-2. Replace or add the visual scene where the combatant panel expects it.
-3. Keep node paths used by `battle_hud.gd` and `combatant_panel.gd` stable unless you update the scripts.
+1. Open `res://scenes/combat/BattleScene.tscn` in Godot.
+2. Replace or add the visual scene where the current combat layout expects it.
+3. Keep node paths referenced by `battle_scene.gd` and `battle_hud.gd` stable unless you update the scripts.
 
 ## Validate behavior
 
 - Confirm the scene loads without missing resources.
 - Confirm `AnimatedSprite2D` has the animation used by state scripts.
-- Confirm the visual is framed correctly in the battle HUD.
+- Confirm the visual is framed correctly in the battle scene.
 - Run the headless load command after scene/resource/script changes.
 
 ## See also

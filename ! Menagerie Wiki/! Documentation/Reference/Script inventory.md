@@ -63,13 +63,13 @@ This inventory lists runtime `.gd` scripts under `res://core` and `res://scenes`
 | `res://scenes/combatants/characters/warrior/states/warrior_idle_state.gd` | `WarriorIdleState` | Warrior Easy State Machine state that plays idle animation. |
 | `res://core/combat/damage/damage_packet.gd` | `DamagePacket` | Carries source, target, and amount before damage is applied. |
 | `res://core/combat/time/combat_time.gd` | `CombatTime` | Snaps combat timing to fixed ticks and formats durations. |
-| `res://scenes/combat/timeline_view.gd` | `TimelineView` | Draws and scrolls combat action timeline markers. |
+| `res://scenes/combat/timeline_view.gd` | `TimelineView` | Draws and scrolls the combat timeline ruler and action markers. |
 
 ## Data resource scripts
 
 | Script | Class | Purpose |
 | --- | --- | --- |
-| `res://core/combat/actions/combat_action_data.gd` | `CombatActionData` | Base combat action resource fields. |
+| `res://core/combat/actions/combat_action_data.gd` | `CombatActionData` | Base combat action resource fields and hover description. |
 | `res://core/combat/actions/combat_moveset_data.gd` | `CombatMovesetData` | Container for actions available to a profile. |
 | `res://core/combat/actions/enemy_move_data.gd` | `EnemyMoveData` | Enemy action data with AI weights, target rules, HP gates, and role metadata. |
 | `res://core/combat/actions/player_action_data.gd` | `PlayerActionData` | Player action fields for rage, stance, action bar visibility, and tooltip. |
@@ -81,7 +81,7 @@ This inventory lists runtime `.gd` scripts under `res://core` and `res://scenes`
 | `res://scenes/combatants/combatant_profile.gd` | `CombatantProfile` | Identity, stats, moveset, rewards, AI, SFX IDs, and UI bars. |
 | `res://core/difficulty/difficulty_profile.gd` | `DifficultyProfile` | Enemy stat/reward multipliers and AI tuning values. |
 | `res://core/rewards/reward_profile.gd` | `RewardProfile` | Base memory/gold rewards and boss multiplier. |
-| `res://core/statuses/status_data.gd` | `StatusData` | Timed status and outgoing/incoming damage multipliers. |
+| `res://core/statuses/status_data.gd` | `StatusData` | Timed status hover description, atlas coordinates, and outgoing/incoming damage multipliers. |
 | `res://scenes/ui/common/resource_bar_config.gd` | `ResourceBarConfig` | Combatant resource bar display config. |
 
 ## Dungeon
@@ -99,13 +99,18 @@ This inventory lists runtime `.gd` scripts under `res://core` and `res://scenes`
 
 | Script | Class | Purpose |
 | --- | --- | --- |
-| `res://scenes/combat/ui/action_bar.gd` | `BattleActionBar` | Displays player actions and emits selected action indexes. |
+| `res://scenes/combat/ui/action_bar.gd` | `BattleActionBar` | Binds manually positioned hotbar buttons to configurable slot contents. |
 | `res://scenes/combat/ui/action_queue_panel.gd` | `ActionQueuePanel` | Renders pending and resolved combat actions. |
-| `res://scenes/combat/ui/battle_hud.gd` | `BattleHUD` | Coordinates combatant panels, action buttons, timeline, and time controls. |
-| `res://scenes/combat/ui/combatant_panel.gd` | `CombatantPanel` | Shows one combatant's name, art, health, resources, and statuses. |
+| `res://scenes/combat/ui/battle_hud.gd` | `BattleHUD` | Coordinates the combat timeline, hotbar action buttons, hotbar resource bars, player status bar, hover info panel, and time controls. |
+| `res://scenes/combat/ui/combatant_display.gd` | `CombatantDisplay` | Reusable battle display for one combatant's visual, resources, and statuses. |
+| `res://scenes/combat/ui/combatant_panel.gd` | `CombatantPanel` | Shows one combatant's name, health, resources, and statuses. |
+| `res://scenes/combat/ui/hover_info_button.gd` | `HoverInfoButton` | Button with authored hover info metadata for the fixed info panel. |
+| `res://scenes/combat/ui/hover_info_panel.gd` | `HoverInfoPanel` | Fixed info panel that renders hover metadata from registered controls. |
+| `res://scenes/combat/ui/hotbar_slot_button.gd` | `HotbarSlotButton` | Button for one configurable combat hotbar slot. |
+| `res://scenes/combat/ui/status_icon_view.gd` | `StatusIconView` | Control view that previews and renders a status icon from the shared status atlas. |
 | `res://scenes/ui/common/number_font.gd` | `NumberFont` | Applies and draws monospaced numeric spans. |
-| `res://scenes/ui/common/resource_bar.gd` | None | Custom resource meter control. |
-| `res://scenes/ui/common/time_progress_bar.gd` | `TimeProgressBar` | Draws run timer fill inside authored frame proportions. |
+| `res://scenes/ui/common/resource_bar.gd` | None | Custom resource meter control with optional segmented overlay fills. |
+| `res://scenes/ui/common/time_progress_bar.gd` | `TimeProgressBar` | Draws run timer fill inside the timer fill node's bounds. |
 | `res://scenes/ui/global_hud/global_hud.gd` | None | Persistent HUD layer for timer, currencies, and selected character stats. |
 | `res://scenes/ui/main_menu/main_menu.gd` | None | Main menu routing and button handling. |
 | `res://scenes/ui/run_summary/run_summary.gd` | None | Final run stats and memory export UI. |

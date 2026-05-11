@@ -20,6 +20,7 @@ Use this guide to add a player action or enemy move backed by `CombatActionData`
 4. Set the action fields:
    - `id`: stable lower_snake_case action ID.
    - `display_name`: UI label.
+   - `description`: hover info panel description.
    - `time_cost`: base duration in seconds.
    - `target_enemy`: true for attacks, false for self-targeting actions.
    - `effect_data`: ordered effect dictionaries such as `{"id": &"combat.damage", "base_damage": 4}`.
@@ -44,6 +45,7 @@ Use this guide to add a player action or enemy move backed by `CombatActionData`
 ## Validate behavior
 
 - Confirm the action appears on the battle action bar if it is a player action.
+- Confirm hovering the action shows the authored `description` in the battle info panel.
 - Confirm the enemy can choose the move when HP gates and targets are valid.
 - Confirm timeline duration matches `time_cost` after difficulty/action multipliers.
 - Confirm SFX IDs exist in [[Audio IDs]] if used.

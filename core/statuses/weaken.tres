@@ -6,5 +6,7 @@
 script = ExtResource("1_status_data")
 id = "weaken"
 display_name = "Weaken"
+description = "Outgoing damage is reduced by 25% for 10s."
+icon_atlas_coords = Vector2i(1, 0)
 duration_seconds = 10.0
 outgoing_damage_multiplier = 0.75

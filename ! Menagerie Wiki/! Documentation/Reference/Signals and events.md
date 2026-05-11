@@ -47,9 +47,12 @@ Signals are the main event contract between combat, UI, audio, and run state.
 | Emitter | Signal | Payload | Consumer |
 | --- | --- | --- | --- |
 | `BattleHUD` | `action_selected` | `index: int` | `BattleScene._choose_warrior_action()` |
+| `BattleHUD` | `hotbar_slot_used` | `slot_id: StringName`, `slot_entry: Dictionary` | Future inventory or loadout consumers. |
 | `BattleHUD` | `speed_requested` | none | `BattleScene._on_speed_requested()` |
 | `BattleHUD` | `pause_requested` | none | `BattleScene._on_pause_requested()` |
-| `BattleActionBar` | `action_selected` | `index: int` | `BattleHUD._on_action_selected()` |
+| `BattleActionBar` | `slot_selected` | `slot_id: StringName` | `BattleHUD._on_hotbar_slot_selected()` |
+| `BattleActionBar` | `slot_hovered` | `source: Control` | `BattleHUD._show_hover_info_for_source()` |
+| `BattleActionBar` | `slot_hover_ended` | none | `BattleHUD._clear_hover_info()` |
 
 ## Button and route events
 

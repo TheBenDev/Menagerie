@@ -1,3 +1,4 @@
+## Shared helper for combatant visual states to control AnimatedSprite2D playback safely.
 @tool
 class_name CombatantAnimationStateHelper
 extends RefCounted

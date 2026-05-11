@@ -6,6 +6,8 @@ status: draft
 
 Battle visuals are reusable `Control` scenes with an `AnimatedSprite2D` and Easy State Machine states.
 
+`res://scenes/combat/BattleScene.tscn` is the combat scene root. Add any future visual-stage layout directly in that scene rather than through a separate child scene.
+
 ## Current visual scenes
 
 | Scene | Purpose |

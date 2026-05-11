@@ -3,12 +3,17 @@
 [ext_resource type="Script" uid="uid://d2a6s8ofgjank" path="res://scenes/combat/timeline_view.gd" id="1_timeline"]
 [ext_resource type="Script" uid="uid://co4mpwaos6ev4" path="res://scenes/ui/common/resource_bar.gd" id="2_resource"]
 [ext_resource type="Script" uid="uid://h12jv302pm8q" path="res://scenes/combat/ui/battle_hud.gd" id="3_hud"]
-[ext_resource type="Script" uid="uid://bsqh4chykmtly" path="res://scenes/combat/ui/combatant_panel.gd" id="4_combatant_panel"]
 [ext_resource type="Script" uid="uid://bolsc7u82hs17" path="res://scenes/combat/ui/action_bar.gd" id="5_action_bar"]
-[ext_resource type="PackedScene" uid="uid://dgvhkii1e8r8j" path="res://scenes/combatants/characters/warrior/WarriorBattleVisual.tscn" id="5_pdg8s"]
-[ext_resource type="Script" uid="uid://c6m2v4k4ib222" path="res://scenes/combat/ui/action_queue_panel.gd" id="6_action_queue_panel"]
-[ext_resource type="PackedScene" uid="uid://bwaqvcas6sofl" path="res://scenes/combatants/enemies/training_ghoul/TrainingGhoulBattleVisual.tscn" id="7_jltxa"]
+[ext_resource type="Texture2D" uid="uid://dtjwtyxqwiyeu" path="res://assets/ui/battle/hotbar_solid.png" id="5_wkdmt"]
+[ext_resource type="Texture2D" uid="uid://dstjkkrv5hnka" path="res://assets/ui/battle/hotbar_transparent.png" id="7_hiocs"]
+[ext_resource type="Script" uid="uid://dtqib0b2pxyft" path="res://scenes/combat/ui/hover_info_button.gd" id="7_qvlag"]
 [ext_resource type="Theme" uid="uid://blcilhxj3ejys" path="res://assets/ui/menagerie_theme.tres" id="7_theme"]
+[ext_resource type="Texture2D" uid="uid://0jhe7183ukhe" path="res://assets/ui/global/panel/default_panel_short.png" id="8_bdta7"]
+[ext_resource type="PackedScene" uid="uid://dk60mirr4sj2m" path="res://scenes/ui/global_hud/GlobalHUD.tscn" id="8_hiocs"]
+[ext_resource type="Script" uid="uid://d4cp8x3wxe2ld" path="res://scenes/combat/ui/hover_info_panel.gd" id="9_5tok5"]
+[ext_resource type="Script" uid="uid://cc4mlywf41cwo" path="res://scenes/combat/ui/hotbar_slot_button.gd" id="10_slot_button"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_0mkba"]
 
 [node name="BattleHUD" type="Control" unique_id=997989024]
 layout_mode = 3
@@ -20,274 +25,463 @@ grow_vertical = 2
 theme = ExtResource("7_theme")
 script = ExtResource("3_hud")
 
-[node name="Backdrop" type="ColorRect" parent="." unique_id=1019219618]
+[node name="Hotbar" type="Control" parent="." unique_id=1878441387]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 469.0
+offset_top = -292.0
+offset_right = -451.0
+offset_bottom = 92.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 1
+
+[node name="HotbarSolid" type="TextureRect" parent="Hotbar" unique_id=1848519420]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0.08, 0.085, 0.09, 1)
+mouse_filter = 2
+texture = ExtResource("5_wkdmt")
+expand_mode = 1
+stretch_mode = 5
 
-[node name="MarginContainer" type="MarginContainer" parent="." unique_id=1059551535]
+[node name="ActionBar" type="Control" parent="Hotbar" unique_id=614268412]
+z_index = 2
+anchors_preset = 0
+offset_left = 191.0
+offset_top = 132.0
+offset_right = 547.0
+offset_bottom = 244.0
+script = ExtResource("5_action_bar")
+
+[node name="StanceButton1" type="Button" parent="Hotbar/ActionBar" unique_id=1416633213]
+layout_mode = 0
+offset_left = -172.0
+offset_top = -24.0
+offset_right = -117.0
+offset_bottom = 28.0
+script = ExtResource("10_slot_button")
+slot_id = &"stance_1"
+
+[node name="StanceButton2" type="Button" parent="Hotbar/ActionBar" unique_id=509478571]
+layout_mode = 0
+offset_left = -171.0
+offset_top = 36.0
+offset_right = -118.0
+offset_bottom = 84.0
+script = ExtResource("10_slot_button")
+slot_id = &"stance_2"
+
+[node name="StanceButton3" type="Button" parent="Hotbar/ActionBar" unique_id=1385901222]
+layout_mode = 0
+offset_left = -171.0
+offset_top = 94.0
+offset_right = -118.0
+offset_bottom = 141.0
+script = ExtResource("10_slot_button")
+slot_id = &"stance_3"
+
+[node name="StrikeButton" type="Button" parent="Hotbar/ActionBar" unique_id=29298001]
+custom_minimum_size = Vector2(64, 64)
+layout_mode = 0
+offset_left = -102.0
+offset_top = -21.0
+offset_right = -24.0
+offset_bottom = 57.0
+theme_override_font_sizes/font_size = 36
+text = "S"
+script = ExtResource("10_slot_button")
+slot_id = &"strike"
+default_action_id = "quick_strike"
+
+[node name="GuardButton" type="Button" parent="Hotbar/ActionBar" unique_id=1495647857]
+custom_minimum_size = Vector2(64, 64)
+layout_mode = 0
+offset_left = -102.0
+offset_top = 67.0
+offset_right = -27.0
+offset_bottom = 139.0
+theme_override_font_sizes/font_size = 36
+text = "G"
+script = ExtResource("10_slot_button")
+slot_id = &"guard"
+default_action_id = "guard"
+
+[node name="AbilityButton1" type="Button" parent="Hotbar/ActionBar" unique_id=1414850936]
+custom_minimum_size = Vector2(64, 64)
+layout_mode = 0
+offset_left = -3.0
+offset_top = 2.0
+offset_right = 87.0
+offset_bottom = 92.0
+theme_override_font_sizes/font_size = 36
+text = "H"
+script = ExtResource("10_slot_button")
+slot_id = &"ability_1"
+default_action_id = "heavy_strike"
+
+[node name="AbilityButton2" type="Button" parent="Hotbar/ActionBar" unique_id=572642022]
+custom_minimum_size = Vector2(64, 64)
+layout_mode = 0
+offset_left = 95.0
+offset_top = 2.0
+offset_right = 185.0
+offset_bottom = 92.0
+theme_override_font_sizes/font_size = 36
+script = ExtResource("10_slot_button")
+slot_id = &"ability_2"
+
+[node name="AbilityButton3" type="Button" parent="Hotbar/ActionBar" unique_id=195931988]
+custom_minimum_size = Vector2(64, 64)
+layout_mode = 0
+offset_left = 195.0
+offset_top = 2.0
+offset_right = 285.0
+offset_bottom = 92.0
+theme_override_font_sizes/font_size = 36
+script = ExtResource("10_slot_button")
+slot_id = &"ability_3"
+
+[node name="AbilityButton4" type="Button" parent="Hotbar/ActionBar" unique_id=1521297745]
+custom_minimum_size = Vector2(64, 64)
+layout_mode = 0
+offset_left = 295.0
+offset_top = 2.0
+offset_right = 385.0
+offset_bottom = 92.0
+theme_override_font_sizes/font_size = 36
+script = ExtResource("10_slot_button")
+slot_id = &"ability_4"
+
+[node name="AbilityButton5" type="Button" parent="Hotbar/ActionBar" unique_id=1244095377]
+custom_minimum_size = Vector2(64, 64)
+layout_mode = 0
+offset_left = 394.0
+offset_top = 2.0
+offset_right = 484.0
+offset_bottom = 92.0
+theme_override_font_sizes/font_size = 36
+script = ExtResource("10_slot_button")
+slot_id = &"ability_5"
+
+[node name="AbilityButton6" type="Button" parent="Hotbar/ActionBar" unique_id=1933589470]
+custom_minimum_size = Vector2(64, 64)
+layout_mode = 0
+offset_left = 493.0
+offset_top = 2.0
+offset_right = 583.0
+offset_bottom = 92.0
+theme_override_font_sizes/font_size = 36
+script = ExtResource("10_slot_button")
+slot_id = &"ability_6"
+
+[node name="ConsumableButton1" type="Button" parent="Hotbar/ActionBar" unique_id=608719457]
+layout_mode = 0
+offset_left = 631.0
+offset_top = -22.0
+offset_right = 707.0
+offset_bottom = 53.0
+script = ExtResource("10_slot_button")
+slot_id = &"consumable_1"
+
+[node name="ConsumableButton2" type="Button" parent="Hotbar/ActionBar" unique_id=1554423872]
+layout_mode = 0
+offset_left = 631.0
+offset_top = 64.0
+offset_right = 707.0
+offset_bottom = 139.0
+script = ExtResource("10_slot_button")
+slot_id = &"consumable_2"
+
+[node name="ConsumableButton3" type="Button" parent="Hotbar/ActionBar" unique_id=1178607282]
+layout_mode = 0
+offset_left = 715.0
+offset_top = -22.0
+offset_right = 791.0
+offset_bottom = 53.0
+script = ExtResource("10_slot_button")
+slot_id = &"consumable_3"
+
+[node name="ConsumableButton4" type="Button" parent="Hotbar/ActionBar" unique_id=633772128]
+layout_mode = 0
+offset_left = 715.0
+offset_top = 64.0
+offset_right = 791.0
+offset_bottom = 139.0
+script = ExtResource("10_slot_button")
+slot_id = &"consumable_4"
+
+[node name="ResourceBars" type="Control" parent="Hotbar" unique_id=1977970230]
+z_index = 1
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/margin_left = 24
-theme_override_constants/margin_top = 108
-theme_override_constants/margin_right = 24
-theme_override_constants/margin_bottom = 20
+mouse_filter = 2
 
-[node name="Layout" type="VBoxContainer" parent="MarginContainer" unique_id=959285736]
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 3
-theme_override_constants/separation = 14
+[node name="MemoryBar" type="Control" parent="Hotbar/ResourceBars" unique_id=864132749]
+anchors_preset = 0
+offset_left = 187.0
+offset_top = 104.0
+offset_right = 776.0
+offset_bottom = 117.0
+mouse_filter = 2
+script = ExtResource("2_resource")
+resource_name = "Memories"
+reference_value = 100
+low_color = Color(0.42, 0.32, 0.78, 1)
+high_color = Color(0.9, 0.72, 1, 1)
+over_reference_color = Color(1, 0.86, 0.38, 1)
+background_color = Color(0.04, 0.035, 0.07, 0.88)
+border_color = Color(0.62, 0.52, 0.9, 0.95)
+draw_text = false
 
-[node name="TimelineRow" type="HBoxContainer" parent="MarginContainer/Layout" unique_id=322023795]
-layout_mode = 2
-size_flags_horizontal = 3
+[node name="HealthBar" type="Control" parent="Hotbar/ResourceBars" unique_id=1505831736]
+anchors_preset = 0
+offset_left = 188.0
+offset_top = 241.0
+offset_right = 775.0
+offset_bottom = 253.0
+mouse_filter = 2
+script = ExtResource("2_resource")
+resource_name = "HP"
+draw_text = false
+
+[node name="BlockBar" type="Control" parent="Hotbar/ResourceBars" unique_id=1530553608]
+visible = false
+z_index = 1
+anchors_preset = 0
+offset_left = 188.0
+offset_top = 242.0
+offset_right = 775.0
+offset_bottom = 254.0
+mouse_filter = 2
+script = ExtResource("2_resource")
+resource_name = ""
+display_reference_value = false
+low_color = Color(0.2, 0.55, 1, 0.72)
+high_color = Color(0.2, 0.55, 1, 0.72)
+over_reference_color = Color(0.4, 0.75, 1, 0.82)
+background_color = Color(0, 0, 0, 0)
+border_color = Color(0, 0, 0, 0)
+text_color = Color(0, 0, 0, 0)
+draw_text = false
+
+[node name="ClassResourceBar" type="Control" parent="Hotbar/ResourceBars" unique_id=1003640518]
+anchors_preset = 0
+offset_left = 188.0
+offset_top = 262.0
+offset_right = 775.0
+offset_bottom = 274.0
+mouse_filter = 2
+script = ExtResource("2_resource")
+reference_value = 100
+draw_text = false
+
+[node name="HotbarTransparent" type="TextureRect" parent="Hotbar" unique_id=397305333]
+z_index = 3
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("7_hiocs")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="ResourceLabels" type="Control" parent="Hotbar" unique_id=1740830880]
+z_index = 4
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="MemoryLabel" type="Label" parent="Hotbar/ResourceLabels" unique_id=1280599844]
+layout_mode = 0
+offset_left = 165.0
+offset_top = 102.0
+offset_right = 754.0
+offset_bottom = 119.0
+theme_override_font_sizes/font_size = 14
+text = "Memories 0/100"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="HealthLabel" type="Label" parent="Hotbar/ResourceLabels" unique_id=233159039]
+layout_mode = 0
+offset_left = 187.0
+offset_top = 238.0
+offset_right = 774.0
+offset_bottom = 257.0
+theme_override_font_sizes/font_size = 14
+text = "HP 0/0"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="BlockLabel" type="Label" parent="Hotbar/ResourceLabels" unique_id=1031294214]
+visible = false
+layout_mode = 0
+offset_left = 188.0
+offset_top = 232.0
+offset_right = 775.0
+offset_bottom = 257.0
+theme_override_font_sizes/font_size = 14
+text = "Block 0"
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="ClassResourceLabel" type="Label" parent="Hotbar/ResourceLabels" unique_id=301086623]
+layout_mode = 0
+offset_left = 187.0
+offset_top = 258.0
+offset_right = 774.0
+offset_bottom = 275.0
+theme_override_font_sizes/font_size = 14
+text = "Resource 0"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="TimelineRow" type="VBoxContainer" parent="." unique_id=621143904]
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -500.0
+offset_top = 110.0
+offset_right = 500.0
+offset_bottom = 316.0
+grow_horizontal = 0
+size_flags_horizontal = 0
 theme_override_constants/separation = 10
+alignment = 1
 
-[node name="TimelinePanel" type="PanelContainer" parent="MarginContainer/Layout/TimelineRow" unique_id=1883007706]
-custom_minimum_size = Vector2(0, 158)
+[node name="TimelinePanel" type="PanelContainer" parent="TimelineRow" unique_id=1883007706]
+custom_minimum_size = Vector2(0, 128)
 layout_mode = 2
 size_flags_horizontal = 3
+size_flags_vertical = 0
+theme_override_styles/panel = SubResource("StyleBoxEmpty_0mkba")
 
-[node name="TimelineMargin" type="MarginContainer" parent="MarginContainer/Layout/TimelineRow/TimelinePanel" unique_id=1096075543]
+[node name="TimelineMargin" type="MarginContainer" parent="TimelineRow/TimelinePanel" unique_id=1096075543]
 layout_mode = 2
-theme_override_constants/margin_left = 12
-theme_override_constants/margin_top = 12
-theme_override_constants/margin_right = 12
-theme_override_constants/margin_bottom = 12
+theme_override_constants/margin_left = 0
+theme_override_constants/margin_top = 0
+theme_override_constants/margin_right = 0
+theme_override_constants/margin_bottom = 0
 
-[node name="Timeline" type="Control" parent="MarginContainer/Layout/TimelineRow/TimelinePanel/TimelineMargin" unique_id=1951129685]
+[node name="Timeline" type="Control" parent="TimelineRow/TimelinePanel/TimelineMargin" unique_id=1951129685]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 script = ExtResource("1_timeline")
 
-[node name="TimeControls" type="VBoxContainer" parent="MarginContainer/Layout/TimelineRow" unique_id=1679283058]
+[node name="TimeControls" type="HBoxContainer" parent="TimelineRow" unique_id=1528070276]
+custom_minimum_size = Vector2(100, 0)
 layout_mode = 2
 theme_override_constants/separation = 10
+alignment = 1
 
-[node name="SpeedButton" type="Button" parent="MarginContainer/Layout/TimelineRow/TimeControls" unique_id=304100976]
+[node name="SpeedButton" type="Button" parent="TimelineRow/TimeControls" unique_id=304100976]
 custom_minimum_size = Vector2(68, 68)
 layout_mode = 2
 size_flags_horizontal = 4
-tooltip_text = "Combat speed"
 text = "1x"
+script = ExtResource("7_qvlag")
+hover_info_title = "Combat Speed"
+hover_info_description = "Cycles how quickly combat time advances."
+metadata/hover_info_title = "Combat Speed"
+metadata/hover_info_description = "Cycles how quickly combat time advances."
+metadata/hover_info_details = Array[String]([])
 
-[node name="PauseButton" type="Button" parent="MarginContainer/Layout/TimelineRow/TimeControls" unique_id=568024443]
+[node name="PauseButton" type="Button" parent="TimelineRow/TimeControls" unique_id=568024443]
 custom_minimum_size = Vector2(68, 68)
 layout_mode = 2
 size_flags_horizontal = 4
-tooltip_text = "Pause / play"
 text = "||"
+script = ExtResource("7_qvlag")
+hover_info_title = "Pause"
+hover_info_description = "Pauses or resumes combat time."
+metadata/hover_info_title = "Pause"
+metadata/hover_info_description = "Pauses or resumes combat time."
+metadata/hover_info_details = Array[String]([])
 
-[node name="ContentRow" type="HBoxContainer" parent="MarginContainer/Layout" unique_id=255633335]
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 3
-theme_override_constants/separation = 16
-
-[node name="MainColumn" type="VBoxContainer" parent="MarginContainer/Layout/ContentRow" unique_id=425895495]
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 3
-theme_override_constants/separation = 14
-
-[node name="CombatantsRow" type="HBoxContainer" parent="MarginContainer/Layout/ContentRow/MainColumn" unique_id=1204590550]
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 3
-theme_override_constants/separation = 16
-
-[node name="PlayerPanel" type="PanelContainer" parent="MarginContainer/Layout/ContentRow/MainColumn/CombatantsRow" unique_id=1458505261]
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 3
-script = ExtResource("4_combatant_panel")
-
-[node name="PanelMargin" type="MarginContainer" parent="MarginContainer/Layout/ContentRow/MainColumn/CombatantsRow/PlayerPanel" unique_id=1933675712]
-layout_mode = 2
-theme_override_constants/margin_left = 14
-theme_override_constants/margin_top = 14
-theme_override_constants/margin_right = 14
-theme_override_constants/margin_bottom = 14
-
-[node name="PanelLayout" type="VBoxContainer" parent="MarginContainer/Layout/ContentRow/MainColumn/CombatantsRow/PlayerPanel/PanelMargin" unique_id=1652096843]
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 3
-theme_override_constants/separation = 8
-
-[node name="NameLabel" type="Label" parent="MarginContainer/Layout/ContentRow/MainColumn/CombatantsRow/PlayerPanel/PanelMargin/PanelLayout" unique_id=2004598921]
-layout_mode = 2
-theme_override_font_sizes/font_size = 20
-text = "Warrior"
-horizontal_alignment = 1
-
-[node name="PlaceHolderArt" type="ColorRect" parent="MarginContainer/Layout/ContentRow/MainColumn/CombatantsRow/PlayerPanel/PanelMargin/PanelLayout" unique_id=131462032]
-custom_minimum_size = Vector2(0, 360)
-layout_mode = 2
-size_flags_vertical = 3
-color = Color(0.18, 0.36, 0.54, 1)
-
-[node name="WarriorBattleVisual" parent="MarginContainer/Layout/ContentRow/MainColumn/CombatantsRow/PlayerPanel/PanelMargin/PanelLayout/PlaceHolderArt" unique_id=1253871049 instance=ExtResource("5_pdg8s")]
-layout_mode = 1
-fill_ratio = 1.0
-
-[node name="StatusLabel" type="RichTextLabel" parent="MarginContainer/Layout/ContentRow/MainColumn/CombatantsRow/PlayerPanel/PanelMargin/PanelLayout/PlaceHolderArt" unique_id=1166288501]
-visible = false
-z_index = 1
+[node name="StatusBar" type="Control" parent="." unique_id=200926680]
+custom_minimum_size = Vector2(1000, 32)
+layout_direction = 2
 layout_mode = 1
 anchors_preset = 12
 anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 10.0
-offset_top = -40.0
-offset_right = -10.0
-offset_bottom = -8.0
+offset_left = 469.0
+offset_top = -240.0
+offset_right = -451.0
+offset_bottom = -208.0
 grow_horizontal = 2
 grow_vertical = 0
+mouse_filter = 1
+
+[node name="StatusIcons" type="HBoxContainer" parent="StatusBar" unique_id=1351030792]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 mouse_filter = 2
-bbcode_enabled = true
-scroll_active = false
-autowrap_mode = 2
+theme_override_constants/separation = -10
 
-[node name="HealthBar" type="Control" parent="MarginContainer/Layout/ContentRow/MainColumn/CombatantsRow/PlayerPanel/PanelMargin/PanelLayout" unique_id=648162467]
-layout_mode = 2
-size_flags_horizontal = 3
-script = ExtResource("2_resource")
-
-[node name="ResourceBars" type="VBoxContainer" parent="MarginContainer/Layout/ContentRow/MainColumn/CombatantsRow/PlayerPanel/PanelMargin/PanelLayout" unique_id=425196143]
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_constants/separation = 8
-
-[node name="EnemyPanel" type="PanelContainer" parent="MarginContainer/Layout/ContentRow/MainColumn/CombatantsRow" unique_id=1573720078]
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 3
-script = ExtResource("4_combatant_panel")
-
-[node name="PanelMargin" type="MarginContainer" parent="MarginContainer/Layout/ContentRow/MainColumn/CombatantsRow/EnemyPanel" unique_id=1926171418]
-layout_mode = 2
-theme_override_constants/margin_left = 14
-theme_override_constants/margin_top = 14
-theme_override_constants/margin_right = 14
-theme_override_constants/margin_bottom = 14
-
-[node name="PanelLayout" type="VBoxContainer" parent="MarginContainer/Layout/ContentRow/MainColumn/CombatantsRow/EnemyPanel/PanelMargin" unique_id=1347042165]
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 3
-theme_override_constants/separation = 8
-
-[node name="NameLabel" type="Label" parent="MarginContainer/Layout/ContentRow/MainColumn/CombatantsRow/EnemyPanel/PanelMargin/PanelLayout" unique_id=1693764738]
-layout_mode = 2
-theme_override_font_sizes/font_size = 20
-text = "Training Ghoul"
-horizontal_alignment = 1
-
-[node name="PlaceHolderArt" type="ColorRect" parent="MarginContainer/Layout/ContentRow/MainColumn/CombatantsRow/EnemyPanel/PanelMargin/PanelLayout" unique_id=1833965518]
-custom_minimum_size = Vector2(0, 360)
-layout_mode = 2
-size_flags_vertical = 3
-color = Color(0.32, 0.48, 0.28, 1)
-
-[node name="TrainingGhoulBattleVisual" parent="MarginContainer/Layout/ContentRow/MainColumn/CombatantsRow/EnemyPanel/PanelMargin/PanelLayout/PlaceHolderArt" unique_id=1601618043 instance=ExtResource("7_jltxa")]
+[node name="HoverInfoPanel" type="NinePatchRect" parent="." unique_id=1548868480]
+custom_minimum_size = Vector2(420, 188)
 layout_mode = 1
-
-[node name="StatusLabel" type="RichTextLabel" parent="MarginContainer/Layout/ContentRow/MainColumn/CombatantsRow/EnemyPanel/PanelMargin/PanelLayout/PlaceHolderArt" unique_id=1185896083]
-visible = false
-z_index = 1
-layout_mode = 1
-anchors_preset = 12
+anchors_preset = 3
+anchor_left = 1.0
 anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 10.0
-offset_top = -40.0
+offset_left = -444.0
+offset_top = -208.0
+offset_right = -24.0
+offset_bottom = 2.0
+grow_horizontal = 0
+grow_vertical = 0
+texture = ExtResource("8_bdta7")
+script = ExtResource("9_5tok5")
+
+[node name="PanelMargin" type="MarginContainer" parent="HoverInfoPanel" unique_id=1099258804]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 9.0
+offset_top = 15.0
 offset_right = -10.0
 offset_bottom = -8.0
 grow_horizontal = 2
-grow_vertical = 0
+grow_vertical = 2
 mouse_filter = 2
-bbcode_enabled = true
+theme_override_constants/margin_left = 34
+theme_override_constants/margin_top = 28
+theme_override_constants/margin_right = 34
+theme_override_constants/margin_bottom = 28
+
+[node name="InfoText" type="RichTextLabel" parent="HoverInfoPanel/PanelMargin" unique_id=895638877]
+layout_mode = 2
+mouse_filter = 2
+theme_override_font_sizes/normal_font_size = 18
 scroll_active = false
-autowrap_mode = 2
 
-[node name="HealthBar" type="Control" parent="MarginContainer/Layout/ContentRow/MainColumn/CombatantsRow/EnemyPanel/PanelMargin/PanelLayout" unique_id=1016070626]
-layout_mode = 2
-size_flags_horizontal = 3
-script = ExtResource("2_resource")
-
-[node name="ResourceBars" type="VBoxContainer" parent="MarginContainer/Layout/ContentRow/MainColumn/CombatantsRow/EnemyPanel/PanelMargin/PanelLayout" unique_id=569895558]
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_constants/separation = 8
-
-[node name="PromptLabel" type="Label" parent="MarginContainer/Layout/ContentRow/MainColumn" unique_id=444206345]
-layout_mode = 2
-theme_override_font_sizes/font_size = 16
-text = "Choose an action."
-
-[node name="ActionBar" type="HBoxContainer" parent="MarginContainer/Layout/ContentRow/MainColumn" unique_id=1840721782]
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_constants/separation = 10
-script = ExtResource("5_action_bar")
-
-[node name="QuickStrikeButton" type="Button" parent="MarginContainer/Layout/ContentRow/MainColumn/ActionBar" unique_id=1569437309]
-custom_minimum_size = Vector2(0, 44)
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Quick Strike"
-
-[node name="HeavyStrikeButton" type="Button" parent="MarginContainer/Layout/ContentRow/MainColumn/ActionBar" unique_id=1238695031]
-custom_minimum_size = Vector2(0, 44)
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Heavy Strike"
-
-[node name="GuardButton" type="Button" parent="MarginContainer/Layout/ContentRow/MainColumn/ActionBar" unique_id=1233460962]
-custom_minimum_size = Vector2(0, 44)
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Guard"
-
-[node name="ActionQueuePanel" type="PanelContainer" parent="MarginContainer/Layout/ContentRow" unique_id=438553148]
-custom_minimum_size = Vector2(360, 0)
-layout_mode = 2
-size_flags_vertical = 3
-script = ExtResource("6_action_queue_panel")
-
-[node name="PanelMargin" type="MarginContainer" parent="MarginContainer/Layout/ContentRow/ActionQueuePanel" unique_id=1179159225]
-layout_mode = 2
-theme_override_constants/margin_left = 14
-theme_override_constants/margin_top = 14
-theme_override_constants/margin_right = 14
-theme_override_constants/margin_bottom = 14
-
-[node name="ActionQueue" type="VBoxContainer" parent="MarginContainer/Layout/ContentRow/ActionQueuePanel/PanelMargin" unique_id=627991040]
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 3
-theme_override_constants/separation = 6
-
-[node name="QueueTitle" type="Label" parent="MarginContainer/Layout/ContentRow/ActionQueuePanel/PanelMargin/ActionQueue" unique_id=1995182303]
-layout_mode = 2
-theme_override_font_sizes/font_size = 16
-text = "Action Queue / History"
-
-[node name="QueueLog" type="RichTextLabel" parent="MarginContainer/Layout/ContentRow/ActionQueuePanel/PanelMargin/ActionQueue" unique_id=417933746]
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 3
-scroll_following = true
+[node name="GlobalHUD" parent="." unique_id=539725267 instance=ExtResource("8_hiocs")]

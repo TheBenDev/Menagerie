@@ -6,6 +6,7 @@ extends Resource
 @export var placeholder_color: Color = Color(0.22, 0.24, 0.28)
 @export var timeline_initial: String = "?"
 @export var timeline_color: Color = Color.WHITE
+@export var battle_visual_scene: PackedScene = null
 @export var strength: int = 0
 @export var dexterity: int = 0
 @export var intelligence: int = 0
