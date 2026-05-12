@@ -1,0 +1,76 @@
+[gd_resource type="SpriteFrames" format=3 uid="uid://i2ebd8od4dt8"]
+
+[ext_resource type="Texture2D" uid="uid://x1b3we05fdta" path="res://scenes/combatants/characters/warrior/textures/32_warrior_idle.png" id="1_m023w"]
+[ext_resource type="Texture2D" uid="uid://b234d2h6hmpgu" path="res://scenes/combatants/characters/warrior/textures/warrior_static.png" id="2_static"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_3imu4"]
+atlas = ExtResource("1_m023w")
+region = Rect2(0, 0, 278, 458)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_xw5xp"]
+atlas = ExtResource("1_m023w")
+region = Rect2(278, 0, 278, 458)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_cxvoh"]
+atlas = ExtResource("1_m023w")
+region = Rect2(556, 0, 278, 458)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_qfia2"]
+atlas = ExtResource("1_m023w")
+region = Rect2(834, 0, 278, 458)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_381vp"]
+atlas = ExtResource("1_m023w")
+region = Rect2(1112, 0, 278, 458)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_2bmr5"]
+atlas = ExtResource("1_m023w")
+region = Rect2(1390, 0, 278, 458)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_8m5ly"]
+atlas = ExtResource("1_m023w")
+region = Rect2(1668, 0, 278, 458)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_xik6o"]
+atlas = ExtResource("1_m023w")
+region = Rect2(1946, 0, 278, 458)
+
+[resource]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_3imu4")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_xw5xp")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_cxvoh")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_qfia2")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_381vp")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_2bmr5")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_8m5ly")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_xik6o")
+}],
+"loop": true,
+"name": &"idle",
+"speed": 8.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("2_static")
+}],
+"loop": false,
+"name": &"static",
+"speed": 1.0
+}]

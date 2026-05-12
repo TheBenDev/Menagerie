@@ -1,0 +1,76 @@
+[gd_resource type="Resource" script_class="AudioLibraryData" format=3]
+
+[ext_resource type="Script" path="res://core/audio/audio_library_data.gd" id="1_library"]
+[ext_resource type="Script" path="res://core/audio/music_track_data.gd" id="2_music_track"]
+[ext_resource type="Script" path="res://core/audio/audio_cue_data.gd" id="3_audio_cue"]
+
+[sub_resource type="Resource" id="MusicTrack_main_menu"]
+script = ExtResource("2_music_track")
+id = &"music.main_menu"
+base_stream_id = &"music.bgtheme"
+bus = &"Music"
+volume_db = -8.0
+default_fade_seconds = 2.0
+loop = true
+
+[sub_resource type="Resource" id="MusicTrack_waiting_room"]
+script = ExtResource("2_music_track")
+id = &"music.waiting_room"
+base_stream_id = &"music.bgtheme"
+bus = &"Music"
+volume_db = -8.0
+default_fade_seconds = 2.0
+loop = true
+
+[sub_resource type="Resource" id="MusicTrack_dungeon"]
+script = ExtResource("2_music_track")
+id = &"music.dungeon"
+base_stream_id = &"music.dungeon.eerie_exploration"
+playlist_stream_ids = Array[StringName]([&"music.dungeon.cautious_battle", &"music.dungeon.dramtic_battle", &"music.dungeon.eerie_exploration", &"music.dungeon.impending_doom"])
+randomize_playlist = true
+avoid_immediate_repeats = true
+playlist_crossfade_min_seconds = 5.0
+playlist_crossfade_max_seconds = 10.0
+bus = &"Music"
+volume_db = -8.0
+default_fade_seconds = 5.0
+loop = true
+
+[sub_resource type="Resource" id="MusicTrack_combat"]
+script = ExtResource("2_music_track")
+id = &"music.combat"
+base_stream_id = &"music.bgtheme"
+bus = &"Music"
+volume_db = -7.0
+default_fade_seconds = 2.0
+loop = true
+
+[sub_resource type="Resource" id="AudioCue_button_click"]
+script = ExtResource("3_audio_cue")
+id = &"ui.button.click"
+bus = &"UI"
+volume_db = -4.0
+cooldown_seconds = 0.02
+max_instances = 8
+priority = 1
+
+[sub_resource type="Resource" id="AudioCue_run_ends_loop"]
+script = ExtResource("3_audio_cue")
+id = &"sfx.global.death.run_ends_loop"
+bus = &"SFX"
+volume_db = -2.0
+max_instances = 1
+priority = 8
+
+[sub_resource type="Resource" id="AudioCue_boss_start_fight"]
+script = ExtResource("3_audio_cue")
+id = &"sfx.global.boss.boss_start_fight"
+bus = &"SFX"
+volume_db = -5.0
+max_instances = 2
+priority = 7
+
+[resource]
+script = ExtResource("1_library")
+cues = Array[Resource]([SubResource("AudioCue_button_click"), SubResource("AudioCue_run_ends_loop"), SubResource("AudioCue_boss_start_fight")])
+music_tracks = Array[Resource]([SubResource("MusicTrack_main_menu"), SubResource("MusicTrack_waiting_room"), SubResource("MusicTrack_dungeon"), SubResource("MusicTrack_combat")])

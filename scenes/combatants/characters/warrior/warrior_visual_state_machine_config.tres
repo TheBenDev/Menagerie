@@ -1,0 +1,7 @@
+[gd_resource type="Resource" script_class="SMConfig" format=3 uid="uid://bupjk3ovflt5t"]
+
+[ext_resource type="Script" uid="uid://drkyvpjh3ful4" path="res://addons/easystatemachine/config/sm_config.gd" id="1_config"]
+
+[resource]
+script = ExtResource("1_config")
+initial_state = "StaticState"

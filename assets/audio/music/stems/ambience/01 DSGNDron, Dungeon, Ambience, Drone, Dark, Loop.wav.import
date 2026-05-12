@@ -1,0 +1,24 @@
+[remap]
+
+importer="wav"
+type="AudioStreamWAV"
+uid="uid://410xpqem6dyp"
+path="res://.godot/imported/01 DSGNDron, Dungeon, Ambience, Drone, Dark, Loop.wav-8e4b9753e886943de61c26f26bff1567.sample"
+
+[deps]
+
+source_file="res://assets/audio/music/stems/ambience/01 DSGNDron, Dungeon, Ambience, Drone, Dark, Loop.wav"
+dest_files=["res://.godot/imported/01 DSGNDron, Dungeon, Ambience, Drone, Dark, Loop.wav-8e4b9753e886943de61c26f26bff1567.sample"]
+
+[params]
+
+force/8_bit=false
+force/mono=false
+force/max_rate=false
+force/max_rate_hz=44100
+edit/trim=false
+edit/normalize=false
+edit/loop_mode=0
+edit/loop_begin=0
+edit/loop_end=-1
+compress/mode=2

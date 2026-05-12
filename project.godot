@@ -11,20 +11,22 @@ config_version=5
 [application]
 
 config/name="Menagerie"
-run/main_scene="res://scenes/main_menu.tscn"
+run/main_scene="res://scenes/ui/main_menu/MainMenu.tscn"
 config/features=PackedStringArray("4.6", "Forward Plus")
 config/icon="res://assets/ui/AppIcon.png"
 
 [autoload]
 
-SoundManager="*res://scripts/audio/sound_manager.gd"
-GameManager="*res://scripts/game_manager.gd"
+SoundManager="*res://core/audio/sound_manager.gd"
+GameManager="*res://core/game_manager.gd"
 _mcp_game_helper="*res://addons/godot_ai/runtime/game_helper.gd"
 
 [display]
 
 window/size/viewport_width=1920
 window/size/viewport_height=1080
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
 
 [editor]
 
@@ -33,7 +35,7 @@ version_control/autoload_on_startup=true
 
 [editor_plugins]
 
-enabled=PackedStringArray("res://addons/godot_ai/plugin.cfg")
+enabled=PackedStringArray("res://addons/easystatemachine/plugin.cfg", "res://addons/godot_ai/plugin.cfg")
 
 [physics]
 

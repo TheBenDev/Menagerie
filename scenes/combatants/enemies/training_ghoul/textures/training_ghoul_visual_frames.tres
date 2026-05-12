@@ -1,0 +1,14 @@
+[gd_resource type="SpriteFrames" format=3]
+
+[ext_resource type="Texture2D" path="res://scenes/combatants/enemies/training_ghoul/textures/training_ghoul_static.png" id="1_static"]
+
+[resource]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("1_static")
+}],
+"loop": false,
+"name": &"static",
+"speed": 1.0
+}]

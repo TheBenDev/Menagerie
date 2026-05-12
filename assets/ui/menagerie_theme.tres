@@ -1,6 +1,6 @@
 [gd_resource type="Theme" format=3 uid="uid://blcilhxj3ejys"]
 
-[ext_resource type="FontFile" uid="uid://xiu3scukytfb" path="res://assets/Gotfridus_Font_0_5/Gotfridus.ttf" id="1_gotfridus"]
+[ext_resource type="FontFile" uid="uid://xiu3scukytfb" path="res://assets/fonts/gotfridus_font_0_5/Gotfridus.ttf" id="1_gotfridus"]
 
 [resource]
 default_font = ExtResource("1_gotfridus")

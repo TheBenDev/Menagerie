@@ -1,0 +1,139 @@
+[gd_scene format=3 uid="uid://kyqg6yac01sy"]
+
+[ext_resource type="Script" uid="uid://dl4prainanbqr" path="res://scenes/dungeon/dungeon_controller.gd" id="1_controller"]
+[ext_resource type="PackedScene" uid="uid://dk60mirr4sj2m" path="res://scenes/ui/global_hud/GlobalHUD.tscn" id="2_global_hud"]
+[ext_resource type="Theme" uid="uid://blcilhxj3ejys" path="res://assets/ui/menagerie_theme.tres" id="3_theme"]
+[ext_resource type="Texture2D" uid="uid://d3ovr4oae0nno" path="res://assets/ui/global/background/textured_background.png" id="4_background"]
+[ext_resource type="Script" path="res://scenes/dungeon/dungeon_grid_view.gd" id="5_grid_view"]
+[ext_resource type="Script" path="res://scenes/dungeon/dungeon_map_input_connector.gd" id="6_input_connector"]
+
+[node name="DungeonMap" type="Control" unique_id=1721247295]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("3_theme")
+
+[node name="Backdrop" type="TextureRect" parent="." unique_id=2031395788]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("4_background")
+expand_mode = 1
+stretch_mode = 6
+
+[node name="DimOverlay" type="ColorRect" parent="." unique_id=1871062752]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0, 0, 0, 0.28)
+
+[node name="MapViewport" type="Control" parent="." unique_id=1758828511]
+clip_contents = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 42.0
+offset_top = 148.0
+offset_right = -42.0
+offset_bottom = -168.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="MapContent" type="Control" parent="MapViewport" unique_id=1773615482]
+anchors_preset = 0
+offset_right = 1656.0
+offset_bottom = 216.0
+mouse_filter = 2
+
+[node name="GridView" type="Control" parent="MapViewport/MapContent" unique_id=204916552]
+anchors_preset = 0
+offset_right = 1656.0
+offset_bottom = 216.0
+mouse_filter = 2
+script = ExtResource("5_grid_view")
+columns = 23
+rows = 3
+
+[node name="NodeLayer" type="Control" parent="MapViewport/MapContent" unique_id=1952173813]
+anchors_preset = 0
+offset_right = 1656.0
+offset_bottom = 216.0
+mouse_filter = 2
+
+[node name="DungeonController" type="Node" parent="." unique_id=811380347]
+script = ExtResource("1_controller")
+map_viewport_path = NodePath("../MapViewport")
+map_content_path = NodePath("../MapViewport/MapContent")
+grid_view_path = NodePath("../MapViewport/MapContent/GridView")
+node_layer_path = NodePath("../MapViewport/MapContent/NodeLayer")
+
+[node name="DungeonMapInputConnector" type="Node" parent="." unique_id=891375204]
+script = ExtResource("6_input_connector")
+viewport_path = NodePath("../MapViewport")
+map_content_path = NodePath("../MapViewport/MapContent")
+
+[node name="GlobalHUD" parent="." unique_id=52286228 instance=ExtResource("2_global_hud")]
+
+[node name="InfoPanel" type="PanelContainer" parent="." unique_id=1840002184]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 42.0
+offset_top = -136.0
+offset_right = -42.0
+offset_bottom = -36.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 2
+
+[node name="PanelMargin" type="MarginContainer" parent="InfoPanel" unique_id=757156507]
+layout_mode = 2
+theme_override_constants/margin_left = 18
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 18
+theme_override_constants/margin_bottom = 12
+
+[node name="InfoLayout" type="VBoxContainer" parent="InfoPanel/PanelMargin" unique_id=2129362171]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 6
+
+[node name="HeaderRow" type="HBoxContainer" parent="InfoPanel/PanelMargin/InfoLayout" unique_id=2053562056]
+layout_mode = 2
+theme_override_constants/separation = 18
+
+[node name="TitleLabel" type="Label" parent="InfoPanel/PanelMargin/InfoLayout/HeaderRow" unique_id=980320065]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 30
+text = "Dungeon Map"
+
+[node name="DifficultyLabel" type="Label" parent="InfoPanel/PanelMargin/InfoLayout/HeaderRow" unique_id=858669521]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Difficulty: Normal"
+vertical_alignment = 1
+
+[node name="StatusLabel" type="Label" parent="InfoPanel/PanelMargin/InfoLayout" unique_id=1892133864]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Progress: 0 / 4 fights complete"
+
+[node name="DetailLabel" type="Label" parent="InfoPanel/PanelMargin/InfoLayout" unique_id=1204011812]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Reachable: Haven"
