@@ -20,7 +20,6 @@ const NumberFontHelper := preload("res://scenes/ui/common/number_font.gd")
 @export var draw_text: bool = true
 
 func _ready() -> void:
-	custom_minimum_size = Vector2(0, 28)
 	size_flags_horizontal = Control.SIZE_EXPAND_FILL
 
 func configure(

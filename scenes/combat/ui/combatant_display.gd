@@ -7,18 +7,22 @@ const ResourceBarScript := preload("res://scenes/ui/common/resource_bar.gd")
 const StatusIconViewScene := preload("res://scenes/combat/ui/StatusIconView.tscn")
 
 @export var status_icon_size: Vector2 = Vector2(32.0, 32.0)
+@export var name_label_gap: float = 6.0
 
-@onready var name_label: Label = $NameLabel
-@onready var visual_root: Control = $VisualRoot
-@onready var visual_placeholder: ColorRect = $VisualRoot/VisualPlaceholder
-@onready var health_bar: ResourceBarScript = $ResourceBars/HealthBar
-@onready var block_bar: ResourceBarScript = $ResourceBars/BlockBar
-@onready var class_resource_bar: ResourceBarScript = $ResourceBars/ClassResourceBar
-@onready var health_label: Label = $ResourceLabels/HealthLabel
-@onready var block_label: Label = $ResourceLabels/BlockLabel
-@onready var class_resource_label: Label = $ResourceLabels/ClassResourceLabel
-@onready var status_bar: Control = $StatusBar
-@onready var status_icons: HBoxContainer = $StatusBar/StatusIcons
+@onready var visual_frame: Control = $DisplayColumn/VisualFrame
+@onready var name_label: Label = $DisplayColumn/VisualFrame/NameLabel
+@onready var visual_root: Control = $DisplayColumn/VisualFrame/VisualRoot
+@onready var visual_placeholder: ColorRect = $DisplayColumn/VisualFrame/VisualRoot/VisualPlaceholder
+@onready var health_resource_row: Control = $DisplayColumn/HealthResourceRow
+@onready var health_bar: ResourceBarScript = $DisplayColumn/HealthResourceRow/HealthBar
+@onready var block_bar: ResourceBarScript = $DisplayColumn/HealthResourceRow/BlockBar
+@onready var class_resource_row: Control = $DisplayColumn/ClassResourceRow
+@onready var class_resource_bar: ResourceBarScript = $DisplayColumn/ClassResourceRow/ClassResourceBar
+@onready var health_label: Label = $DisplayColumn/HealthResourceRow/HealthLabel
+@onready var block_label: Label = $DisplayColumn/HealthResourceRow/BlockLabel
+@onready var class_resource_label: Label = $DisplayColumn/ClassResourceRow/ClassResourceLabel
+@onready var status_bar: Control = $DisplayColumn/StatusBar
+@onready var status_icons: Control = $DisplayColumn/StatusBar/StatusIcons
 
 var combatant: Combatant = null
 var visual_instance: Node = null
@@ -27,6 +31,8 @@ var class_resource_config: Resource = null
 var status_buttons: Array[Control] = []
 
 func _ready() -> void:
+	visual_frame.resized.connect(_queue_name_label_position_update)
+	visual_root.resized.connect(_queue_name_label_position_update)
 	NumberFontHelper.apply_to_label(health_label)
 	NumberFontHelper.apply_to_label(block_label)
 	NumberFontHelper.apply_to_label(class_resource_label)
@@ -44,6 +50,7 @@ func refresh(_arg_a: Variant = null, _arg_b: Variant = null) -> void:
 		return
 
 	name_label.text = combatant.display_name
+	_queue_name_label_position_update()
 	_update_health_and_block_bars()
 	_update_class_resource_bar()
 	_update_status_bar()
@@ -51,13 +58,16 @@ func refresh(_arg_a: Variant = null, _arg_b: Variant = null) -> void:
 func _configure_empty_state() -> void:
 	name_label.text = ""
 	visual_placeholder.visible = true
+	_queue_name_label_position_update()
+	health_resource_row.visible = false
 	health_bar.visible = false
 	block_bar.visible = false
+	class_resource_row.visible = false
 	class_resource_bar.visible = false
 	health_label.visible = false
 	block_label.visible = false
 	class_resource_label.visible = false
-	status_bar.visible = false
+	status_bar.visible = true
 
 func _connect_combatant_signals() -> void:
 	if combatant == null:
@@ -109,13 +119,58 @@ func _apply_visual_scene() -> void:
 		visual_control.offset_right = 0.0
 		visual_control.offset_bottom = 0.0
 		visual_control.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		if not visual_control.resized.is_connected(_queue_name_label_position_update):
+			visual_control.resized.connect(_queue_name_label_position_update)
+	if visual_instance.has_signal("visual_bounds_changed") and not visual_instance.is_connected(
+		"visual_bounds_changed",
+		Callable(self, "_on_visual_bounds_changed")
+	):
+		visual_instance.connect("visual_bounds_changed", Callable(self, "_on_visual_bounds_changed"))
+	_queue_name_label_position_update()
 
 func _clear_visual_instance() -> void:
 	if visual_instance != null and is_instance_valid(visual_instance):
 		visual_instance.queue_free()
 	visual_instance = null
+	_queue_name_label_position_update()
+
+func _on_visual_bounds_changed(_bounds: Rect2) -> void:
+	_queue_name_label_position_update()
+
+func _queue_name_label_position_update() -> void:
+	call_deferred("_update_name_label_position")
+
+func _update_name_label_position() -> void:
+	if name_label == null or visual_frame == null:
+		return
+
+	var label_height: float = maxf(name_label.custom_minimum_size.y, name_label.get_combined_minimum_size().y)
+	var label_width: float = maxf(visual_frame.size.x, 1.0)
+	var label_y: float = 0.0
+	var bounds := _visual_bounds_in_frame()
+	if bounds.size.y > 0.0:
+		label_y = bounds.position.y - name_label_gap - label_height
+
+	label_y = clampf(label_y, 0.0, maxf(visual_frame.size.y - label_height, 0.0))
+	name_label.position = Vector2(0.0, label_y)
+	name_label.size = Vector2(label_width, label_height)
+
+func _visual_bounds_in_frame() -> Rect2:
+	if visual_instance != null and is_instance_valid(visual_instance) and visual_instance.has_method("get_visual_bounds"):
+		var bounds: Rect2 = visual_instance.call("get_visual_bounds")
+		if bounds.size.y > 0.0:
+			var visual_origin := visual_root.position
+			if visual_instance is Control:
+				visual_origin += (visual_instance as Control).position
+			return Rect2(visual_origin + bounds.position, bounds.size)
+
+	if visual_placeholder.visible:
+		return Rect2(visual_root.position, visual_root.size)
+
+	return Rect2()
 
 func _configure_health_bar() -> void:
+	health_resource_row.visible = true
 	health_bar.visible = true
 	if health_bar_config != null:
 		health_bar.configure_from_config(health_bar_config)
@@ -141,6 +196,7 @@ func _configure_block_bar() -> void:
 	block_bar.draw_text = false
 
 func _configure_class_resource_bar() -> void:
+	class_resource_row.visible = class_resource_config != null
 	class_resource_bar.visible = class_resource_config != null
 	class_resource_label.visible = class_resource_config != null
 	if class_resource_config == null:
@@ -167,6 +223,7 @@ func _update_health_and_block_bars() -> void:
 	block_label.text = "Block %s" % combatant.block
 
 func _update_class_resource_bar() -> void:
+	class_resource_row.visible = class_resource_config != null
 	class_resource_bar.visible = class_resource_config != null
 	class_resource_label.visible = class_resource_config != null
 	if class_resource_config == null:
@@ -188,7 +245,7 @@ func _class_resource_text(current_value: int, reference_value: int) -> String:
 
 func _update_status_bar() -> void:
 	var status_entries: Array[Dictionary] = _active_status_entries()
-	status_bar.visible = not status_entries.is_empty()
+	status_bar.visible = true
 	_ensure_status_button_count(status_entries.size())
 
 	for index in status_buttons.size():

@@ -103,7 +103,6 @@ This inventory lists runtime `.gd` scripts under `res://core` and `res://scenes`
 | `res://scenes/combat/ui/action_queue_panel.gd` | `ActionQueuePanel` | Renders pending and resolved combat actions. |
 | `res://scenes/combat/ui/battle_hud.gd` | `BattleHUD` | Coordinates the combat timeline, hotbar action buttons, hotbar resource bars, player status bar, hover info panel, and time controls. |
 | `res://scenes/combat/ui/combatant_display.gd` | `CombatantDisplay` | Reusable battle display for one combatant's visual, resources, and statuses. |
-| `res://scenes/combat/ui/combatant_panel.gd` | `CombatantPanel` | Shows one combatant's name, health, resources, and statuses. |
 | `res://scenes/combat/ui/hover_info_button.gd` | `HoverInfoButton` | Button with authored hover info metadata for the fixed info panel. |
 | `res://scenes/combat/ui/hover_info_panel.gd` | `HoverInfoPanel` | Fixed info panel that renders hover metadata from registered controls. |
 | `res://scenes/combat/ui/hotbar_slot_button.gd` | `HotbarSlotButton` | Button for one configurable combat hotbar slot. |

@@ -19,7 +19,7 @@ Battle visuals are reusable `Control` scenes with an `AnimatedSprite2D` and Easy
 
 | Script | Role |
 | --- | --- |
-| `res://scenes/combatants/combatant_battle_visual.gd` | `CombatantBattleVisual`; fits an `AnimatedSprite2D` inside its control bounds. |
+| `res://scenes/combatants/combatant_battle_visual.gd` | `CombatantBattleVisual`; fits an `AnimatedSprite2D` inside its control bounds and reports fitted sprite bounds to combat UI. |
 | `res://scenes/combatants/combatant_animation_state_helper.gd` | Shared helper used by animation state scripts to play or pin `AnimatedSprite2D` animations. |
 | `res://scenes/combatants/characters/warrior/states/warrior_idle_state.gd` | Easy State Machine state that plays an `idle` animation. |
 | `res://scenes/combatants/combatant_static_state.gd` | Easy State Machine state that displays a single `static` frame. |
@@ -40,6 +40,8 @@ Each visual scene should contain:
 - A `StateMachine` child using the Easy State Machine runtime script.
 - One or more state nodes, usually `IdleState` or `StaticState`.
 - A SpriteFrames resource in the combatant's `textures` folder.
+
+`CombatantDisplay` uses `CombatantBattleVisual.get_visual_bounds()` and the `visual_bounds_changed` signal to place the combatant name just above the actual fitted sprite.
 
 ## See also
 

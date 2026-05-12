@@ -37,15 +37,15 @@ offset_right = 1.0
 offset_bottom = -1.0
 
 [node name="EnemyDisplay" parent="." unique_id=806953201 instance=ExtResource("8_5jc5f")]
-custom_minimum_size = Vector2(520, 620)
-offset_left = 1170.0
-offset_top = 244.0
-offset_right = 1690.0
-offset_bottom = 864.0
+custom_minimum_size = Vector2(100, 200)
+offset_left = 1223.0
+offset_top = 378.0
+offset_right = 1487.0
+offset_bottom = 728.0
 
 [node name="WarriorDisplay" parent="." unique_id=717719744 instance=ExtResource("8_5jc5f")]
-custom_minimum_size = Vector2(520, 620)
-offset_left = 154.0
-offset_top = 240.0
-offset_right = 674.0
-offset_bottom = 860.0
+custom_minimum_size = Vector2(100, 200)
+offset_left = 466.0
+offset_top = 378.0
+offset_right = 730.0
+offset_bottom = 728.0

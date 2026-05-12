@@ -41,6 +41,8 @@ The scene should contain:
 | `bottom_padding` | Pixels reserved at bottom of the control. |
 | `visual_offset` | Final sprite position offset. |
 
+After fitting, the script exposes `get_visual_bounds()` and emits `visual_bounds_changed(bounds)` so combat UI can place labels relative to the actual sprite instead of the full control rect.
+
 ## Wire into the battle scene
 
 1. Open `res://scenes/combat/BattleScene.tscn` in Godot.
