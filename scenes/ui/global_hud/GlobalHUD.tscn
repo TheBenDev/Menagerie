@@ -92,7 +92,6 @@ theme_override_colors/font_color = Color(0.6457142, 0, 0, 1)
 theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.85)
 theme_override_constants/shadow_offset_x = 2
 theme_override_constants/shadow_offset_y = 2
-theme_override_font_sizes/font_size = 24
 text = "05:00"
 horizontal_alignment = 1
 vertical_alignment = 1
@@ -158,7 +157,6 @@ stretch_mode = 5
 [node name="GoldValue" type="Label" parent="HUDRoot/TopRightPanel/TopRightMargin/TopRightRow/VBoxContainer/GoldItem" unique_id=1814407884]
 custom_minimum_size = Vector2(48, 0)
 layout_mode = 2
-theme_override_font_sizes/font_size = 24
 text = "0"
 vertical_alignment = 1
 
@@ -180,7 +178,6 @@ stretch_mode = 5
 [node name="MemoriesValue" type="Label" parent="HUDRoot/TopRightPanel/TopRightMargin/TopRightRow/VBoxContainer/MemoriesItem" unique_id=1722744855]
 custom_minimum_size = Vector2(48, 0)
 layout_mode = 2
-theme_override_font_sizes/font_size = 24
 text = "0"
 vertical_alignment = 1
 
@@ -275,7 +272,6 @@ stretch_mode = 5
 [node name="StrengthValue" type="Label" parent="HUDRoot/TopLeftPanel/PlayerButton/PlayerPanel/PanelMargin/PanelLayout/StatsRow/StrengthStat" unique_id=165605317]
 custom_minimum_size = Vector2(72, 28)
 layout_mode = 2
-theme_override_font_sizes/font_size = 22
 text = "5"
 horizontal_alignment = 1
 
@@ -298,7 +294,6 @@ stretch_mode = 5
 [node name="DexterityValue" type="Label" parent="HUDRoot/TopLeftPanel/PlayerButton/PlayerPanel/PanelMargin/PanelLayout/StatsRow/DexterityStat" unique_id=1511478385]
 custom_minimum_size = Vector2(72, 28)
 layout_mode = 2
-theme_override_font_sizes/font_size = 22
 text = "5"
 horizontal_alignment = 1
 
@@ -321,7 +316,6 @@ stretch_mode = 5
 [node name="IntelligenceValue" type="Label" parent="HUDRoot/TopLeftPanel/PlayerButton/PlayerPanel/PanelMargin/PanelLayout/StatsRow/IntelligenceStat" unique_id=1013279258]
 custom_minimum_size = Vector2(72, 28)
 layout_mode = 2
-theme_override_font_sizes/font_size = 22
 text = "5"
 horizontal_alignment = 1
 
@@ -344,7 +338,6 @@ stretch_mode = 5
 [node name="VitalityValue" type="Label" parent="HUDRoot/TopLeftPanel/PlayerButton/PlayerPanel/PanelMargin/PanelLayout/StatsRow/VitalityStat" unique_id=1160384091]
 custom_minimum_size = Vector2(72, 28)
 layout_mode = 2
-theme_override_font_sizes/font_size = 22
 text = "5"
 horizontal_alignment = 1
 
@@ -356,13 +349,11 @@ alignment = 1
 
 [node name="HealthLabel" type="Label" parent="HUDRoot/TopLeftPanel/PlayerButton/PlayerPanel/PanelMargin/PanelLayout/HealthRow" unique_id=366897052]
 layout_mode = 2
-theme_override_font_sizes/font_size = 20
 text = "HP"
 
 [node name="HealthValue" type="Label" parent="HUDRoot/TopLeftPanel/PlayerButton/PlayerPanel/PanelMargin/PanelLayout/HealthRow" unique_id=1490893293]
 custom_minimum_size = Vector2(96, 0)
 layout_mode = 2
-theme_override_font_sizes/font_size = 22
 text = "50/50"
 horizontal_alignment = 1
 
@@ -390,6 +381,6 @@ mouse_filter = 2
 custom_minimum_size = Vector2(220, 64)
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 32
+theme_type_variation = &"CharacterNameLabel"
 text = "Warrior"
 vertical_alignment = 1

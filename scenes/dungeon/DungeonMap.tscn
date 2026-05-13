@@ -130,12 +130,11 @@ theme_override_constants/separation = 18
 [node name="TitleLabel" type="Label" parent="InfoPanel/PanelMargin/InfoLayout/HeaderRow" unique_id=980320065]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 30
+theme_type_variation = &"HeaderLabel"
 text = "Dungeon Map"
 
 [node name="DifficultyLabel" type="Label" parent="InfoPanel/PanelMargin/InfoLayout/HeaderRow" unique_id=858669521]
 layout_mode = 2
-theme_override_font_sizes/font_size = 18
 text = "Difficulty: Normal"
 vertical_alignment = 1
 
@@ -145,13 +144,11 @@ theme_override_constants/separation = 18
 
 [node name="DetailLabel" type="Label" parent="InfoPanel/PanelMargin/InfoLayout/DetailSeedRow" unique_id=1204011812]
 layout_mode = 2
-theme_override_font_sizes/font_size = 18
 text = "Reachable: Haven"
 
 [node name="SeedLabel" type="Label" parent="InfoPanel/PanelMargin/InfoLayout/DetailSeedRow" unique_id=730749500]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 18
 text = "Seed: -"
 horizontal_alignment = 2
 vertical_alignment = 1

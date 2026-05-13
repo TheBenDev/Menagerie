@@ -108,12 +108,12 @@ This inventory lists runtime `.gd` scripts under `res://core` and `res://scenes`
 | `res://scenes/combat/ui/action_bar.gd` | `BattleActionBar` | Binds manually positioned hotbar buttons to configurable slot contents. |
 | `res://scenes/combat/ui/action_queue_panel.gd` | `ActionQueuePanel` | Renders pending and resolved combat actions. |
 | `res://scenes/combat/ui/battle_hud.gd` | `BattleHUD` | Coordinates the combat timeline, hotbar action buttons, hotbar resource bars, player status bar, hover info panel, and time controls. |
-| `res://scenes/combat/ui/combatant_display.gd` | `CombatantDisplay` | Reusable battle display for one combatant's visual, resources, and statuses. |
+| `res://scenes/combat/ui/combatant_display.gd` | `CombatantDisplay` | Reusable battle display for one combatant's visual, resources, statuses, and player-name font styling. |
 | `res://scenes/combat/ui/hover_info_button.gd` | `HoverInfoButton` | Button with authored hover info metadata for the fixed info panel. |
 | `res://scenes/combat/ui/hover_info_panel.gd` | `HoverInfoPanel` | Fixed info panel that renders hover metadata from registered controls. |
 | `res://scenes/combat/ui/hotbar_slot_button.gd` | `HotbarSlotButton` | Button for one configurable combat hotbar slot. |
 | `res://scenes/combat/ui/status_icon_view.gd` | `StatusIconView` | Control view that previews and renders a status icon from the shared status atlas. |
-| `res://scenes/ui/common/number_font.gd` | `NumberFont` | Applies and draws monospaced numeric spans. |
+| `res://scenes/ui/common/number_font.gd` | `NumberFont` | Applies and draws shared-font numeric spans. |
 | `res://scenes/ui/common/resource_bar.gd` | None | Custom resource meter control with optional segmented overlay fills. |
 | `res://scenes/ui/common/time_progress_bar.gd` | `TimeProgressBar` | Draws run timer fill inside the timer fill node's bounds. |
 | `res://scenes/ui/global_hud/global_hud.gd` | None | Persistent HUD layer for timer, currencies, and selected character stats. |

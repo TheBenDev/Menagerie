@@ -4,6 +4,7 @@ class_name StatusIconView
 extends Control
 
 const DEFAULT_STATUS_ATLAS: Texture2D = preload("res://assets/ui/global/icons/statuses/statuses_13.png")
+const FALLBACK_FONT: Font = preload("res://assets/fonts/germania-one/GermaniaOne-Regular.ttf")
 const HoverInfoPanelScript := preload("res://scenes/combat/ui/hover_info_panel.gd")
 
 @export var status_atlas: Texture2D = DEFAULT_STATUS_ATLAS:
@@ -75,7 +76,7 @@ func _draw() -> void:
 	if fallback_initial.is_empty():
 		return
 
-	var font: Font = ThemeDB.fallback_font
+	var font: Font = FALLBACK_FONT
 	if font == null:
 		return
 

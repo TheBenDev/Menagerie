@@ -42,7 +42,7 @@ theme_override_constants/separation = 18
 
 [node name="TitleLabel" type="Label" parent="MarginContainer/Layout" unique_id=692009494]
 layout_mode = 2
-theme_override_font_sizes/font_size = 44
+theme_type_variation = &"TitleLabel"
 text = "Run Complete"
 
 [node name="SummaryPanel" type="PanelContainer" parent="MarginContainer/Layout" unique_id=675830131]
@@ -66,6 +66,7 @@ text = "Character:"
 
 [node name="CharacterValue" type="Label" parent="MarginContainer/Layout/SummaryPanel/PanelMargin/SummaryGrid" unique_id=1527620065]
 layout_mode = 2
+theme_type_variation = &"CharacterNameLabel"
 text = "Warrior"
 
 [node name="DifficultyLabel" type="Label" parent="MarginContainer/Layout/SummaryPanel/PanelMargin/SummaryGrid" unique_id=1514932184]

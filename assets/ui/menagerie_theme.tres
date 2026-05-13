@@ -1,8 +1,33 @@
 [gd_resource type="Theme" format=3 uid="uid://blcilhxj3ejys"]
 
-[ext_resource type="FontFile" uid="uid://xiu3scukytfb" path="res://assets/fonts/gotfridus_font_0_5/Gotfridus.ttf" id="1_gotfridus"]
+[ext_resource type="FontFile" uid="uid://kh6wmb77apvx" path="res://assets/fonts/germania-one/GermaniaOne-Regular.ttf" id="1_germania"]
+[ext_resource type="FontFile" uid="uid://d1ji3st1evjcu" path="res://assets/fonts/dumbledor/dum1/dum1.ttf" id="2_dumbledor"]
+[ext_resource type="FontFile" uid="uid://xiu3scukytfb" path="res://assets/fonts/gotfridus_font_0_5/Gotfridus.ttf" id="3_gotfridus"]
 
 [resource]
-default_font = ExtResource("1_gotfridus")
-default_font_size = 18
-Button/font_sizes/font_size = 20
+default_font = ExtResource("1_germania")
+default_font_size = 28
+Button/font_sizes/font_size = 28
+CharacterNameButton/base_type = &"Button"
+CharacterNameButton/font_sizes/font_size = 28
+CharacterNameButton/fonts/font = ExtResource("3_gotfridus")
+CharacterNameLabel/base_type = &"Label"
+CharacterNameLabel/font_sizes/font_size = 38
+CharacterNameLabel/fonts/font = ExtResource("3_gotfridus")
+CombatHotbarButton/base_type = &"Button"
+CombatHotbarButton/font_sizes/font_size = 18
+CombatHotbarButton/fonts/font = ExtResource("1_germania")
+CombatHotbarLabel/base_type = &"Label"
+CombatHotbarLabel/font_sizes/font_size = 14
+CombatHotbarLabel/fonts/font = ExtResource("1_germania")
+CombatantTextLabel/base_type = &"Label"
+CombatantTextLabel/font_sizes/font_size = 12
+CombatantTextLabel/fonts/font = ExtResource("1_germania")
+HeaderLabel/base_type = &"Label"
+HeaderLabel/font_sizes/font_size = 36
+HeaderLabel/fonts/font = ExtResource("2_dumbledor")
+LineEdit/font_sizes/font_size = 22
+RichTextLabel/font_sizes/normal_font_size = 22
+TitleLabel/base_type = &"Label"
+TitleLabel/font_sizes/font_size = 64
+TitleLabel/fonts/font = ExtResource("2_dumbledor")

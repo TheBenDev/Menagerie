@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" uid="uid://dg1mdd2gll463" path="res://scenes/combat/ui/combatant_display.gd" id="1_display"]
 [ext_resource type="Script" uid="uid://co4mpwaos6ev4" path="res://scenes/ui/common/resource_bar.gd" id="2_resource"]
+[ext_resource type="Theme" uid="uid://blcilhxj3ejys" path="res://assets/ui/menagerie_theme.tres" id="3_theme"]
 
 [node name="CombatantDisplay" type="Control" unique_id=717719744]
 custom_minimum_size = Vector2(180, 360)
@@ -9,6 +10,7 @@ layout_mode = 3
 anchors_preset = 0
 offset_right = 320.0
 offset_bottom = 420.0
+theme = ExtResource("3_theme")
 script = ExtResource("1_display")
 
 [node name="DisplayColumn" type="VBoxContainer" parent="." unique_id=295476438]
@@ -65,7 +67,7 @@ anchor_right = 1.0
 offset_bottom = 28.0
 grow_horizontal = 2
 size_flags_vertical = 0
-theme_override_font_sizes/font_size = 16
+theme_type_variation = &"CombatantTextLabel"
 text = "Combatant"
 horizontal_alignment = 1
 vertical_alignment = 1
@@ -122,7 +124,7 @@ offset_top = 2.0
 offset_right = -61.0
 offset_bottom = 19.0
 grow_horizontal = 2
-theme_override_font_sizes/font_size = 12
+theme_type_variation = &"CombatantTextLabel"
 text = "HP 0/0"
 horizontal_alignment = 1
 vertical_alignment = 1
@@ -137,7 +139,7 @@ offset_top = 2.0
 offset_right = -61.0
 offset_bottom = 19.0
 grow_horizontal = 2
-theme_override_font_sizes/font_size = 12
+theme_type_variation = &"CombatantTextLabel"
 text = "Block 0"
 vertical_alignment = 1
 
@@ -170,7 +172,7 @@ offset_left = 55.0
 offset_right = -65.0
 offset_bottom = 17.0
 grow_horizontal = 2
-theme_override_font_sizes/font_size = 12
+theme_type_variation = &"CombatantTextLabel"
 text = "Resource 0"
 horizontal_alignment = 1
 vertical_alignment = 1

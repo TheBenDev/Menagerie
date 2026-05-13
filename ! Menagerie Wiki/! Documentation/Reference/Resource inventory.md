@@ -25,7 +25,7 @@ This inventory lists authored gameplay, audio, UI, and visual `.tres` files unde
 | Resource | Script class | Purpose |
 | --- | --- | --- |
 | `res://assets/audio/common_audio_library.tres` | `AudioLibraryData` | Authored music tracks and cue overrides. |
-| `res://assets/ui/menagerie_theme.tres` | `Theme` | Project UI theme. |
+| `res://assets/ui/menagerie_theme.tres` | `Theme` | Project UI theme with Germania One defaults, compact combat text variations, Dumbledor title/header variations, and Gotfridus character-name variations. |
 | `res://core/dungeon/default_dungeon_floor_generation_config.tres` | `DungeonFloorGenerationConfig` | Default deterministic dungeon map generation tuning. |
 | `res://core/dungeon/encounters/default_dungeon_encounter_pool.tres` | `DungeonEncounterPool` | Scanned dungeon encounter registry and default encounter scene. |
 | `res://core/dungeon/encounters/events/cracked_obelisk.tres` | `DungeonEncounterData` | Default Cracked Obelisk encounter. |

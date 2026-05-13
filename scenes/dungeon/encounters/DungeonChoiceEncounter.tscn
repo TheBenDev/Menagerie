@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scenes/dungeon/encounters/dungeon_choice_encounter.gd" id="1_script"]
+[ext_resource type="Theme" path="res://assets/ui/menagerie_theme.tres" id="2_theme"]
 
 [node name="DungeonChoiceEncounter" type="Control"]
 layout_mode = 3
@@ -10,6 +11,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 0
+theme = ExtResource("2_theme")
 script = ExtResource("1_script")
 
 [node name="DimOverlay" type="ColorRect" parent="."]
@@ -53,14 +55,13 @@ theme_override_constants/separation = 16
 
 [node name="TitleLabel" type="Label" parent="EncounterPanel/PanelMargin/Layout"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 28
+theme_type_variation = &"HeaderLabel"
 text = "Encounter"
 horizontal_alignment = 1
 
 [node name="DescriptionLabel" type="Label" parent="EncounterPanel/PanelMargin/Layout"]
 layout_mode = 2
 size_flags_vertical = 3
-theme_override_font_sizes/font_size = 18
 text = "The path bends toward something unusual."
 autowrap_mode = 3
 

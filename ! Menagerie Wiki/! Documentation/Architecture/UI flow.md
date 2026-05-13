@@ -42,7 +42,7 @@ The UI layer is scene-driven: scene scripts call `GameManager`, reusable control
 | --- | --- | --- |
 | `ResourceBar` | `res://scenes/ui/common/resource_bar.gd` | Draws labeled resource meters with optional reference/bonus text. |
 | `TimeProgressBar` | `res://scenes/ui/common/time_progress_bar.gd` | Draws the run timer fill inside the timer fill node's bounds. |
-| `NumberFont` | `res://scenes/ui/common/number_font.gd` | Applies or draws monospaced number spans in mixed-width UI text. |
+| `NumberFont` | `res://scenes/ui/common/number_font.gd` | Applies or draws shared-font number spans in mixed-width UI text. |
 | `TimelineView` | `res://scenes/combat/timeline_view.gd` | Draws and scrolls the battle timeline ruler and action markers. |
 | `DungeonMapInputConnector` | `res://scenes/dungeon/dungeon_map_input_connector.gd` | Connects shared map navigation keybinds to dungeon zooming and panning. |
 
