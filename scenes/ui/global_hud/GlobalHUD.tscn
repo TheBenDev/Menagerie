@@ -348,6 +348,24 @@ theme_override_font_sizes/font_size = 22
 text = "5"
 horizontal_alignment = 1
 
+[node name="HealthRow" type="HBoxContainer" parent="HUDRoot/TopLeftPanel/PlayerButton/PlayerPanel/PanelMargin/PanelLayout" unique_id=2079319777]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 12
+alignment = 1
+
+[node name="HealthLabel" type="Label" parent="HUDRoot/TopLeftPanel/PlayerButton/PlayerPanel/PanelMargin/PanelLayout/HealthRow" unique_id=366897052]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "HP"
+
+[node name="HealthValue" type="Label" parent="HUDRoot/TopLeftPanel/PlayerButton/PlayerPanel/PanelMargin/PanelLayout/HealthRow" unique_id=1490893293]
+custom_minimum_size = Vector2(96, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "50/50"
+horizontal_alignment = 1
+
 [node name="TextureRect" type="TextureRect" parent="HUDRoot/TopLeftPanel/PlayerButton/PlayerPanel/PanelMargin/PanelLayout" unique_id=865816810]
 custom_minimum_size = Vector2(256, 32)
 layout_mode = 2

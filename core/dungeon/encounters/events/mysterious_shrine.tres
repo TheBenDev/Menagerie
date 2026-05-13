@@ -1,0 +1,32 @@
+[gd_resource type="Resource" script_class="DungeonEncounterData" format=3]
+
+[ext_resource type="Script" uid="uid://btaufeh8h6e34" path="res://core/dungeon/encounters/dungeon_encounter_data.gd" id="1_encounter"]
+
+[resource]
+script = ExtResource("1_encounter")
+id = &"mysterious_shrine"
+display_name = "Mysterious Shrine"
+description = "A low flame moves inside a stone bowl, though no fuel feeds it."
+valid_floor_layers = Array[int]([1])
+choices = Array[Dictionary]([{
+"description": "Let the shrine burn away hesitation.",
+"effects": [{
+"amount": 2,
+"duration": 120.0,
+"id": &"stat",
+"stat": "STR"
+}],
+"label": "Accept the ember"
+}, {
+"description": "Pay in blood for a lesson that stays.",
+"effects": [{
+"amount": 8,
+"id": &"damage"
+}, {
+"amount": 1,
+"id": &"stat",
+"permanent": true,
+"stat": "INT"
+}],
+"label": "Bleed for insight"
+}])

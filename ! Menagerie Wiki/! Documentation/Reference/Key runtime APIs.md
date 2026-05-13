@@ -11,10 +11,16 @@ This page summarizes the most important runtime APIs new developers usually need
 | Surface | Type | Notes |
 | --- | --- | --- |
 | `current_run_data` | `RunData` or `null` | Active run state. May be null outside a run. |
-| `start_new_run(character, difficulty)` | method | Creates and stores fresh `RunData`. |
+| `start_new_run(character, difficulty, dungeon_seed := "", dungeon_floor_layer := 1)` | method | Creates and stores fresh `RunData`; blank seed resolves to an auto-generated replay seed. |
 | `start_combat(node_id, node_type, enemy_profile_path, is_boss)` | method | Stores encounter, charges travel time, routes to battle. |
 | `complete_combat(result)` | method | Stores pending result, routes to dungeon. |
 | `advance_run_time(seconds)` | method | Decrements remaining run time and handles timeout. |
+| `get_dungeon_encounter(encounter_id)` | method | Resolves an authored dungeon encounter resource by ID. |
+| `get_dungeon_encounter_scene(encounter_id)` | method | Resolves the presentation scene for an encounter ID. |
+| `apply_dungeon_encounter_result(encounter_id, result)` | method | Applies a completed encounter choice result to `RunData`. |
+| `apply_run_player_state_to_combatant(combatant)` | method | Copies effective run stats onto the player combatant before battle. |
+| `get_run_player_hp_snapshot()` | method | Returns persistent run HP as `{current, max}`. |
+| `get_effective_player_stats()` | method | Returns effective run stats after permanent and timed modifiers. |
 | `go_to_scene(scene_ref)` | method | Main route endpoint. |
 | `scene_path_for(scene_ref)` | method | Use to check route resolution without changing scene. |
 
@@ -23,10 +29,18 @@ This page summarizes the most important runtime APIs new developers usually need
 | Surface | Type | Notes |
 | --- | --- | --- |
 | `visited_dungeon_node_ids` | `Array[int]` | Source of truth for visited dungeon map nodes. |
+| `dungeon_seed` | `String` | Stored seed used to reproduce the generated dungeon map and gameplay RNG stream. |
+| `dungeon_floor_layer` | `int` | Current floor layer; `1` until multi-floor progression exists. |
+| `dungeon_node_descriptors` | `Array` | Stored generated map descriptors for the active run. |
+| `current_dungeon_node_id` | `int` | Last visited node id for branching-map current-location display. |
+| `player_current_hp`, `player_max_hp` | `int` | Persistent player HP carried between fights and affected by encounter damage. |
+| `run_stat_modifiers` | `Array[Dictionary]` | Permanent and run-time-limited stat modifiers from encounter choices. |
 | `mark_dungeon_node_visited(node_id)` | method | Adds a visited node ID and advances `current_node_index`. |
 | `is_dungeon_node_visited(node_id)` | method | Checks whether a node was completed. |
 | `get_visited_dungeon_node_ids()` | method | Returns a duplicate of visited node IDs for reveal calculations. |
 | `get_last_visited_dungeon_node_id()` | method | Returns the latest visited node ID, or `-1` before Haven is completed. |
+| `apply_encounter_choice(choice_data)` | method | Applies an inline encounter choice dictionary, currently damage and stat modifiers. |
+| `get_effective_stat(stat_id)` | method | Returns a stat after active run modifiers. |
 
 ## Dungeon helpers
 
@@ -34,6 +48,12 @@ This page summarizes the most important runtime APIs new developers usually need
 | --- | --- | --- |
 | `DungeonNodeEventHelper.build_node_event(node)` | static method | Builds the shared dictionary payload for dungeon node visit events. |
 | `DungeonNodeEventHelper.process_node_event(node, game_manager, sound_manager)` | static method | Handles currently-routed node types and reports whether completion is deferred. |
+| `DungeonFloorGenerator.generate_floor(seed, layer, difficulty, config, encounter_pool)` | static method | Seeds global RNG from `seed`, then returns deterministic flat descriptor arrays with optional `connections` and encounter IDs. |
+| `DungeonFloorGenerator.generate_floor_from_global_rng(layer, difficulty, config, encounter_pool)` | static method | Returns descriptors by consuming the current global gameplay RNG stream. |
+| `DungeonFloorGenerator.validate_descriptors(descriptors, grid_size := Vector2i.ZERO)` | static method | Checks bounds, overlaps, graph reachability, and symmetric connections. |
+| `DungeonEncounterResolver.encounter_for_id(pool, encounter_id)` | static method | Resolves encounter data from a pool. |
+| `DungeonEncounterResolver.scene_for_encounter(encounter_data)` | static method | Returns the encounter presentation scene. |
+| `DungeonEncounterResolver.choice_for_index(encounter_data, choice_index)` | static method | Resolves an inline choice dictionary by emitted choice index. |
 | `KeybindsHelper.process_map_navigation_event(event, is_panning)` | static method | Converts wheel and middle-mouse events into zoom/pan action dictionaries. |
 
 ## SoundManager

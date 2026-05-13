@@ -64,6 +64,7 @@ Signals are the main event contract between combat, UI, audio, and run state.
 | `DungeonNodeView` buttons | `pressed` | `DungeonController` emits a node event and completes or routes the node by type. |
 | `DungeonController` | `node_event_emitted(event: Dictionary)` | Emitted for every visited dungeon node type. |
 | `DungeonController` | `node_completed(node_id: int, node_type: String)` | Emitted when non-deferred node completion is marked locally. |
+| Encounter scene | `encounter_finished(result: Dictionary)` | `DungeonController` applies a completed encounter choice result, clears the scene, then marks the node visited. |
 | `SoundManager` button hook | `BaseButton.pressed` | Plays `ui.button.click` for existing and newly-added buttons. |
 
 ## Dungeon node events
@@ -71,7 +72,8 @@ Signals are the main event contract between combat, UI, audio, and run state.
 | Node type | Current behavior |
 | --- | --- |
 | `Haven` | Emits a node event and completes immediately. |
-| `Empty` | Emits a node event and completes immediately. |
+| `Empty` | Emits a node event, advances run time by `RunData.EMPTY_NODE_TIME_SECONDS`, then completes. |
+| `Encounter` | Emits a node event, advances run time by `RunData.NODE_TRAVEL_TIME_SECONDS`, loads the encounter scene by `encounter_id`, and waits for `encounter_finished`. |
 | `Fight` | Emits a node event and routes through `GameManager.start_combat()`. Completion waits for a victorious combat result. |
 | `Boss` | Emits a node event and routes through `GameManager.start_combat()`. Completion waits for the boss combat result. |
 

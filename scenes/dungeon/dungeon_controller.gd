@@ -6,47 +6,36 @@ signal node_completed(node_id: int, node_type: String)
 
 const DungeonNodeDataScript := preload("res://core/dungeon/dungeon_node_data.gd")
 const DungeonNodeEventHelperScript := preload("res://core/dungeon/dungeon_node_event_helper.gd")
+const DungeonFloorGeneratorScript := preload("res://core/dungeon/dungeon_floor_generator.gd")
 const DungeonNodeViewScript := preload("res://scenes/dungeon/dungeon_node_view.gd")
 
 const GRID_CELL_SIZE := 72.0
 const START_NODE_ID := 0
-const DEFAULT_NODE_DESCRIPTORS := [
-	{"id": 0, "type": "Haven", "grid": Vector2i(0, 0), "size": Vector2i(3, 3)},
-	{"id": 1, "type": "Empty", "grid": Vector2i(3, 1), "size": Vector2i(1, 1)},
-	{"id": 2, "type": "Empty", "grid": Vector2i(4, 1), "size": Vector2i(1, 1)},
-	{"id": 3, "type": "Fight", "grid": Vector2i(5, 0), "size": Vector2i(3, 3)},
-	{"id": 4, "type": "Empty", "grid": Vector2i(8, 1), "size": Vector2i(1, 1)},
-	{"id": 5, "type": "Empty", "grid": Vector2i(9, 1), "size": Vector2i(1, 1)},
-	{"id": 6, "type": "Fight", "grid": Vector2i(10, 0), "size": Vector2i(3, 3)},
-	{"id": 7, "type": "Empty", "grid": Vector2i(13, 1), "size": Vector2i(1, 1)},
-	{"id": 8, "type": "Empty", "grid": Vector2i(14, 1), "size": Vector2i(1, 1)},
-	{"id": 9, "type": "Fight", "grid": Vector2i(15, 0), "size": Vector2i(3, 3)},
-	{"id": 10, "type": "Empty", "grid": Vector2i(18, 1), "size": Vector2i(1, 1)},
-	{"id": 11, "type": "Empty", "grid": Vector2i(19, 1), "size": Vector2i(1, 1)},
-	{"id": 12, "type": "Boss", "grid": Vector2i(20, 0), "size": Vector2i(3, 3), "is_boss": true},
-]
 
 @export var map_viewport_path: NodePath
 @export var map_content_path: NodePath
 @export var grid_view_path: NodePath
 @export var node_layer_path: NodePath
+@export var encounter_layer_path: NodePath
 
 @onready var title_label: Label = $"../InfoPanel/PanelMargin/InfoLayout/HeaderRow/TitleLabel"
 @onready var difficulty_label: Label = $"../InfoPanel/PanelMargin/InfoLayout/HeaderRow/DifficultyLabel"
-@onready var status_label: Label = $"../InfoPanel/PanelMargin/InfoLayout/StatusLabel"
-@onready var detail_label: Label = $"../InfoPanel/PanelMargin/InfoLayout/DetailLabel"
+@onready var seed_label: Label = $"../InfoPanel/PanelMargin/InfoLayout/DetailSeedRow/SeedLabel"
+@onready var detail_label: Label = $"../InfoPanel/PanelMargin/InfoLayout/DetailSeedRow/DetailLabel"
 @onready var map_viewport: Control = get_node(map_viewport_path)
 @onready var map_content: Control = get_node(map_content_path)
 @onready var grid_view: Control = get_node(grid_view_path)
 @onready var node_layer: Control = get_node(node_layer_path)
+@onready var encounter_layer: Control = get_node(encounter_layer_path)
 
 var node_views_by_id: Dictionary = {}
 var node_order: Array[int] = []
 var nodes_by_id: Dictionary = {}
 var map_grid_size: Vector2i = Vector2i.ONE
+var active_encounter_scene: Node = null
 
 func _ready() -> void:
-	_create_path_data(DEFAULT_NODE_DESCRIPTORS)
+	_create_path_data(_generate_run_descriptors())
 	_build_node_views()
 	_sync_run_data_metadata()
 
@@ -61,6 +50,8 @@ func _create_path_data(descriptors: Array) -> void:
 	nodes_by_id.clear()
 	node_order.clear()
 	map_grid_size = Vector2i.ONE
+	var explicit_connections_by_id := {}
+	var has_explicit_connections := false
 	for raw_descriptor in descriptors:
 		var descriptor: Dictionary = raw_descriptor
 		var grid_position: Vector2i = descriptor.get("grid", Vector2i.ZERO)
@@ -69,24 +60,51 @@ func _create_path_data(descriptors: Array) -> void:
 			int(descriptor.get("id", -1)),
 			str(descriptor.get("type", DungeonNodeDataScript.TYPE_FIGHT)),
 			str(descriptor.get("enemy", "")),
+			_string_name_from_variant(descriptor.get("encounter_id", &"")),
 			bool(descriptor.get("is_boss", false)),
 			grid_position,
 			grid_size
 		)
 		nodes_by_id[node.id] = node
 		node_order.append(node.id)
+		if descriptor.has("connections"):
+			has_explicit_connections = true
+			explicit_connections_by_id[node.id] = descriptor.get("connections", [])
 		map_grid_size.x = max(map_grid_size.x, grid_position.x + grid_size.x)
 		map_grid_size.y = max(map_grid_size.y, grid_position.y + grid_size.y)
 
 	node_order.sort()
+	if has_explicit_connections:
+		_apply_explicit_connections(explicit_connections_by_id)
+	else:
+		_apply_linear_connections()
+
+func _apply_explicit_connections(explicit_connections_by_id: Dictionary) -> void:
+	for node_id in node_order:
+		for raw_connected_id in explicit_connections_by_id.get(node_id, []):
+			_connect_node_ids(node_id, int(raw_connected_id))
+
+func _apply_linear_connections() -> void:
 	for index in node_order.size():
 		var node = nodes_by_id.get(node_order[index])
 		if node == null:
 			continue
 		if index > 0:
-			node.connected_node_ids.append(node_order[index - 1])
+			_connect_node_ids(node.id, node_order[index - 1])
 		if index < node_order.size() - 1:
-			node.connected_node_ids.append(node_order[index + 1])
+			_connect_node_ids(node.id, node_order[index + 1])
+
+func _connect_node_ids(first_id: int, second_id: int) -> void:
+	if first_id == second_id:
+		return
+	var first_node = nodes_by_id.get(first_id)
+	var second_node = nodes_by_id.get(second_id)
+	if first_node == null or second_node == null:
+		return
+	if not first_node.connected_node_ids.has(second_id):
+		first_node.connected_node_ids.append(second_id)
+	if not second_node.connected_node_ids.has(first_id):
+		second_node.connected_node_ids.append(first_id)
 
 func _build_node_views() -> void:
 	for child in node_layer.get_children():
@@ -157,10 +175,7 @@ func _refresh_view() -> void:
 	var run_data: Variant = _run_data()
 	title_label.text = "Dungeon Map"
 	difficulty_label.text = "Difficulty: %s" % GameManager.get_selected_difficulty_display_name()
-	status_label.text = "Progress: %s / %s fights complete" % [
-		run_data.fights_completed,
-		_combat_node_count(),
-	]
+	seed_label.text = "Seed: %s" % run_data.dungeon_seed
 
 	var current_node_id := int(run_data.get_last_visited_dungeon_node_id())
 	for node_id in node_order:
@@ -204,11 +219,70 @@ func _on_node_pressed(node_id: int) -> void:
 
 	var event := DungeonNodeEventHelperScript.build_node_event(node)
 	node_event_emitted.emit(event)
+	if node.node_type == DungeonNodeDataScript.TYPE_ENCOUNTER:
+		_start_encounter_node(node)
+		return
+
 	var result := DungeonNodeEventHelperScript.process_node_event(node, GameManager, SoundManager)
 	if bool(result.get(DungeonNodeEventHelperScript.RESULT_COMPLETION_DEFERRED, false)):
 		return
+	if _run_data().has_ended():
+		return
 
 	_complete_node_visit(node)
+
+func _start_encounter_node(node: DungeonNodeData) -> void:
+	if node == null:
+		return
+	if not GameManager.advance_run_time(RunData.NODE_TRAVEL_TIME_SECONDS):
+		return
+
+	var encounter_data: Resource = GameManager.get_dungeon_encounter(node.encounter_id)
+	var encounter_scene: PackedScene = GameManager.get_dungeon_encounter_scene(node.encounter_id)
+	if encounter_data == null or encounter_scene == null:
+		push_warning("Dungeon encounter %s could not be resolved." % node.encounter_id)
+		_complete_node_visit(node)
+		return
+
+	_clear_active_encounter_scene()
+	active_encounter_scene = encounter_scene.instantiate()
+	encounter_layer.visible = true
+	encounter_layer.mouse_filter = Control.MOUSE_FILTER_STOP
+	encounter_layer.add_child(active_encounter_scene)
+
+	if active_encounter_scene.has_signal("encounter_finished"):
+		active_encounter_scene.connect("encounter_finished", Callable(self, "_on_encounter_finished").bind(node.id))
+	else:
+		push_warning("Dungeon encounter scene %s does not emit encounter_finished." % active_encounter_scene.name)
+
+	if active_encounter_scene.has_method("setup"):
+		active_encounter_scene.call("setup", encounter_data, {
+			"node_id": node.id,
+			"encounter_id": node.encounter_id,
+			"floor_layer": _run_data().dungeon_floor_layer,
+		})
+
+func _on_encounter_finished(result: Dictionary, node_id: int) -> void:
+	var node = nodes_by_id.get(node_id)
+	if node == null:
+		_clear_active_encounter_scene()
+		return
+
+	var result_mode := str(result.get("mode", "complete"))
+	if result_mode == "complete":
+		GameManager.apply_dungeon_encounter_result(node.encounter_id, result)
+	_clear_active_encounter_scene()
+	if result_mode != "complete" or _run_data().has_ended():
+		return
+
+	_complete_node_visit(node)
+
+func _clear_active_encounter_scene() -> void:
+	if active_encounter_scene != null:
+		active_encounter_scene.queue_free()
+		active_encounter_scene = null
+	encounter_layer.visible = false
+	encounter_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 func _complete_node_visit(node: DungeonNodeData) -> void:
 	var run_data: Variant = _run_data()
@@ -229,6 +303,19 @@ func _run_data() -> Variant:
 
 	return GameManager.current_run_data
 
+func _generate_run_descriptors() -> Array:
+	var run_data: Variant = _run_data()
+	if run_data.dungeon_node_descriptors.is_empty():
+		run_data.dungeon_node_descriptors = DungeonFloorGeneratorScript.generate_floor(
+			run_data.dungeon_seed,
+			run_data.dungeon_floor_layer,
+			run_data.selected_difficulty,
+			GameManager.DEFAULT_DUNGEON_GENERATION_CONFIG,
+			GameManager.DEFAULT_DUNGEON_ENCOUNTER_POOL
+		)
+
+	return run_data.dungeon_node_descriptors.duplicate(true)
+
 func _boss_node_id() -> int:
 	for node_id in node_order:
 		var node = nodes_by_id.get(node_id)
@@ -237,17 +324,16 @@ func _boss_node_id() -> int:
 
 	return node_order[node_order.size() - 1] if not node_order.is_empty() else START_NODE_ID
 
-func _combat_node_count() -> int:
-	var count := 0
-	for raw_node in nodes_by_id.values():
-		var node = raw_node
-		if node != null and (node.node_type == DungeonNodeDataScript.TYPE_FIGHT or node.node_type == DungeonNodeDataScript.TYPE_BOSS):
-			count += 1
-
-	return count
-
 func _default_grid_size_for_type(node_type: String) -> Vector2i:
 	if node_type == DungeonNodeDataScript.TYPE_EMPTY:
 		return Vector2i.ONE
 
 	return Vector2i(3, 3)
+
+func _string_name_from_variant(value: Variant) -> StringName:
+	if value is StringName:
+		return value
+	if value is String:
+		return StringName(value)
+
+	return &""

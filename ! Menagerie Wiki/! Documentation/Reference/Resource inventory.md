@@ -12,12 +12,13 @@ This inventory lists authored gameplay, audio, UI, and visual `.tres` files unde
 | --- | ---: |
 | `assets/audio` | 1 |
 | `assets/ui` | 1 |
+| `core/dungeon` | 5 |
 | `core/difficulty` | 3 |
 | `core/rewards` | 1 |
 | `core/statuses` | 2 |
 | `scenes/combatants/characters` | 4 |
 | `scenes/combatants/enemies` | 4 |
-| Total | 16 |
+| Total | 21 |
 
 ## Resources
 
@@ -25,6 +26,11 @@ This inventory lists authored gameplay, audio, UI, and visual `.tres` files unde
 | --- | --- | --- |
 | `res://assets/audio/common_audio_library.tres` | `AudioLibraryData` | Authored music tracks and cue overrides. |
 | `res://assets/ui/menagerie_theme.tres` | `Theme` | Project UI theme. |
+| `res://core/dungeon/default_dungeon_floor_generation_config.tres` | `DungeonFloorGenerationConfig` | Default deterministic dungeon map generation tuning. |
+| `res://core/dungeon/encounters/default_dungeon_encounter_pool.tres` | `DungeonEncounterPool` | Scanned dungeon encounter registry and default encounter scene. |
+| `res://core/dungeon/encounters/events/cracked_obelisk.tres` | `DungeonEncounterData` | Default Cracked Obelisk encounter. |
+| `res://core/dungeon/encounters/events/forgotten_font.tres` | `DungeonEncounterData` | Default Forgotten Font encounter. |
+| `res://core/dungeon/encounters/events/mysterious_shrine.tres` | `DungeonEncounterData` | Default Mysterious Shrine encounter. |
 | `res://scenes/combatants/characters/warrior/textures/warrior_idle_frames.tres` | `SpriteFrames` | Warrior battle visual frames. |
 | `res://scenes/combatants/characters/warrior/warrior_moveset.tres` | `CombatMovesetData` | Warrior player actions and inline effect data. |
 | `res://scenes/combatants/characters/warrior/warrior_profile.tres` | `CombatantProfile` | Warrior stats, moveset, UI bars, and identity data. |
@@ -52,6 +58,11 @@ This inventory lists authored gameplay, audio, UI, and visual `.tres` files unde
 | `DifficultyProfile` | Enemy health/damage/time multipliers, reward multiplier, and AI tuning weights. |
 | `StatusData` | `id`, `display_name`, `description`, `icon_atlas_coords`, `icon_atlas_cell_size`, `duration_seconds`, `outgoing_damage_multiplier`, `incoming_damage_multiplier`. |
 | `RewardProfile` | `base_memories`, `base_gold`, `boss_multiplier`. |
+| `DungeonFloorGenerationConfig` | Grid size scaling, fight/encounter count scaling, branch/extra connection chances, path noise, room padding, placement attempts, and retry limits. |
+| `DungeonEncounterPool` | `scan_roots`, `default_scene`. |
+| `DungeonEncounterData` | `id`, `display_name`, `description`, `valid_floor_layers`, `weight`, `scene_override`, inline `choices`. |
+| Dungeon encounter choice dictionaries | `label`, optional `description`, optional `effects`. |
+| Dungeon encounter effect dictionaries | `id`, `amount`, and effect-specific keys such as `stat`, `duration`, `permanent`. |
 | `ResourceBarConfig` | `resource_id`, `label`, `reference_value`, `display_reference_value`, colors, and `bonus_label`. |
 | `AudioLibraryData` | `cues`, `music_tracks`. |
 | `AudioCueData` | `id`, `stream_ids`, `streams`, `bus`, `volume_db`, `pitch_min`, `pitch_max`, `cooldown_seconds`, `max_instances`, `priority`. |

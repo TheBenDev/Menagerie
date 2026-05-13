@@ -17,10 +17,12 @@ var actions_used: int = 0
 var combat_result_reported: bool = false
 var last_accounted_combat_time: float = 0.0
 var audio_bridge: Node = null
+var run_player_hp_before_combat: int = 0
 
 func _ready() -> void:
 	_configure_encounter_from_game_manager()
 	warrior.apply_profile()
+	_apply_run_player_state()
 	enemy.apply_profile()
 	_apply_boss_overrides()
 
@@ -44,6 +46,8 @@ func _ready() -> void:
 	_connect_run_signals()
 
 	battle.start_battle()
+	if run_player_hp_before_combat <= 0:
+		run_player_hp_before_combat = warrior.max_hp
 	_setup_audio_bridge()
 	_refresh_hud()
 
@@ -144,6 +148,16 @@ func _configure_encounter_from_game_manager() -> void:
 
 	battle.difficulty_profile = GameManager.get_selected_difficulty_profile()
 
+func _apply_run_player_state() -> void:
+	if not _has_game_manager():
+		return
+
+	GameManager.apply_run_player_state_to_combatant(warrior)
+	var hp_snapshot: Dictionary = GameManager.get_run_player_hp_snapshot()
+	run_player_hp_before_combat = int(hp_snapshot.get("current", warrior.max_hp))
+	battle.player_starting_hp_override = run_player_hp_before_combat
+	battle.player_starting_max_hp_override = int(hp_snapshot.get("max", warrior.max_hp))
+
 func _apply_boss_overrides() -> void:
 	if not _has_game_manager() or not bool(GameManager.get_current_encounter().get("is_boss", false)):
 		return
@@ -171,9 +185,10 @@ func _on_run_ended(reason: String) -> void:
 	result.enemy_defeated = enemy.hp <= 0
 	result.player_defeated = warrior.hp <= 0
 	result.damage_dealt = max(enemy.max_hp - enemy.hp, 0)
-	result.damage_taken = max(warrior.max_hp - warrior.hp, 0)
+	result.damage_taken = max(run_player_hp_before_combat - warrior.hp, 0)
 	result.actions_used = actions_used
 	result.time_elapsed = battle.current_time
+	_populate_player_hp_result(result)
 	result.end_reason = reason
 
 	if _has_game_manager() and GameManager.current_run_data != null:
@@ -193,9 +208,10 @@ func _finish_combat(victory: bool) -> void:
 	result.enemy_defeated = enemy.hp <= 0
 	result.player_defeated = warrior.hp <= 0
 	result.damage_dealt = max(enemy.max_hp - enemy.hp, 0)
-	result.damage_taken = max(warrior.max_hp - warrior.hp, 0)
+	result.damage_taken = max(run_player_hp_before_combat - warrior.hp, 0)
 	result.actions_used = actions_used
 	result.time_elapsed = battle.current_time
+	_populate_player_hp_result(result)
 	result.end_reason = "" if victory else RunData.END_REASON_DEFEAT
 
 	if not _has_game_manager():
@@ -208,6 +224,14 @@ func _finish_combat(victory: bool) -> void:
 
 	await get_tree().create_timer(1.0).timeout
 	GameManager.complete_combat(result)
+
+func _populate_player_hp_result(result: Variant) -> void:
+	if result == null:
+		return
+
+	result.player_hp_before = run_player_hp_before_combat
+	result.player_hp_after = warrior.hp
+	result.player_max_hp = warrior.max_hp
 
 func _has_game_manager() -> bool:
 	return get_node_or_null("/root/GameManager") != null

@@ -28,13 +28,19 @@ Autoloads are the closest thing this project has to global service endpoints.
 
 | Method | Returns | Use |
 | --- | --- | --- |
-| `start_new_run(character, difficulty)` | `Variant` | Creates a fresh `RunData`, applies selection, emits run HUD state, and starts run music. |
+| `start_new_run(character, difficulty, dungeon_seed := "", dungeon_floor_layer := 1)` | `Variant` | Creates a fresh `RunData`, applies selection, resolves/stores a dungeon seed, applies it to global gameplay RNG, generates the dungeon map, emits run HUD state, and starts run music. |
 | `clear_run()` | `void` | Clears `current_run_data`. |
 | `start_combat(node_id, node_type, enemy_profile_path, is_boss)` | `void` | Stores encounter data, advances travel time, routes to `combat/BattleScene`. |
 | `complete_combat(result)` | `void` | Stores a pending combat result and routes back to `dungeon`. |
 | `consume_last_combat_result()` | `Variant` | Returns and clears the pending result. |
 | `has_pending_combat_result()` | `bool` | Checks whether dungeon should apply a completed combat result. |
 | `advance_run_time(seconds)` | `bool` | Advances the run timer and ends the run on timeout. |
+| `get_dungeon_encounter(encounter_id)` | `Resource` | Resolves an authored dungeon encounter from the default encounter pool. |
+| `get_dungeon_encounter_scene(encounter_id)` | `PackedScene` | Resolves the presentation scene for an encounter ID. |
+| `apply_dungeon_encounter_result(encounter_id, result)` | `Dictionary` | Applies a completed encounter scene result to run HP/stat state. |
+| `apply_run_player_state_to_combatant(combatant)` | `void` | Copies effective run stats onto the player combatant before combat starts. |
+| `get_run_player_hp_snapshot()` | `Dictionary` | Returns persistent player HP as `{current, max}`. |
+| `get_effective_player_stats()` | `Dictionary` | Returns selected character stats after run modifiers. |
 | `grant_run_rewards(reward_result)` | `void` | Adds memory and gold from a reward dictionary or result-like object. |
 | `end_current_run(reason)` | `void` | Ends the run, emits state/signals, and defers routing to summary. |
 | `emit_run_state()` | `void` | Emits timer and currency signals for current or empty state. |
@@ -69,6 +75,13 @@ Autoloads are the closest thing this project has to global service endpoints.
 | --- | --- | --- |
 | `memories_awarded` | `int` | Rounded non-negative memory reward. |
 | `gold_awarded` | `int` | Rounded non-negative gold reward. |
+
+`apply_dungeon_encounter_result()` accepts a result dictionary from an encounter scene:
+
+| Key | Type | Meaning |
+| --- | --- | --- |
+| `mode` | `String` | Currently supports `complete`. Other modes are reserved. |
+| `choice_index` | `int` | Zero-based index of the selected inline choice dictionary. |
 
 ## SoundManager
 
@@ -105,7 +118,7 @@ Autoloads are the closest thing this project has to global service endpoints.
 ## Examples
 
 ```gdscript
-GameManager.start_new_run("Warrior", "normal")
+GameManager.start_new_run("Warrior", "normal", "debug-seed")
 GameManager.go_to_scene("dungeon")
 ```
 

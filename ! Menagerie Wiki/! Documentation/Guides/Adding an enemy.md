@@ -39,11 +39,11 @@ Use existing Training Ghoul resources as the pattern:
 
 ## Add to dungeon
 
-1. Open `res://scenes/dungeon/dungeon_controller.gd`.
-2. Add or update a node descriptor in `DEFAULT_NODE_DESCRIPTORS`.
-3. Set its `enemy` value to the new enemy profile path.
-4. Set `is_boss` for boss encounters.
-5. Open `res://scenes/dungeon/DungeonMap.tscn` through Godot to verify the generated node placement.
+1. Open `res://core/dungeon/dungeon_floor_generator.gd` if this enemy should appear in generated map descriptors.
+2. Add an `enemy` value to the generated `Fight` or `Boss` descriptor path selection for the new profile.
+3. Set `is_boss` for boss encounters.
+4. Keep descriptor `connections` symmetric when adding authored or special-case paths.
+5. Open `res://scenes/dungeon/DungeonMap.tscn` through Godot to verify the generated node placement and seed display.
 
 ## Optional battle visual
 

@@ -1,0 +1,8 @@
+[gd_resource type="Resource" script_class="DungeonEncounterPool" format=3 uid="uid://car8g4ml5en8y"]
+
+[ext_resource type="Script" uid="uid://c6mu0o5s7q1wr" path="res://core/dungeon/encounters/dungeon_encounter_pool.gd" id="1_pool"]
+[ext_resource type="PackedScene" path="res://scenes/dungeon/encounters/DungeonChoiceEncounter.tscn" id="2_choice_scene"]
+
+[resource]
+script = ExtResource("1_pool")
+default_scene = ExtResource("2_choice_scene")

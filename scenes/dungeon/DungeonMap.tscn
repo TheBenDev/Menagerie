@@ -4,8 +4,8 @@
 [ext_resource type="PackedScene" uid="uid://dk60mirr4sj2m" path="res://scenes/ui/global_hud/GlobalHUD.tscn" id="2_global_hud"]
 [ext_resource type="Theme" uid="uid://blcilhxj3ejys" path="res://assets/ui/menagerie_theme.tres" id="3_theme"]
 [ext_resource type="Texture2D" uid="uid://d3ovr4oae0nno" path="res://assets/ui/global/background/textured_background.png" id="4_background"]
-[ext_resource type="Script" path="res://scenes/dungeon/dungeon_grid_view.gd" id="5_grid_view"]
-[ext_resource type="Script" path="res://scenes/dungeon/dungeon_map_input_connector.gd" id="6_input_connector"]
+[ext_resource type="Script" uid="uid://6vm80ena5pok" path="res://scenes/dungeon/dungeon_grid_view.gd" id="5_grid_view"]
+[ext_resource type="Script" uid="uid://d5mkmr0rq5n5" path="res://scenes/dungeon/dungeon_map_input_connector.gd" id="6_input_connector"]
 
 [node name="DungeonMap" type="Control" unique_id=1721247295]
 layout_mode = 3
@@ -47,7 +47,7 @@ anchor_bottom = 1.0
 offset_left = 42.0
 offset_top = 148.0
 offset_right = -42.0
-offset_bottom = -168.0
+offset_bottom = -198.0
 grow_horizontal = 2
 grow_vertical = 2
 
@@ -72,12 +72,23 @@ offset_right = 1656.0
 offset_bottom = 216.0
 mouse_filter = 2
 
+[node name="EncounterLayer" type="Control" parent="." unique_id=1460772312]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
 [node name="DungeonController" type="Node" parent="." unique_id=811380347]
 script = ExtResource("1_controller")
 map_viewport_path = NodePath("../MapViewport")
 map_content_path = NodePath("../MapViewport/MapContent")
 grid_view_path = NodePath("../MapViewport/MapContent/GridView")
 node_layer_path = NodePath("../MapViewport/MapContent/NodeLayer")
+encounter_layer_path = NodePath("../EncounterLayer")
 
 [node name="DungeonMapInputConnector" type="Node" parent="." unique_id=891375204]
 script = ExtResource("6_input_connector")
@@ -93,7 +104,7 @@ anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
 offset_left = 42.0
-offset_top = -136.0
+offset_top = -166.0
 offset_right = -42.0
 offset_bottom = -36.0
 grow_horizontal = 2
@@ -128,12 +139,19 @@ theme_override_font_sizes/font_size = 18
 text = "Difficulty: Normal"
 vertical_alignment = 1
 
-[node name="StatusLabel" type="Label" parent="InfoPanel/PanelMargin/InfoLayout" unique_id=1892133864]
+[node name="DetailSeedRow" type="HBoxContainer" parent="InfoPanel/PanelMargin/InfoLayout" unique_id=763882078]
 layout_mode = 2
-theme_override_font_sizes/font_size = 18
-text = "Progress: 0 / 4 fights complete"
+theme_override_constants/separation = 18
 
-[node name="DetailLabel" type="Label" parent="InfoPanel/PanelMargin/InfoLayout" unique_id=1204011812]
+[node name="DetailLabel" type="Label" parent="InfoPanel/PanelMargin/InfoLayout/DetailSeedRow" unique_id=1204011812]
 layout_mode = 2
 theme_override_font_sizes/font_size = 18
 text = "Reachable: Haven"
+
+[node name="SeedLabel" type="Label" parent="InfoPanel/PanelMargin/InfoLayout/DetailSeedRow" unique_id=730749500]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 18
+text = "Seed: -"
+horizontal_alignment = 2
+vertical_alignment = 1

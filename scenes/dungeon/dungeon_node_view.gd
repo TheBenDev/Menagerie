@@ -7,6 +7,7 @@ extends TextureButton
 @export var grid_position: Vector2i = Vector2i.ZERO
 @export var grid_size: Vector2i = Vector2i.ONE
 @export_file("*.tres") var enemy_profile_path: String = ""
+@export var encounter_id: StringName = &""
 @export var is_boss: bool = false
 
 const NODE_TEXTURE_PATHS := {
@@ -31,6 +32,7 @@ func configure(data: DungeonNodeData, cell_size: float) -> void:
 	grid_position = data.grid_position
 	grid_size = data.grid_size
 	enemy_profile_path = data.enemy_profile
+	encounter_id = data.encounter_id
 	is_boss = data.is_boss
 	position = Vector2(grid_position) * cell_size
 	size = Vector2(grid_size) * cell_size

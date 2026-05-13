@@ -12,15 +12,15 @@ This inventory lists runtime `.gd` scripts under `res://core` and `res://scenes`
 | --- | ---: |
 | `core/audio` | 7 |
 | `core/combat` | 13 |
-| `core/dungeon` | 2 |
+| `core/dungeon` | 7 |
 | `core/input` | 1 |
 | `core/difficulty`, `core/rewards`, `core/statuses` | 3 |
 | `scenes/combat` | 6 |
 | `scenes/combatants` | 8 |
-| `scenes/dungeon` | 4 |
+| `scenes/dungeon` | 5 |
 | `scenes/ui` | 8 |
 | Root scripts | 2 |
-| Total | 54 |
+| Total | 60 |
 
 ## Root scripts
 
@@ -89,11 +89,17 @@ This inventory lists runtime `.gd` scripts under `res://core` and `res://scenes`
 | Script | Class | Purpose |
 | --- | --- | --- |
 | `res://scenes/dungeon/dungeon_controller.gd` | None | Builds dungeon grid nodes, controls reveal state, applies combat results, and starts routed encounters. |
+| `res://core/dungeon/dungeon_floor_generation_config.gd` | `DungeonFloorGenerationConfig` | Resource tuning profile for deterministic dungeon generation. |
+| `res://core/dungeon/dungeon_floor_generator.gd` | `DungeonFloorGenerator` | Builds seeded dungeon descriptor arrays and validates generated graph data. |
 | `res://core/dungeon/dungeon_node_data.gd` | `DungeonNodeData` | Runtime dungeon node state for grid placement, visited/revealed state, and connections. |
 | `res://core/dungeon/dungeon_node_event_helper.gd` | `DungeonNodeEventHelper` | Builds and processes shared dungeon node visit event payloads. |
+| `res://core/dungeon/encounters/dungeon_encounter_data.gd` | `DungeonEncounterData` | Authored encounter metadata, valid floors, optional scene override, and inline choices. |
+| `res://core/dungeon/encounters/dungeon_encounter_pool.gd` | `DungeonEncounterPool` | Scans encounter folders and filters weighted encounters by floor layer. |
+| `res://core/dungeon/encounters/dungeon_encounter_resolver.gd` | `DungeonEncounterResolver` | Resolves encounter IDs, scenes, and choices. |
 | `res://scenes/dungeon/dungeon_grid_view.gd` | `DungeonGridView` | Draws the dungeon map grid behind generated nodes. |
 | `res://scenes/dungeon/dungeon_map_input_connector.gd` | `DungeonMapInputConnector` | Applies map navigation keybinds to dungeon zooming and panning. |
 | `res://scenes/dungeon/dungeon_node_view.gd` | `DungeonNodeView` | Texture button view for dungeon nodes and selection tooltips. |
+| `res://scenes/dungeon/encounters/dungeon_choice_encounter.gd` | `DungeonChoiceEncounter` | Generic encounter choice scene that emits selected encounter results. |
 
 ## UI
 

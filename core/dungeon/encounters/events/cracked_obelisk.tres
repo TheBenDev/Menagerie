@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="DungeonEncounterData" format=3]
+
+[ext_resource type="Script" uid="uid://btaufeh8h6e34" path="res://core/dungeon/encounters/dungeon_encounter_data.gd" id="1_encounter"]
+
+[resource]
+script = ExtResource("1_encounter")
+id = &"cracked_obelisk"
+display_name = "Cracked Obelisk"
+description = "A black stone marker hums with a pressure you feel in your teeth."
+valid_floor_layers = Array[int]([1])
+choices = Array[Dictionary]([{
+"description": "The carved line bites back, but leaves power behind.",
+"effects": [{
+"amount": 6,
+"id": &"damage"
+}, {
+"amount": 1,
+"id": &"stat",
+"permanent": true,
+"stat": "STR"
+}],
+"label": "Touch the mark"
+}, {
+"description": "Leave the old stone undisturbed.",
+"label": "Pass by"
+}])

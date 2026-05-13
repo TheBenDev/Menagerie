@@ -5,6 +5,7 @@ extends RefCounted
 const EVENT_NODE_ID := "node_id"
 const EVENT_NODE_TYPE := "node_type"
 const EVENT_ENEMY_PROFILE := "enemy_profile"
+const EVENT_ENCOUNTER_ID := "encounter_id"
 const EVENT_IS_BOSS := "is_boss"
 const RESULT_EVENT := "event"
 const RESULT_COMPLETION_DEFERRED := "completion_deferred"
@@ -18,6 +19,7 @@ static func build_node_event(node: DungeonNodeData) -> Dictionary:
 		EVENT_NODE_ID: node.id,
 		EVENT_NODE_TYPE: node.node_type,
 		EVENT_ENEMY_PROFILE: node.enemy_profile,
+		EVENT_ENCOUNTER_ID: node.encounter_id,
 		EVENT_IS_BOSS: node.is_boss,
 	}
 
@@ -33,6 +35,10 @@ static func process_node_event(node: DungeonNodeData, game_manager: Node, sound_
 		}
 
 	match node.node_type:
+		DungeonNodeData.TYPE_EMPTY:
+			handled = true
+			if game_manager != null:
+				game_manager.call("advance_run_time", RunData.EMPTY_NODE_TIME_SECONDS)
 		DungeonNodeData.TYPE_FIGHT, DungeonNodeData.TYPE_BOSS:
 			handled = true
 			completion_deferred = true

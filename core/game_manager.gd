@@ -2,6 +2,10 @@
 extends Node
 
 const RunDataScript := preload("res://core/run_data.gd")
+const DungeonFloorGeneratorScript := preload("res://core/dungeon/dungeon_floor_generator.gd")
+const DungeonEncounterResolverScript := preload("res://core/dungeon/encounters/dungeon_encounter_resolver.gd")
+const DEFAULT_DUNGEON_GENERATION_CONFIG := preload("res://core/dungeon/default_dungeon_floor_generation_config.tres")
+const DEFAULT_DUNGEON_ENCOUNTER_POOL := preload("res://core/dungeon/encounters/default_dungeon_encounter_pool.tres")
 
 signal run_time_changed(remaining_time_seconds: float, max_time_seconds: float)
 signal run_currencies_changed(memories: int, gold: int)
@@ -41,10 +45,27 @@ var pending_class_memory_awards: Dictionary = {}
 func _ready() -> void:
 	call_deferred("_play_music_for_current_scene")
 
-func start_new_run(character: String, difficulty: String) -> Variant:
+func start_new_run(character: String, difficulty: String, dungeon_seed: String = "", dungeon_floor_layer: int = 1) -> Variant:
 	current_run_data = RunDataScript.new()
-	current_run_data.start_run(character, difficulty, RunDataScript.DEFAULT_RUN_TIME_SECONDS, DEFAULT_ENEMY_PROFILE_PATH)
+	current_run_data.start_run(
+		character,
+		difficulty,
+		RunDataScript.DEFAULT_RUN_TIME_SECONDS,
+		DEFAULT_ENEMY_PROFILE_PATH,
+		_resolve_dungeon_seed(dungeon_seed),
+		max(dungeon_floor_layer, 1)
+	)
+	current_run_data.initialize_player_state(get_selected_character_profile())
+	_apply_run_seed(current_run_data.dungeon_seed)
+	current_run_data.dungeon_node_descriptors = DungeonFloorGeneratorScript.generate_floor_from_global_rng(
+		current_run_data.dungeon_floor_layer,
+		current_run_data.selected_difficulty,
+		DEFAULT_DUNGEON_GENERATION_CONFIG,
+		DEFAULT_DUNGEON_ENCOUNTER_POOL
+	)
 	run_setup_data.configure_selection(current_run_data.selected_character, current_run_data.selected_difficulty)
+	run_setup_data.dungeon_seed = current_run_data.dungeon_seed
+	run_setup_data.dungeon_floor_layer = current_run_data.dungeon_floor_layer
 	emit_run_state()
 	play_run_music(true)
 	return current_run_data
@@ -54,7 +75,12 @@ func clear_run() -> void:
 
 func start_combat(node_id: int, node_type: String, enemy_profile_path: String, is_boss: bool) -> void:
 	if current_run_data == null:
-		start_new_run(run_setup_data.selected_character, run_setup_data.selected_difficulty)
+		start_new_run(
+			run_setup_data.selected_character,
+			run_setup_data.selected_difficulty,
+			run_setup_data.dungeon_seed,
+			run_setup_data.dungeon_floor_layer
+		)
 
 	current_run_data.set_encounter(node_id, node_type, enemy_profile_path, is_boss, DEFAULT_ENEMY_PROFILE_PATH)
 
@@ -94,6 +120,70 @@ func advance_run_time(seconds: float) -> bool:
 		return false
 
 	return true
+
+func get_dungeon_encounter(encounter_id: StringName) -> Resource:
+	return DungeonEncounterResolverScript.encounter_for_id(DEFAULT_DUNGEON_ENCOUNTER_POOL, encounter_id)
+
+func get_dungeon_encounter_scene(encounter_id: StringName) -> PackedScene:
+	return DungeonEncounterResolverScript.scene_for_encounter(DEFAULT_DUNGEON_ENCOUNTER_POOL, get_dungeon_encounter(encounter_id))
+
+func apply_dungeon_encounter_result(encounter_id: StringName, result: Dictionary) -> Dictionary:
+	var outcome := {
+		"handled": false,
+		"damage_taken": 0,
+		"stat_modifiers_added": 0,
+	}
+	if current_run_data == null or _is_run_ended():
+		return outcome
+
+	var mode := str(result.get("mode", "complete"))
+	if mode != "complete":
+		push_warning("Unsupported dungeon encounter result mode: %s" % mode)
+		return outcome
+
+	var encounter_data: Resource = get_dungeon_encounter(encounter_id)
+	var choice_index := int(result.get("choice_index", -1))
+	var choice_data: Dictionary = DungeonEncounterResolverScript.choice_for_index(encounter_data, choice_index)
+	var effect_outcome: Dictionary = current_run_data.apply_encounter_choice(choice_data)
+	outcome["handled"] = true
+	outcome["damage_taken"] = int(effect_outcome.get("damage_taken", 0))
+	outcome["stat_modifiers_added"] = int(effect_outcome.get("stat_modifiers_added", 0))
+	emit_run_state()
+
+	if current_run_data.is_player_defeated():
+		end_current_run(RunDataScript.END_REASON_DEFEAT)
+
+	return outcome
+
+func apply_run_player_state_to_combatant(combatant: Variant) -> void:
+	if current_run_data == null or combatant == null:
+		return
+
+	current_run_data.apply_player_stats_to_combatant(combatant)
+
+func get_run_player_hp_snapshot() -> Dictionary:
+	if current_run_data == null:
+		return {
+			"current": 0,
+			"max": 0,
+		}
+
+	return {
+		"current": current_run_data.player_current_hp,
+		"max": current_run_data.player_max_hp,
+	}
+
+func get_effective_player_stats() -> Dictionary:
+	if current_run_data == null:
+		var profile := get_selected_character_profile()
+		return {
+			RunDataScript.STAT_STRENGTH: _profile_int(profile, "strength", 0),
+			RunDataScript.STAT_DEXTERITY: _profile_int(profile, "dexterity", 0),
+			RunDataScript.STAT_INTELLIGENCE: _profile_int(profile, "intelligence", 0),
+			RunDataScript.STAT_VITALITY: _profile_int(profile, "vitality", 0),
+		}
+
+	return current_run_data.get_effective_stats()
 
 func grant_run_rewards(reward_result: Variant) -> void:
 	if current_run_data == null or reward_result == null:
@@ -278,6 +368,16 @@ func _with_scene_extension(scene_path: String) -> String:
 func _sound_manager() -> Node:
 	return get_node_or_null("/root/SoundManager")
 
+func _resolve_dungeon_seed(requested_seed: String) -> String:
+	var requested_seed_text := requested_seed.strip_edges()
+	if not requested_seed_text.is_empty():
+		return requested_seed_text
+
+	return "run_%s_%s" % [int(Time.get_unix_time_from_system()), Time.get_ticks_usec()]
+
+func _apply_run_seed(run_seed: String) -> void:
+	seed(run_seed.hash())
+
 func _is_run_ended() -> bool:
 	return current_run_data != null and current_run_data.has_ended()
 
@@ -289,6 +389,16 @@ func _variant_int(source: Variant, field_name: String, default_value: int) -> in
 		var value: Variant = source.get(field_name)
 		if value is int or value is float:
 			return int(value)
+
+	return default_value
+
+func _profile_int(profile: Resource, field_name: String, default_value: int) -> int:
+	if profile == null:
+		return default_value
+
+	var value: Variant = profile.get(field_name)
+	if value is int or value is float:
+		return int(value)
 
 	return default_value
 

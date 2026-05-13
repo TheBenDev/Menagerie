@@ -27,6 +27,8 @@ var waiting_for_player_input: bool = false
 var battle_over: bool = false
 var is_advancing: bool = false
 var is_paused: bool = false
+var player_starting_hp_override: int = -1
+var player_starting_max_hp_override: int = -1
 var action_queue: Array[QueuedAction] = []
 var _next_queue_id: int = 1
 var _next_resolution_order: int = 1
@@ -43,6 +45,7 @@ func start_battle() -> void:
 
 	player.reset_runtime_state()
 	enemy.reset_runtime_state()
+	_apply_player_hp_override()
 	_apply_difficulty_profile()
 
 	current_time = 0.0
@@ -56,6 +59,14 @@ func start_battle() -> void:
 
 	battle_log.emit("Battle started.")
 	player_ready.emit(player)
+
+func _apply_player_hp_override() -> void:
+	if player_starting_max_hp_override <= 0:
+		return
+
+	player.max_hp = max(player_starting_max_hp_override, 1)
+	player.hp = clamp(player_starting_hp_override, 0, player.max_hp)
+	player.hp_changed.emit(player)
 
 func player_choose_action(action: CombatActionData) -> void:
 	if battle_over or not waiting_for_player_input or action == null:
