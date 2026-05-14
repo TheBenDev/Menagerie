@@ -12,7 +12,7 @@ This inventory lists runtime `.gd` scripts under `res://core` and `res://scenes`
 | --- | ---: |
 | `core/audio` | 7 |
 | `core/combat` | 13 |
-| `core/dungeon` | 7 |
+| `core/dungeon` | 9 |
 | `core/input` | 1 |
 | `core/difficulty`, `core/rewards`, `core/statuses` | 3 |
 | `scenes/combat` | 6 |
@@ -20,7 +20,7 @@ This inventory lists runtime `.gd` scripts under `res://core` and `res://scenes`
 | `scenes/dungeon` | 5 |
 | `scenes/ui` | 8 |
 | Root scripts | 2 |
-| Total | 60 |
+| Total | 62 |
 
 ## Root scripts
 
@@ -88,7 +88,9 @@ This inventory lists runtime `.gd` scripts under `res://core` and `res://scenes`
 
 | Script | Class | Purpose |
 | --- | --- | --- |
-| `res://scenes/dungeon/dungeon_controller.gd` | None | Builds dungeon grid nodes, controls reveal state, applies combat results, and starts routed encounters. |
+| `res://scenes/dungeon/dungeon_controller.gd` | None | Builds dungeon grid nodes, controls reveal state, refreshes dungeon hotbar HP/action slots, applies combat results, and starts routed encounters. |
+| `res://core/dungeon/abilities/dungeon_ability_data.gd` | `DungeonAbilityData` | Class-agnostic dungeon hotbar ability metadata. |
+| `res://core/dungeon/abilities/dungeon_ability_pool.gd` | `DungeonAbilityPool` | Ordered pool of dungeon map abilities for the hotbar. |
 | `res://core/dungeon/dungeon_floor_generation_config.gd` | `DungeonFloorGenerationConfig` | Resource tuning profile for deterministic dungeon generation. |
 | `res://core/dungeon/dungeon_floor_generator.gd` | `DungeonFloorGenerator` | Builds seeded dungeon descriptor arrays and validates generated graph data. |
 | `res://core/dungeon/dungeon_node_data.gd` | `DungeonNodeData` | Runtime dungeon node state for grid placement, visited/revealed state, and connections. |
@@ -108,7 +110,7 @@ This inventory lists runtime `.gd` scripts under `res://core` and `res://scenes`
 | `res://scenes/combat/ui/action_bar.gd` | `BattleActionBar` | Binds manually positioned hotbar buttons to configurable slot contents. |
 | `res://scenes/combat/ui/action_queue_panel.gd` | `ActionQueuePanel` | Renders pending and resolved combat actions. |
 | `res://scenes/combat/ui/battle_hud.gd` | `BattleHUD` | Coordinates the combat timeline, hotbar action buttons, hotbar resource bars, player status bar, hover info panel, and time controls. |
-| `res://scenes/combat/ui/combatant_display.gd` | `CombatantDisplay` | Reusable battle display for one combatant's visual, resources, statuses, and player-name font styling. |
+| `res://scenes/combat/ui/combatant_display.gd` | `CombatantDisplay` | Reusable battle display for one combatant's visual, HP, statuses, and hover name panel. |
 | `res://scenes/combat/ui/hover_info_button.gd` | `HoverInfoButton` | Button with authored hover info metadata for the fixed info panel. |
 | `res://scenes/combat/ui/hover_info_panel.gd` | `HoverInfoPanel` | Fixed info panel that renders hover metadata from registered controls. |
 | `res://scenes/combat/ui/hotbar_slot_button.gd` | `HotbarSlotButton` | Button for one configurable combat hotbar slot. |

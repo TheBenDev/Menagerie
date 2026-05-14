@@ -17,6 +17,7 @@ This page summarizes the most important runtime APIs new developers usually need
 | `advance_run_time(seconds)` | method | Decrements remaining run time and handles timeout. |
 | `get_dungeon_encounter(encounter_id)` | method | Resolves an authored dungeon encounter resource by ID. |
 | `get_dungeon_encounter_scene(encounter_id)` | method | Resolves the presentation scene for an encounter ID. |
+| `get_dungeon_abilities(slot_count := 3)` | method | Returns class-agnostic dungeon hotbar abilities from the default pool. |
 | `apply_dungeon_encounter_result(encounter_id, result)` | method | Applies a completed encounter choice result to `RunData`. |
 | `apply_run_player_state_to_combatant(combatant)` | method | Copies effective run stats onto the player combatant before battle. |
 | `get_run_player_hp_snapshot()` | method | Returns persistent run HP as `{current, max}`. |

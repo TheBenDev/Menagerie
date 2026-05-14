@@ -9,3 +9,14 @@ WIll need to create the turn order view along the right side.
 
 
 Need to update the onhover info panel. Either make it
+
+
+Move memories to above run timer and remove from under gold
+Make block icon and class resource icons like sts?
+
+
+Dungeon map abilities
+Rest, Scout, Teleport
+Warrior, Rogue, Wizard and the talent tree can level each up.
+
+Player movement 

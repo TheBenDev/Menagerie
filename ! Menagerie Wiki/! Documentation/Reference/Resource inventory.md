@@ -12,13 +12,13 @@ This inventory lists authored gameplay, audio, UI, and visual `.tres` files unde
 | --- | ---: |
 | `assets/audio` | 1 |
 | `assets/ui` | 1 |
-| `core/dungeon` | 5 |
+| `core/dungeon` | 6 |
 | `core/difficulty` | 3 |
 | `core/rewards` | 1 |
 | `core/statuses` | 2 |
 | `scenes/combatants/characters` | 4 |
 | `scenes/combatants/enemies` | 4 |
-| Total | 21 |
+| Total | 22 |
 
 ## Resources
 
@@ -26,6 +26,7 @@ This inventory lists authored gameplay, audio, UI, and visual `.tres` files unde
 | --- | --- | --- |
 | `res://assets/audio/common_audio_library.tres` | `AudioLibraryData` | Authored music tracks and cue overrides. |
 | `res://assets/ui/menagerie_theme.tres` | `Theme` | Project UI theme with Germania One defaults, compact combat text variations, Dumbledor title/header variations, and Gotfridus character-name variations. |
+| `res://core/dungeon/abilities/default_dungeon_ability_pool.tres` | `DungeonAbilityPool` | Default class-agnostic dungeon hotbar abilities. |
 | `res://core/dungeon/default_dungeon_floor_generation_config.tres` | `DungeonFloorGenerationConfig` | Default deterministic dungeon map generation tuning. |
 | `res://core/dungeon/encounters/default_dungeon_encounter_pool.tres` | `DungeonEncounterPool` | Scanned dungeon encounter registry and default encounter scene. |
 | `res://core/dungeon/encounters/events/cracked_obelisk.tres` | `DungeonEncounterData` | Default Cracked Obelisk encounter. |
@@ -58,6 +59,8 @@ This inventory lists authored gameplay, audio, UI, and visual `.tres` files unde
 | `DifficultyProfile` | Enemy health/damage/time multipliers, reward multiplier, and AI tuning weights. |
 | `StatusData` | `id`, `display_name`, `description`, `icon_atlas_coords`, `icon_atlas_cell_size`, `duration_seconds`, `outgoing_damage_multiplier`, `incoming_damage_multiplier`. |
 | `RewardProfile` | `base_memories`, `base_gold`, `boss_multiplier`. |
+| `DungeonAbilityPool` | `abilities`. |
+| `DungeonAbilityData` | `id`, `display_name`, `hotbar_label`, `description`, `icon`, `enabled`. |
 | `DungeonFloorGenerationConfig` | Grid size scaling, fight/encounter count scaling, branch/extra connection chances, path noise, room padding, placement attempts, and retry limits. |
 | `DungeonEncounterPool` | `scan_roots`, `default_scene`. |
 | `DungeonEncounterData` | `id`, `display_name`, `description`, `valid_floor_layers`, `weight`, `scene_override`, inline `choices`. |

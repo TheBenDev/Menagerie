@@ -8,6 +8,8 @@ const DungeonNodeDataScript := preload("res://core/dungeon/dungeon_node_data.gd"
 const DungeonNodeEventHelperScript := preload("res://core/dungeon/dungeon_node_event_helper.gd")
 const DungeonFloorGeneratorScript := preload("res://core/dungeon/dungeon_floor_generator.gd")
 const DungeonNodeViewScript := preload("res://scenes/dungeon/dungeon_node_view.gd")
+const NumberFontHelper := preload("res://scenes/ui/common/number_font.gd")
+const ResourceBarScript := preload("res://scenes/ui/common/resource_bar.gd")
 
 const GRID_CELL_SIZE := 72.0
 const START_NODE_ID := 0
@@ -18,10 +20,17 @@ const START_NODE_ID := 0
 @export var node_layer_path: NodePath
 @export var encounter_layer_path: NodePath
 
-@onready var title_label: Label = $"../InfoPanel/PanelMargin/InfoLayout/HeaderRow/TitleLabel"
-@onready var difficulty_label: Label = $"../InfoPanel/PanelMargin/InfoLayout/HeaderRow/DifficultyLabel"
-@onready var seed_label: Label = $"../InfoPanel/PanelMargin/InfoLayout/DetailSeedRow/SeedLabel"
-@onready var detail_label: Label = $"../InfoPanel/PanelMargin/InfoLayout/DetailSeedRow/DetailLabel"
+@onready var difficulty_label: Label = $"../InfoPanel/PanelMargin/InfoLayout/DifficultyLabel"
+@onready var seed_label: Label = $"../InfoPanel/PanelMargin/InfoLayout/SeedLabel"
+@onready var copy_seed_button: Button = $"../InfoPanel/PanelMargin/InfoLayout/CopySeedButton"
+@onready var dungeon_health_bar: ResourceBarScript = $"../DungeonHotbar/ResourceBars/HealthBar"
+@onready var dungeon_health_label: Label = $"../DungeonHotbar/ResourceBars/HealthBar/HealthValueLabel"
+@onready var dungeon_ability_slots: Control = $"../DungeonHotbar/AbilitySlots"
+@onready var dungeon_ability_buttons: Array[Button] = [
+	$"../DungeonHotbar/AbilitySlots/AbilityButton1",
+	$"../DungeonHotbar/AbilitySlots/AbilityButton2",
+	$"../DungeonHotbar/AbilitySlots/AbilityButton3",
+]
 @onready var map_viewport: Control = get_node(map_viewport_path)
 @onready var map_content: Control = get_node(map_content_path)
 @onready var grid_view: Control = get_node(grid_view_path)
@@ -35,6 +44,12 @@ var map_grid_size: Vector2i = Vector2i.ONE
 var active_encounter_scene: Node = null
 
 func _ready() -> void:
+	var copy_seed_callback := Callable(self, "_on_copy_seed_button_pressed")
+	if not copy_seed_button.pressed.is_connected(copy_seed_callback):
+		copy_seed_button.pressed.connect(copy_seed_callback)
+
+	_configure_dungeon_health_hover()
+	_configure_dungeon_hotbar()
 	_create_path_data(_generate_run_descriptors())
 	_build_node_views()
 	_sync_run_data_metadata()
@@ -173,9 +188,9 @@ func _apply_progress_state() -> void:
 
 func _refresh_view() -> void:
 	var run_data: Variant = _run_data()
-	title_label.text = "Dungeon Map"
 	difficulty_label.text = "Difficulty: %s" % GameManager.get_selected_difficulty_display_name()
 	seed_label.text = "Seed: %s" % run_data.dungeon_seed
+	_refresh_dungeon_hotbar()
 
 	var current_node_id := int(run_data.get_last_visited_dungeon_node_id())
 	for node_id in node_order:
@@ -183,12 +198,6 @@ func _refresh_view() -> void:
 		var view: DungeonNodeView = node_views_by_id.get(node_id)
 		if view != null:
 			view.apply_state(node, node != null and node.id == current_node_id, _can_select_node(node))
-
-	var next_node: Variant = _next_selectable_node()
-	if next_node == null:
-		detail_label.text = "No reachable node."
-	else:
-		detail_label.text = "Reachable: %s" % next_node.node_type
 
 func _can_select_node(node: Variant) -> bool:
 	if node == null or node.visited or not node.revealed:
@@ -204,13 +213,102 @@ func _has_visited_neighbor(node: Variant) -> bool:
 
 	return false
 
-func _next_selectable_node() -> Variant:
-	for node_id in node_order:
-		var node = nodes_by_id.get(node_id)
-		if _can_select_node(node):
-			return node
+# Copies the active run seed to the system clipboard.
+func _on_copy_seed_button_pressed() -> void:
+	DisplayServer.clipboard_set(str(_run_data().dungeon_seed))
 
-	return null
+func _configure_dungeon_hotbar() -> void:
+	var profile: CombatantProfile = GameManager.get_selected_character_profile()
+	var health_config: Resource = profile.health_bar if profile != null else null
+	if health_config != null:
+		dungeon_health_bar.configure_from_config(health_config)
+	else:
+		dungeon_health_bar.resource_name = "HP"
+		dungeon_health_bar.display_reference_value = true
+
+	dungeon_health_bar.bonus_label = ""
+	dungeon_health_bar.fill_start_value = 0
+	dungeon_health_bar.draw_text = false
+	dungeon_health_bar.border_color = Color.TRANSPARENT
+	dungeon_health_bar.mouse_filter = Control.MOUSE_FILTER_STOP
+	dungeon_ability_slots.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_refresh_dungeon_hotbar()
+
+func _configure_dungeon_health_hover() -> void:
+	dungeon_health_label.visible = false
+	NumberFontHelper.apply_to_label(dungeon_health_label)
+	if not dungeon_health_bar.mouse_entered.is_connected(_on_dungeon_health_bar_mouse_entered):
+		dungeon_health_bar.mouse_entered.connect(_on_dungeon_health_bar_mouse_entered)
+	if not dungeon_health_bar.mouse_exited.is_connected(_on_dungeon_health_bar_mouse_exited):
+		dungeon_health_bar.mouse_exited.connect(_on_dungeon_health_bar_mouse_exited)
+
+func _refresh_dungeon_hotbar() -> void:
+	_refresh_dungeon_health_bar()
+	_refresh_dungeon_ability_slots()
+
+func _refresh_dungeon_health_bar() -> void:
+	var hp_snapshot: Dictionary = GameManager.get_run_player_hp_snapshot()
+	var max_hp: int = max(int(hp_snapshot.get("max", 0)), 1)
+	var current_hp: int = clamp(int(hp_snapshot.get("current", 0)), 0, max_hp)
+	dungeon_health_bar.set_values(current_hp, max_hp, 0)
+	dungeon_health_label.text = "%s/%s" % [current_hp, max_hp]
+
+func _on_dungeon_health_bar_mouse_entered() -> void:
+	dungeon_health_label.visible = true
+
+func _on_dungeon_health_bar_mouse_exited() -> void:
+	dungeon_health_label.visible = false
+
+func _refresh_dungeon_ability_slots() -> void:
+	var abilities: Array = GameManager.get_dungeon_abilities(dungeon_ability_buttons.size())
+	for index in dungeon_ability_buttons.size():
+		var button: Button = dungeon_ability_buttons[index]
+		if index >= abilities.size():
+			button.text = ""
+			button.tooltip_text = ""
+			button.icon = null
+			button.disabled = true
+			continue
+
+		var ability := abilities[index] as Resource
+		if ability == null:
+			button.text = ""
+			button.tooltip_text = ""
+			button.icon = null
+			button.disabled = true
+			continue
+
+		button.text = _dungeon_ability_label(ability)
+		button.tooltip_text = _dungeon_ability_tooltip(ability)
+		button.icon = ability.get("icon") as Texture2D
+		button.disabled = not bool(ability.get("enabled"))
+
+func _dungeon_ability_label(ability: Resource) -> String:
+	if ability == null:
+		return ""
+	if ability.has_method("label_text"):
+		return str(ability.call("label_text"))
+
+	var hotbar_label := str(ability.get("hotbar_label")).strip_edges()
+	if not hotbar_label.is_empty():
+		return hotbar_label
+
+	var display_name := str(ability.get("display_name")).strip_edges()
+	if not display_name.is_empty():
+		return display_name.substr(0, 1).to_upper()
+
+	return "?"
+
+func _dungeon_ability_tooltip(ability: Resource) -> String:
+	if ability == null:
+		return ""
+
+	var display_name := str(ability.get("display_name")).strip_edges()
+	var description := str(ability.get("description")).strip_edges()
+	if description.is_empty():
+		return display_name
+
+	return "%s\n%s" % [display_name, description]
 
 func _on_node_pressed(node_id: int) -> void:
 	var node = nodes_by_id.get(node_id)

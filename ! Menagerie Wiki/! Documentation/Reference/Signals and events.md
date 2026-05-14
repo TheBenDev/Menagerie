@@ -53,7 +53,7 @@ Signals are the main event contract between combat, UI, audio, and run state.
 | `BattleActionBar` | `slot_selected` | `slot_id: StringName` | `BattleHUD._on_hotbar_slot_selected()` |
 | `BattleActionBar` | `slot_hovered` | `source: Control` | `BattleHUD._show_hover_info_for_source()` |
 | `BattleActionBar` | `slot_hover_ended` | none | `BattleHUD._clear_hover_info()` |
-| `CombatantBattleVisual` | `visual_bounds_changed` | `bounds: Rect2` | `CombatantDisplay` name label placement. |
+| `CombatantBattleVisual` | `visual_bounds_changed` | `bounds: Rect2` | Available for visual-bound consumers; no current HUD consumer. |
 
 ## Button and route events
 

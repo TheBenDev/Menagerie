@@ -37,6 +37,7 @@ Autoloads are the closest thing this project has to global service endpoints.
 | `advance_run_time(seconds)` | `bool` | Advances the run timer and ends the run on timeout. |
 | `get_dungeon_encounter(encounter_id)` | `Resource` | Resolves an authored dungeon encounter from the default encounter pool. |
 | `get_dungeon_encounter_scene(encounter_id)` | `PackedScene` | Resolves the presentation scene for an encounter ID. |
+| `get_dungeon_abilities(slot_count := 3)` | `Array` | Returns class-agnostic dungeon hotbar abilities from the default dungeon ability pool. |
 | `apply_dungeon_encounter_result(encounter_id, result)` | `Dictionary` | Applies a completed encounter scene result to run HP/stat state. |
 | `apply_run_player_state_to_combatant(combatant)` | `void` | Copies effective run stats onto the player combatant before combat starts. |
 | `get_run_player_hp_snapshot()` | `Dictionary` | Returns persistent player HP as `{current, max}`. |

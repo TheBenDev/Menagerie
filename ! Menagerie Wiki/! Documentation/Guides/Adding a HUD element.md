@@ -12,7 +12,7 @@ Use this guide to add or extend HUD UI without breaking the signal-driven refres
 | --- | --- |
 | `GlobalHUD` | Run timer, currencies, selected character stats, persistent run-level data. |
 | `BattleHUD` | Current battle state, action choice, timeline, hotbar, and time controls. |
-| `CombatantDisplay` | Per-combatant battle visual, health, class resource, statuses, and identity. |
+| `CombatantDisplay` | Per-combatant battle visual, health, statuses, and identity. |
 | `ActionQueuePanel` | Pending/resolved action queue display. |
 | `TimelineView` | Visual combat timeline ruler and action markers. |
 
@@ -47,7 +47,7 @@ For combatant resources:
 
 1. Add a `ResourceBarConfig` to the combatant profile.
 2. Implement or extend `Combatant.get_resource_snapshot(resource_id)`.
-3. Update the relevant authored resource bar slot in `CombatantDisplay.tscn` or `BattleHUD.tscn`.
+3. Update the relevant authored resource bar slot in `BattleHUD.tscn`; combatant visuals only display HP.
 4. Refresh the bar through the owning display or HUD script.
 
 ## Validate behavior

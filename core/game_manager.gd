@@ -6,6 +6,7 @@ const DungeonFloorGeneratorScript := preload("res://core/dungeon/dungeon_floor_g
 const DungeonEncounterResolverScript := preload("res://core/dungeon/encounters/dungeon_encounter_resolver.gd")
 const DEFAULT_DUNGEON_GENERATION_CONFIG := preload("res://core/dungeon/default_dungeon_floor_generation_config.tres")
 const DEFAULT_DUNGEON_ENCOUNTER_POOL := preload("res://core/dungeon/encounters/default_dungeon_encounter_pool.tres")
+const DEFAULT_DUNGEON_ABILITY_POOL := preload("res://core/dungeon/abilities/default_dungeon_ability_pool.tres")
 
 signal run_time_changed(remaining_time_seconds: float, max_time_seconds: float)
 signal run_currencies_changed(memories: int, gold: int)
@@ -126,6 +127,12 @@ func get_dungeon_encounter(encounter_id: StringName) -> Resource:
 
 func get_dungeon_encounter_scene(encounter_id: StringName) -> PackedScene:
 	return DungeonEncounterResolverScript.scene_for_encounter(DEFAULT_DUNGEON_ENCOUNTER_POOL, get_dungeon_encounter(encounter_id))
+
+func get_dungeon_abilities(slot_count: int = 3) -> Array:
+	if DEFAULT_DUNGEON_ABILITY_POOL == null:
+		return []
+
+	return DEFAULT_DUNGEON_ABILITY_POOL.get_hotbar_abilities(slot_count)
 
 func apply_dungeon_encounter_result(encounter_id: StringName, result: Dictionary) -> Dictionary:
 	var outcome := {

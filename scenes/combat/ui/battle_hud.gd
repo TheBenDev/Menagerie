@@ -192,7 +192,7 @@ func _update_memory_bar() -> void:
 	var goal: int = max(memory_goal, 1)
 	memory_bar.set_values(memories, goal, 0)
 	if memory_label != null:
-		memory_label.text = "Memories %s/%s" % [memories, goal]
+		memory_label.text = "%s/%s" % [memories, goal]
 
 func _update_health_and_block_bars() -> void:
 	if player == null or health_bar == null or block_bar == null:
@@ -203,10 +203,10 @@ func _update_health_and_block_bars() -> void:
 	block_bar.set_segment_values(0, player.block, max_hp)
 	block_bar.visible = player.block > 0
 	if health_label != null:
-		health_label.text = "HP %s/%s" % [player.hp, max_hp]
+		health_label.text = "%s/%s" % [player.hp, max_hp]
 	if block_label != null:
 		block_label.visible = player.block > 0
-		block_label.text = "Block %s" % player.block
+		block_label.text = "%s" % player.block
 
 func _update_class_resource_bar() -> void:
 	if class_resource_bar == null:
@@ -229,11 +229,10 @@ func _update_class_resource_bar() -> void:
 		class_resource_label.text = _class_resource_text(current_value, reference_value)
 
 func _class_resource_text(current_value: int, reference_value: int) -> String:
-	var label: String = str(class_resource_config.get("label"))
 	if bool(class_resource_config.get("display_reference_value")):
-		return "%s %s/%s" % [label, current_value, reference_value]
+		return "%s/%s" % [current_value, reference_value]
 
-	return "%s %s" % [label, current_value]
+	return "%s" % current_value
 
 func _current_run_memories() -> int:
 	if _has_game_manager() and GameManager.current_run_data != null:

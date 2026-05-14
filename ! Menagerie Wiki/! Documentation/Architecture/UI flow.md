@@ -12,7 +12,7 @@ The UI layer is scene-driven: scene scripts call `GameManager`, reusable control
 | --- | --- | --- |
 | `MainMenu.tscn` | `res://scenes/ui/main_menu/main_menu.gd` | Routes to waiting room, handles escape/close, requests menu music. |
 | `WaitingRoom.tscn` | `res://scenes/ui/waiting_room/waiting_room.gd` | Selects character/difficulty and starts runs. |
-| `DungeonMap.tscn` | `res://scenes/dungeon/dungeon_controller.gd` | Shows grid map progression and starts routed node encounters. |
+| `DungeonMap.tscn` | `res://scenes/dungeon/dungeon_controller.gd` | Shows grid map progression, dungeon hotbar actions, persistent HP, and routed node encounters. |
 | `BattleScene.tscn` | `res://scenes/combat/battle_scene.gd` | Coordinates combat and owns combat background, combatant displays, and HUD composition. |
 | `BattleHUD.tscn` | `res://scenes/combat/ui/battle_hud.gd` | Shows combat UI, timeline, bottom hotbar, time controls, and the combat `GlobalHUD` child. |
 | `UI/GlobalHUD/GlobalHUD.tscn` | `res://scenes/ui/global_hud/global_hud.gd` | Shows run timer, currencies, and selected character stats. |
@@ -35,6 +35,13 @@ The UI layer is scene-driven: scene scripts call `GameManager`, reusable control
 6. Hover information from action resources, status resources, and `HoverInfoButton` nodes is exposed as hover metadata and rendered by the fixed info panel beside the hotbar.
 7. `BattleHUD` emits `action_selected`, `speed_requested`, and `pause_requested`.
 8. `BattleScene` handles those signals and calls `BattleController`.
+
+## Dungeon Map HUD Flow
+
+1. `DungeonController` builds generated map nodes and keeps reveal/selectable state in sync with `RunData`.
+2. The dungeon hotbar layers solid art, three action slots, the persistent player HP bar, and transparent frame art.
+3. The HP bar reads `GameManager.get_run_player_hp_snapshot()` so encounter damage and combat results carry back to the map, and its overlay label shows current/max HP on hover.
+4. The three action slots read from `GameManager.get_dungeon_abilities()`, which uses the class-agnostic default dungeon ability pool.
 
 ## Shared controls
 

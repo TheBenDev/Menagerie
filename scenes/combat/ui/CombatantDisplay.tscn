@@ -4,6 +4,18 @@
 [ext_resource type="Script" uid="uid://co4mpwaos6ev4" path="res://scenes/ui/common/resource_bar.gd" id="2_resource"]
 [ext_resource type="Theme" uid="uid://blcilhxj3ejys" path="res://assets/ui/menagerie_theme.tres" id="3_theme"]
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_chvcf"]
+content_margin_left = 8.0
+content_margin_top = 2.0
+content_margin_right = 8.0
+content_margin_bottom = 2.0
+bg_color = Color(0, 0, 0, 0.2)
+corner_radius_top_left = 20
+corner_radius_top_right = 20
+corner_radius_bottom_right = 20
+corner_radius_bottom_left = 20
+corner_detail = 2
+
 [node name="CombatantDisplay" type="Control" unique_id=717719744]
 custom_minimum_size = Vector2(180, 360)
 layout_mode = 3
@@ -58,20 +70,6 @@ grow_vertical = 2
 mouse_filter = 2
 color = Color(0.22, 0.24, 0.28, 0.45)
 
-[node name="NameLabel" type="Label" parent="DisplayColumn/VisualFrame" unique_id=699695716]
-z_index = 2
-custom_minimum_size = Vector2(0, 28)
-layout_mode = 1
-anchors_preset = 10
-anchor_right = 1.0
-offset_bottom = 28.0
-grow_horizontal = 2
-size_flags_vertical = 0
-theme_type_variation = &"CombatantTextLabel"
-text = "Combatant"
-horizontal_alignment = 1
-vertical_alignment = 1
-
 [node name="HealthResourceRow" type="Control" parent="DisplayColumn" unique_id=115299883]
 custom_minimum_size = Vector2(0, 16)
 layout_mode = 2
@@ -120,12 +118,11 @@ layout_mode = 1
 anchors_preset = 10
 anchor_right = 1.0
 offset_left = 59.0
-offset_top = 2.0
 offset_right = -61.0
-offset_bottom = 19.0
+offset_bottom = 22.0
 grow_horizontal = 2
 theme_type_variation = &"CombatantTextLabel"
-text = "HP 0/0"
+text = "0/0"
 horizontal_alignment = 1
 vertical_alignment = 1
 
@@ -135,47 +132,17 @@ layout_mode = 1
 anchors_preset = 10
 anchor_right = 1.0
 offset_left = 59.0
-offset_top = 2.0
 offset_right = -61.0
-offset_bottom = 19.0
+offset_bottom = 22.0
 grow_horizontal = 2
 theme_type_variation = &"CombatantTextLabel"
-text = "Block 0"
+text = "0"
 vertical_alignment = 1
 
-[node name="ClassResourceRow" type="Control" parent="DisplayColumn" unique_id=1842065684]
-custom_minimum_size = Vector2(0, 16)
+[node name="MidGap" type="Control" parent="DisplayColumn" unique_id=806895344]
+custom_minimum_size = Vector2(0, 10)
 layout_mode = 2
-size_flags_vertical = 0
 mouse_filter = 2
-
-[node name="ClassResourceBar" type="Control" parent="DisplayColumn/ClassResourceRow" unique_id=174768231]
-layout_mode = 1
-anchors_preset = 10
-anchor_right = 1.0
-offset_left = 59.0
-offset_top = 3.0
-offset_right = -61.0
-offset_bottom = 15.0
-grow_horizontal = 2
-mouse_filter = 2
-script = ExtResource("2_resource")
-reference_value = 100
-draw_text = false
-
-[node name="ClassResourceLabel" type="Label" parent="DisplayColumn/ClassResourceRow" unique_id=1758004982]
-z_index = 2
-layout_mode = 1
-anchors_preset = 10
-anchor_right = 1.0
-offset_left = 55.0
-offset_right = -65.0
-offset_bottom = 17.0
-grow_horizontal = 2
-theme_type_variation = &"CombatantTextLabel"
-text = "Resource 0"
-horizontal_alignment = 1
-vertical_alignment = 1
 
 [node name="StatusBar" type="Control" parent="DisplayColumn" unique_id=981295540]
 custom_minimum_size = Vector2(0, 32)
@@ -195,6 +162,38 @@ grow_vertical = 2
 mouse_filter = 2
 theme_override_constants/h_separation = 2
 theme_override_constants/v_separation = 2
+
+[node name="NamePanel" type="HBoxContainer" parent="DisplayColumn" unique_id=1529775773]
+custom_minimum_size = Vector2(0, 28)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 0
+mouse_filter = 2
+theme_override_constants/separation = 0
+
+[node name="LeftSpacer" type="Control" parent="DisplayColumn/NamePanel" unique_id=1912851957]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="NamePlate" type="PanelContainer" parent="DisplayColumn/NamePanel" unique_id=982559009]
+modulate = Color(1, 1, 1, 0)
+layout_mode = 2
+size_flags_horizontal = 0
+size_flags_vertical = 4
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_chvcf")
+
+[node name="NameLabel" type="Label" parent="DisplayColumn/NamePanel/NamePlate" unique_id=2140833881]
+custom_minimum_size = Vector2(0, 24)
+layout_mode = 2
+theme_type_variation = &"CombatantTextLabel"
+text = "Combatant"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="RightSpacer" type="Control" parent="DisplayColumn/NamePanel" unique_id=1860925328]
+layout_mode = 2
+size_flags_horizontal = 3
 
 [node name="BottomGap" type="Control" parent="DisplayColumn" unique_id=2018787099]
 custom_minimum_size = Vector2(0, 2)

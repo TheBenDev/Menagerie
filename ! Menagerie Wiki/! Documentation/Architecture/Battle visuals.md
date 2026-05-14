@@ -41,7 +41,7 @@ Each visual scene should contain:
 - One or more state nodes, usually `IdleState` or `StaticState`.
 - A SpriteFrames resource in the combatant's `textures` folder.
 
-`CombatantDisplay` uses `CombatantBattleVisual.get_visual_bounds()` and the `visual_bounds_changed` signal to place the combatant name just above the actual fitted sprite.
+`CombatantDisplay` places the combatant name in a hover-only contrast panel below the HP row. Class-specific resource bars are shown by the combat hotbar, not by the combatant visual.
 
 ## See also
 
