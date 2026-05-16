@@ -28,7 +28,7 @@ Autoloads are the closest thing this project has to global service endpoints.
 
 | Method | Returns | Use |
 | --- | --- | --- |
-| `start_new_run(character, difficulty, dungeon_seed := "", dungeon_floor_layer := 1)` | `Variant` | Creates a fresh `RunData`, applies selection, resolves/stores a dungeon seed, applies it to global gameplay RNG, generates the dungeon map, emits run HUD state, and starts run music. |
+| `start_new_run(character, difficulty, dungeon_seed := "", dungeon_floor_layer := 1)` | `Variant` | Creates a fresh `RunData`, applies selection, initializes the single-Warrior `PlayerPartyState`, resolves/stores a dungeon seed, applies it to global gameplay RNG, generates the dungeon map, emits run HUD state, and starts run music. |
 | `clear_run()` | `void` | Clears `current_run_data`. |
 | `start_combat(node_id, node_type, enemy_profile_path, is_boss)` | `void` | Stores encounter data, advances travel time, routes to `combat/BattleScene`. |
 | `complete_combat(result)` | `void` | Stores a pending combat result and routes back to `dungeon`. |
@@ -39,9 +39,9 @@ Autoloads are the closest thing this project has to global service endpoints.
 | `get_dungeon_encounter_scene(encounter_id)` | `PackedScene` | Resolves the presentation scene for an encounter ID. |
 | `get_dungeon_abilities(slot_count := 3)` | `Array` | Returns class-agnostic dungeon hotbar abilities from the default dungeon ability pool. |
 | `apply_dungeon_encounter_result(encounter_id, result)` | `Dictionary` | Applies a completed encounter scene result to run HP/stat state. |
-| `apply_run_player_state_to_combatant(combatant)` | `void` | Copies effective run stats onto the player combatant before combat starts. |
-| `get_run_player_hp_snapshot()` | `Dictionary` | Returns persistent player HP as `{current, max}`. |
-| `get_effective_player_stats()` | `Dictionary` | Returns selected character stats after run modifiers. |
+| `apply_run_player_state_to_combatant(combatant)` | `void` | Copies effective Warrior `CombatantState` stats onto the node-based player combatant bridge before combat starts. |
+| `get_run_player_hp_snapshot()` | `Dictionary` | Returns persistent Warrior HP as `{current, max}` from the synchronized Phase 1 compatibility fields. |
+| `get_effective_player_stats()` | `Dictionary` | Returns selected character stats after run modifiers, backed by Warrior's `CombatantState` during a run. |
 | `grant_run_rewards(reward_result)` | `void` | Adds memory and gold from a reward dictionary or result-like object. |
 | `end_current_run(reason)` | `void` | Ends the run, emits state/signals, and defers routing to summary. |
 | `emit_run_state()` | `void` | Emits timer and currency signals for current or empty state. |
@@ -49,6 +49,7 @@ Autoloads are the closest thing this project has to global service endpoints.
 | `calculate_rewards_for_profile(profile, is_boss)` | `Dictionary` | Calculates memory/gold from reward profile, difficulty, and boss multiplier. |
 | `get_selected_difficulty_profile()` | `Resource` | Loads the selected difficulty resource. |
 | `get_selected_character_profile()` | `CombatantProfile` | Loads the selected character profile. |
+| `get_selected_character_profile_path()` | `String` | Gets selected character resource path. |
 | `get_selected_character_id()` | `String` | Gets current or setup character ID. |
 | `get_selected_difficulty_id()` | `String` | Gets current or setup difficulty ID. |
 | `get_selected_difficulty_profile_path()` | `String` | Gets selected difficulty resource path. |

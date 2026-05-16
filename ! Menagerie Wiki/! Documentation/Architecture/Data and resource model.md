@@ -26,11 +26,25 @@ Gameplay data is authored as Godot `.tres` resources that point to resource scri
 ## Character and enemy data flow
 
 1. A `CombatantProfile` stores display data, battle visual scene, stats, moveset, audio IDs, reward/AI references, and resource bar configs.
-2. `Combatant.apply_profile()` copies stats and actions from the profile into runtime fields.
-3. A player combatant reads `profile.moveset.actions`.
-4. An enemy combatant reads `profile.enemy_ai_profile.moves`.
-5. `BattleScene` owns combatant display nodes. Each `CombatantDisplay` reads `profile.battle_visual_scene` and `profile.health_bar`, while `BattleHUD` reads the player's `profile.resource_bars` for the hotbar resource bar.
-6. `CombatAudioBridge` reads profile SFX IDs for hit, block, and death events.
+2. `RunData.initialize_player_state()` creates a `PlayerPartyState` with one active Warrior `PlayerPartyMemberState`.
+3. Warrior's `PlayerPartyMemberState` references a reusable `CombatantState` built from `warrior_profile.tres`.
+4. Existing single-combatant battle scenes still instantiate `WarriorCombatant` and call `Combatant.apply_profile()` to copy stats and actions from the profile into node runtime fields.
+5. Before battle, `GameManager.apply_run_player_state_to_combatant()` copies effective Warrior `CombatantState` stats onto the node-based combatant bridge.
+6. A player combatant reads `profile.moveset.actions`.
+7. An enemy combatant reads `profile.enemy_ai_profile.moves`.
+8. `BattleScene` owns combatant display nodes. Each `CombatantDisplay` reads `profile.battle_visual_scene` and `profile.health_bar`, while `BattleHUD` reads the player's `profile.resource_bars` for the hotbar resource bar.
+9. `CombatAudioBridge` reads profile SFX IDs for hit, block, and death events.
+
+## Runtime state objects
+
+| Runtime state | Source | Purpose |
+| --- | --- | --- |
+| `CombatantState` | `res://core/combat/combatant_state.gd` | Reusable persistent combat state for anything that can participate in combat. |
+| `PartyControlMode` | `res://core/party/party_control_mode.gd` | Shared enum and helpers for `LocalPlayer`, `AutoPilot`, `RemotePlayer`, and `Inactive`. |
+| `PlayerPartyMemberState` | `res://core/party/player_party_member_state.gd` | Player-party wrapper around a `CombatantState`, including control mode and future pawn ID. |
+| `PlayerPartyState` | `res://core/party/player_party_state.gd` | Player-owned roster, active member IDs, leader, and selected member. |
+
+Phase 1 keeps legacy `RunData.player_current_hp`, `player_max_hp`, and `player_base_stats` as synchronized mirrors so existing dungeon HUD and combat code keep working while later phases migrate more systems to party and combatant state directly.
 
 ## Action data flow
 

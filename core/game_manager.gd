@@ -56,7 +56,7 @@ func start_new_run(character: String, difficulty: String, dungeon_seed: String =
 		_resolve_dungeon_seed(dungeon_seed),
 		max(dungeon_floor_layer, 1)
 	)
-	current_run_data.initialize_player_state(get_selected_character_profile())
+	current_run_data.initialize_player_state(get_selected_character_profile(), get_selected_character_profile_path())
 	_apply_run_seed(current_run_data.dungeon_seed)
 	current_run_data.dungeon_node_descriptors = DungeonFloorGeneratorScript.generate_floor_from_global_rng(
 		current_run_data.dungeon_floor_layer,
@@ -255,11 +255,14 @@ func get_selected_difficulty_profile() -> Resource:
 	return load(profile_path)
 
 func get_selected_character_profile() -> CombatantProfile:
-	var profile_path := str(CHARACTER_PROFILE_PATHS.get(get_selected_character_id(), CHARACTER_PROFILE_PATHS[RunDataScript.DEFAULT_CHARACTER]))
+	var profile_path := get_selected_character_profile_path()
 	if profile_path.is_empty():
 		return null
 
 	return load(profile_path) as CombatantProfile
+
+func get_selected_character_profile_path() -> String:
+	return str(CHARACTER_PROFILE_PATHS.get(get_selected_character_id(), CHARACTER_PROFILE_PATHS[RunDataScript.DEFAULT_CHARACTER]))
 
 func get_selected_character_id() -> String:
 	if current_run_data != null:
@@ -373,6 +376,9 @@ func _with_scene_extension(scene_path: String) -> String:
 	return scene_path
 
 func _sound_manager() -> Node:
+	if not is_inside_tree():
+		return null
+
 	return get_node_or_null("/root/SoundManager")
 
 func _resolve_dungeon_seed(requested_seed: String) -> String:

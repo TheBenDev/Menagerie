@@ -22,8 +22,23 @@ This page summarizes the most important runtime APIs new developers usually need
 | `apply_run_player_state_to_combatant(combatant)` | method | Copies effective run stats onto the player combatant before battle. |
 | `get_run_player_hp_snapshot()` | method | Returns persistent run HP as `{current, max}`. |
 | `get_effective_player_stats()` | method | Returns effective run stats after permanent and timed modifiers. |
+| `get_selected_character_profile_path()` | method | Returns the selected character profile path used to seed run-owned `CombatantState`. |
 | `go_to_scene(scene_ref)` | method | Main route endpoint. |
 | `scene_path_for(scene_ref)` | method | Use to check route resolution without changing scene. |
+
+## RunData party state
+
+| Surface | Type | Notes |
+| --- | --- | --- |
+| `player_party_state` | `PlayerPartyState` or `null` | Run-owned player roster. Phase 1 creates one active Warrior member. |
+| `PlayerPartyState.members` | `Dictionary` | Maps party member IDs to `PlayerPartyMemberState` objects. |
+| `PlayerPartyState.active_member_ids` | `Array[String]` | Ordered active roster IDs for future pawn/combat participation. |
+| `PlayerPartyState.leader_member_id`, `selected_member_id` | `String` | Current leader and selected party member IDs. |
+| `PlayerPartyMemberState.control_mode` | `int` | Uses `PartyControlMode`: `LocalPlayer`, `AutoPilot`, `RemotePlayer`, or `Inactive`. |
+| `PlayerPartyMemberState.combatant_state` | `CombatantState` | Reusable persistent combat data for the party member. |
+| `CombatantState.current_hp`, `max_hp` | `int` | Intended persistent HP model. Existing `RunData.player_*` fields mirror these values in Phase 1. |
+| `CombatantState.stats` | `Dictionary` | Base stat map keyed by `STR`, `DEX`, `INT`, and `VIT`. |
+| `CombatantState.runtime_modifiers` | `Array[Dictionary]` | Mirrored run stat modifiers used by `get_effective_stat()`. |
 
 ## RunData dungeon state
 
@@ -34,8 +49,8 @@ This page summarizes the most important runtime APIs new developers usually need
 | `dungeon_floor_layer` | `int` | Current floor layer; `1` until multi-floor progression exists. |
 | `dungeon_node_descriptors` | `Array` | Stored generated map descriptors for the active run. |
 | `current_dungeon_node_id` | `int` | Last visited node id for branching-map current-location display. |
-| `player_current_hp`, `player_max_hp` | `int` | Persistent player HP carried between fights and affected by encounter damage. |
-| `run_stat_modifiers` | `Array[Dictionary]` | Permanent and run-time-limited stat modifiers from encounter choices. |
+| `player_current_hp`, `player_max_hp` | `int` | Compatibility mirrors for Warrior `CombatantState` HP, still used by existing HUD and combat setup APIs. |
+| `run_stat_modifiers` | `Array[Dictionary]` | Permanent and run-time-limited stat modifiers from encounter choices, mirrored into Warrior `CombatantState`. |
 | `mark_dungeon_node_visited(node_id)` | method | Adds a visited node ID and advances `current_node_index`. |
 | `is_dungeon_node_visited(node_id)` | method | Checks whether a node was completed. |
 | `get_visited_dungeon_node_ids()` | method | Returns a duplicate of visited node IDs for reveal calculations. |

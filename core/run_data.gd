@@ -2,6 +2,8 @@
 class_name RunData
 extends RefCounted
 
+const PlayerPartyStateScript := preload("res://core/party/player_party_state.gd")
+
 const END_REASON_IN_PROGRESS := "in_progress"
 const END_REASON_VICTORY := "victory"
 const END_REASON_DEFEAT := "defeat"
@@ -37,6 +39,7 @@ var memories_exported: bool = false
 var player_base_stats: Dictionary = {}
 var player_current_hp: int = 0
 var player_max_hp: int = 0
+var player_party_state = null
 var run_stat_modifiers: Array[Dictionary] = []
 
 var current_node_index: int = 0
@@ -84,6 +87,7 @@ func start_run(
 	player_base_stats.clear()
 	player_current_hp = 0
 	player_max_hp = 0
+	player_party_state = null
 	run_stat_modifiers.clear()
 	pending_combat_result = null
 	current_node_index = 0
@@ -136,14 +140,17 @@ func reset_encounter(default_enemy_profile_path: String) -> void:
 	current_encounter_enemy_profile_path = default_enemy_profile_path
 	current_encounter_is_boss = false
 
-func initialize_player_state(profile: Resource) -> void:
+func initialize_player_state(profile: Resource, profile_path: String = "") -> void:
 	player_base_stats = {
 		STAT_STRENGTH: _profile_stat(profile, "strength", 5),
 		STAT_DEXTERITY: _profile_stat(profile, "dexterity", 5),
 		STAT_INTELLIGENCE: _profile_stat(profile, "intelligence", 5),
 		STAT_VITALITY: _profile_stat(profile, "vitality", 5),
 	}
-	_recalculate_player_max_hp(true)
+	player_party_state = PlayerPartyStateScript.new()
+	player_party_state.configure_single_member(selected_character, profile_path, profile)
+	_sync_player_state_modifiers()
+	_sync_player_legacy_fields_from_state()
 
 func get_effective_stats() -> Dictionary:
 	return {
@@ -155,6 +162,11 @@ func get_effective_stats() -> Dictionary:
 
 func get_effective_stat(stat_id: String) -> int:
 	var canonical_stat_id := _canonical_stat_id(stat_id)
+	var combatant_state: Variant = _player_combatant_state()
+	if combatant_state != null:
+		_sync_player_state_modifiers()
+		return combatant_state.get_effective_stat(canonical_stat_id)
+
 	var value := int(player_base_stats.get(canonical_stat_id, 0))
 	for modifier in run_stat_modifiers:
 		if str(modifier.get("stat_id", "")) == canonical_stat_id:
@@ -166,13 +178,22 @@ func apply_player_stats_to_combatant(combatant: Variant) -> void:
 	if combatant == null:
 		return
 
+	var combatant_state: Variant = _player_combatant_state()
+	if combatant_state != null:
+		_sync_player_state_modifiers()
+		combatant_state.apply_stats_to_combatant(combatant)
+		return
+
 	combatant.strength = get_effective_stat(STAT_STRENGTH)
 	combatant.dexterity = get_effective_stat(STAT_DEXTERITY)
 	combatant.intelligence = get_effective_stat(STAT_INTELLIGENCE)
 	combatant.vitality = get_effective_stat(STAT_VITALITY)
 
-func set_player_hp_from_combat(current_hp: int) -> void:
+func set_player_hp_from_combat(current_hp: int, max_hp: int = -1) -> void:
+	if max_hp > 0:
+		player_max_hp = max_hp
 	player_current_hp = clamp(current_hp, 0, max(player_max_hp, 1))
+	_sync_player_state_hp_from_legacy()
 
 func apply_encounter_choice(choice_data: Dictionary) -> Dictionary:
 	var outcome := {
@@ -208,7 +229,7 @@ func apply_encounter_effect(effect_data: Dictionary) -> Dictionary:
 	match effect_id:
 		&"damage":
 			var previous_hp := player_current_hp
-			player_current_hp = max(player_current_hp - max(amount, 0), 0)
+			set_player_hp_from_combat(player_current_hp - max(amount, 0))
 			var actual_damage := previous_hp - player_current_hp
 			damage_taken += actual_damage
 			outcome["damage_taken"] = actual_damage
@@ -225,6 +246,7 @@ func apply_encounter_effect(effect_data: Dictionary) -> Dictionary:
 				"permanent": permanent,
 				"remaining_seconds": duration_seconds,
 			})
+			_sync_player_state_modifiers()
 			_recalculate_player_max_hp(false)
 			outcome["stat_modifiers_added"] = 1
 
@@ -314,7 +336,7 @@ func register_combat_result(result: Variant) -> void:
 	var player_hp_after: Variant = result.get("player_hp_after")
 	var result_player_max_hp: Variant = result.get("player_max_hp")
 	if (player_hp_after is int or player_hp_after is float) and (result_player_max_hp is int or result_player_max_hp is float) and int(result_player_max_hp) > 0:
-		set_player_hp_from_combat(int(player_hp_after))
+		set_player_hp_from_combat(int(player_hp_after), int(result_player_max_hp))
 
 	if not result.victory:
 		end_run(result.end_reason if not str(result.end_reason).is_empty() else END_REASON_DEFEAT)
@@ -346,14 +368,49 @@ func _tick_run_stat_modifiers(seconds: float) -> void:
 			active_modifiers.append(modifier)
 
 	run_stat_modifiers = active_modifiers
+	_sync_player_state_modifiers()
 	_recalculate_player_max_hp(false)
 
 func _recalculate_player_max_hp(heal_to_full: bool) -> void:
+	_sync_player_state_modifiers()
 	player_max_hp = max(get_effective_stat(STAT_VITALITY), 1) * 10
 	if heal_to_full:
 		player_current_hp = player_max_hp
 	else:
 		player_current_hp = clamp(player_current_hp, 0, player_max_hp)
+	_sync_player_state_hp_from_legacy()
+
+func _player_combatant_state() -> Variant:
+	if player_party_state == null:
+		return null
+
+	return player_party_state.get_selected_combatant_state()
+
+func _sync_player_state_modifiers() -> void:
+	var combatant_state: Variant = _player_combatant_state()
+	if combatant_state == null:
+		return
+
+	combatant_state.set_runtime_modifiers(run_stat_modifiers)
+
+func _sync_player_legacy_fields_from_state() -> void:
+	var combatant_state: Variant = _player_combatant_state()
+	if combatant_state == null:
+		return
+
+	#; Legacy player fields remain as compatibility mirrors until later phases migrate call sites.
+	player_base_stats = combatant_state.stats.duplicate()
+	player_max_hp = combatant_state.max_hp
+	player_current_hp = combatant_state.current_hp
+
+func _sync_player_state_hp_from_legacy() -> void:
+	var combatant_state: Variant = _player_combatant_state()
+	if combatant_state == null:
+		return
+
+	combatant_state.set_runtime_modifiers(run_stat_modifiers)
+	combatant_state.set_max_hp(player_max_hp, false)
+	combatant_state.set_current_hp(player_current_hp)
 
 func _profile_stat(profile: Resource, field_name: String, default_value: int) -> int:
 	if profile == null:

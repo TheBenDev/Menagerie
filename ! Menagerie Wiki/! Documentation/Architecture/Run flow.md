@@ -11,7 +11,9 @@ The run flow describes how menu selection becomes dungeon state, combat, rewards
 | Actor | Source | Responsibility |
 | --- | --- | --- |
 | `GameManager` | `res://core/game_manager.gd` | Autoload that owns run setup, scene transitions, rewards, timer events, and route music. |
-| `RunData` | `res://core/run_data.gd` | RefCounted model for selected character, difficulty, dungeon seed/layer, timer, current encounter, rewards, and combat totals. |
+| `RunData` | `res://core/run_data.gd` | RefCounted model for selected character, party state, dungeon seed/layer, timer, current encounter, rewards, and combat totals. |
+| `PlayerPartyState` | `res://core/party/player_party_state.gd` | Run-owned player roster state, active party members, leader, and selected member. |
+| `CombatantState` | `res://core/combat/combatant_state.gd` | Persistent run combat state for a party member, including profile path, stats, HP, status map, and modifiers. |
 | Waiting room | `res://scenes/ui/waiting_room/waiting_room.gd` | Selects character, difficulty, optional seed, starts a run, routes to dungeon. |
 | Dungeon generator | `res://core/dungeon/dungeon_floor_generator.gd` | Builds deterministic dungeon node descriptors from seed, layer, difficulty, and tuning config. |
 | Encounter pool | `res://core/dungeon/encounters/default_dungeon_encounter_pool.tres` | Stores weighted encounter events, valid floors, presentation scenes, choices, and run-level effects. |
@@ -23,14 +25,14 @@ The run flow describes how menu selection becomes dungeon state, combat, rewards
 
 1. `MainMenu.tscn` calls `GameManager.go_to_scene("waiting_room")`.
 2. `waiting_room.gd` calls `GameManager.start_new_run(selected_character, selected_difficulty, seed_text)`.
-3. `GameManager` creates a fresh `RunData`, stores the selected setup, resolves a replayable dungeon seed, applies it to Godot's global gameplay RNG, generates floor descriptors, sets floor layer `1`, emits run HUD signals, and routes to `dungeon`.
+3. `GameManager` creates a fresh `RunData`, stores the selected setup, initializes a one-member Warrior `PlayerPartyState`, resolves a replayable dungeon seed, applies it to Godot's global gameplay RNG, generates floor descriptors, sets floor layer `1`, emits run HUD signals, and routes to `dungeon`.
 4. `dungeon_controller.gd` reads stored descriptors from `RunData`, creates runtime `DungeonNodeData`, applies explicit descriptor connections, and instantiates `DungeonNodeView` buttons.
 5. Haven starts revealed but unvisited. Clicking a reachable node emits a node event through `DungeonNodeEventHelper`.
 6. Empty nodes advance run time by `RunData.EMPTY_NODE_TIME_SECONDS`, then complete.
 7. Encounter nodes advance run time by `RunData.NODE_TRAVEL_TIME_SECONDS`, load their scene by descriptor `encounter_id`, wait for `encounter_finished`, then apply the selected choice effects to `RunData`.
 8. Selecting a fight or boss calls `GameManager.start_combat(node_id, node_type, enemy_profile_path, is_boss)`.
 9. `GameManager` stores encounter metadata, advances travel time by `RunData.NODE_TRAVEL_TIME_SECONDS`, then routes to `combat/BattleScene`.
-10. `battle_scene.gd` loads the encounter profile from `GameManager.get_current_encounter()`, applies effective run stats and persistent HP to the player, runs combat, and creates a `CombatResult`.
+10. `battle_scene.gd` loads the encounter profile from `GameManager.get_current_encounter()`, applies effective Warrior `CombatantState` stats and persistent HP through the existing player bridge, runs combat, and creates a `CombatResult`.
 11. `GameManager.complete_combat(result)` stores the result and routes back to `dungeon`.
 12. `dungeon_controller.gd` consumes the pending result, updates `RunData`, emits HUD state, and either continues or routes to `run_summary`.
 13. `run_summary.gd` shows totals and returns to `waiting_room`.
@@ -51,8 +53,10 @@ The run flow describes how menu selection becomes dungeon state, combat, rewards
 - `RunData.dungeon_floor_layer` is stored as `1` until multi-floor progression exists.
 - `RunData.dungeon_node_descriptors` stores the generated map for the active run so returning from combat does not re-roll or re-consume map generation RNG.
 - Encounter descriptors store `encounter_id`, selected from the encounter pool by the seeded generation RNG.
-- `RunData.player_current_hp` and `player_max_hp` are persistent run HP. Combat copies HP in at battle start and writes HP back in `CombatResult`.
-- `RunData.run_stat_modifiers` stores permanent and run-time-limited stat buffs. `GameManager.advance_run_time()` ticks temporary modifiers.
+- `RunData.player_party_state` owns the active player roster. Phase 1 creates one active Warrior member with `control_mode = LocalPlayer`.
+- Warrior's `CombatantState` is the intended persistent run model for player stats and HP.
+- `RunData.player_current_hp`, `player_max_hp`, and `player_base_stats` are compatibility mirrors synchronized with Warrior's `CombatantState` for existing HUD, encounter, and combat call sites.
+- `RunData.run_stat_modifiers` stores permanent and run-time-limited stat buffs and is mirrored into Warrior's `CombatantState`. `GameManager.advance_run_time()` ticks temporary modifiers.
 - `RunData.pending_combat_result` is a handoff between `BattleScene` and `DungeonController`.
 - `RunData.visited_dungeon_node_ids` is the source of truth for revealed/visited dungeon progression.
 - Generated descriptors may include `connections`; when omitted, the dungeon controller falls back to old id-order linear connections.

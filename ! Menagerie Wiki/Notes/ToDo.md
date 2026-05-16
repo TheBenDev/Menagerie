@@ -16,7 +16,11 @@ Make block icon and class resource icons like sts?
 
 
 Dungeon map abilities
-Rest, Scout, Teleport
+Rest, cooking to give party buffs
+Scout, - level up to show node silhouettes
+Teleport - can teleport between floors
 Warrior, Rogue, Wizard and the talent tree can level each up.
 
-Player movement 
+Map should be divided into sections and each section should have its own generation rules. like straight corridors vs complex corners etc, to give variety but also more predictability in the path in some cases.
+
+Player movement
