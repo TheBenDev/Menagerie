@@ -28,9 +28,9 @@ Autoloads are the closest thing this project has to global service endpoints.
 
 | Method | Returns | Use |
 | --- | --- | --- |
-| `start_new_run(character, difficulty, dungeon_seed := "", dungeon_floor_layer := 1)` | `Variant` | Creates a fresh `RunData`, applies selection, initializes the single-Warrior `PlayerPartyState`, resolves/stores a dungeon seed, applies it to global gameplay RNG, generates the dungeon map, emits run HUD state, and starts run music. |
+| `start_new_run(character, difficulty, dungeon_seed := "", dungeon_floor_layer := 1)` | `Variant` | Creates a fresh `RunData`, applies selection, initializes the single-Warrior `PlayerPartyState`, resolves/stores a dungeon seed, applies it to global gameplay RNG, generates the dungeon map, initializes Warrior's dungeon pawn and Haven reveal state, emits run HUD state, and starts run music. |
 | `clear_run()` | `void` | Clears `current_run_data`. |
-| `start_combat(node_id, node_type, enemy_profile_path, is_boss)` | `void` | Stores encounter data, advances travel time, routes to `combat/BattleScene`. |
+| `start_combat(node_id, node_type, enemy_profile_path, is_boss, charge_travel_time := true)` | `void` | Stores encounter data and routes to `combat/BattleScene`; movement arrival passes `false` because the node step already charged time. |
 | `complete_combat(result)` | `void` | Stores a pending combat result and routes back to `dungeon`. |
 | `consume_last_combat_result()` | `Variant` | Returns and clears the pending result. |
 | `has_pending_combat_result()` | `bool` | Checks whether dungeon should apply a completed combat result. |

@@ -12,7 +12,7 @@ This page summarizes the most important runtime APIs new developers usually need
 | --- | --- | --- |
 | `current_run_data` | `RunData` or `null` | Active run state. May be null outside a run. |
 | `start_new_run(character, difficulty, dungeon_seed := "", dungeon_floor_layer := 1)` | method | Creates and stores fresh `RunData`; blank seed resolves to an auto-generated replay seed. |
-| `start_combat(node_id, node_type, enemy_profile_path, is_boss)` | method | Stores encounter, charges travel time, routes to battle. |
+| `start_combat(node_id, node_type, enemy_profile_path, is_boss, charge_travel_time := true)` | method | Stores encounter and routes to battle. Direct legacy calls can charge old travel time; movement-arrival calls pass `false` because the node step already charged time. |
 | `complete_combat(result)` | method | Stores pending result, routes to dungeon. |
 | `advance_run_time(seconds)` | method | Decrements remaining run time and handles timeout. |
 | `get_dungeon_encounter(encounter_id)` | method | Resolves an authored dungeon encounter resource by ID. |
@@ -35,6 +35,7 @@ This page summarizes the most important runtime APIs new developers usually need
 | `PlayerPartyState.active_member_ids` | `Array[String]` | Ordered active roster IDs for future pawn/combat participation. |
 | `PlayerPartyState.leader_member_id`, `selected_member_id` | `String` | Current leader and selected party member IDs. |
 | `PlayerPartyMemberState.control_mode` | `int` | Uses `PartyControlMode`: `LocalPlayer`, `AutoPilot`, `RemotePlayer`, or `Inactive`. |
+| `PlayerPartyMemberState.map_pawn_id` | `String` | Links an active party member to its run-owned dungeon pawn. |
 | `PlayerPartyMemberState.combatant_state` | `CombatantState` | Reusable persistent combat data for the party member. |
 | `CombatantState.current_hp`, `max_hp` | `int` | Intended persistent HP model. Existing `RunData.player_*` fields mirror these values in Phase 1. |
 | `CombatantState.stats` | `Dictionary` | Base stat map keyed by `STR`, `DEX`, `INT`, and `VIT`. |
@@ -44,26 +45,85 @@ This page summarizes the most important runtime APIs new developers usually need
 
 | Surface | Type | Notes |
 | --- | --- | --- |
-| `visited_dungeon_node_ids` | `Array[int]` | Source of truth for visited dungeon map nodes. |
+| `dungeon_map_pawns` | `Dictionary` | Maps pawn IDs to `DungeonMapPawnState` objects. Phase 2 creates one Warrior pawn. |
+| `active_dungeon_pawn_ids` | `Array[String]` | Ordered active pawn IDs for later synchronized travel. |
+| `revealed_dungeon_node_ids` | `Array[int]` | Nodes visible on the dungeon map. New runs reveal Haven and its descriptor-connected neighbors. |
+| `visited_dungeon_node_ids` | `Array[int]` | Nodes physically entered by a dungeon pawn. |
+| `resolved_dungeon_node_ids` | `Array[int]` | Nodes whose current event/effect is complete. |
 | `dungeon_seed` | `String` | Stored seed used to reproduce the generated dungeon map and gameplay RNG stream. |
 | `dungeon_floor_layer` | `int` | Current floor layer; `1` until multi-floor progression exists. |
 | `dungeon_node_descriptors` | `Array` | Stored generated map descriptors for the active run. |
-| `current_dungeon_node_id` | `int` | Last visited node id for branching-map current-location display. |
+| `current_dungeon_node_id` | `int` | Compatibility mirror of the selected dungeon pawn's current node. |
 | `player_current_hp`, `player_max_hp` | `int` | Compatibility mirrors for Warrior `CombatantState` HP, still used by existing HUD and combat setup APIs. |
 | `run_stat_modifiers` | `Array[Dictionary]` | Permanent and run-time-limited stat modifiers from encounter choices, mirrored into Warrior `CombatantState`. |
-| `mark_dungeon_node_visited(node_id)` | method | Adds a visited node ID and advances `current_node_index`. |
-| `is_dungeon_node_visited(node_id)` | method | Checks whether a node was completed. |
+| `initialize_dungeon_map_state(start_node_id := 0)` | method | Creates active member pawns, marks Haven revealed/visited, and reveals descriptor-connected neighbors. Haven does not start resolved. |
+| `get_selected_dungeon_map_pawn()` | method | Returns the selected or leader pawn. |
+| `get_current_dungeon_node_id()` | method | Returns the selected pawn's current node, falling back to the legacy mirror. |
+| `complete_dungeon_node(node_id, pawn_id := "")` | method | Marks a node visited and resolved, moves the selected pawn, reveals connected neighbors, and unlocks pawns assigned to that event node. Used when a node effect/event has completed. |
+| `mark_dungeon_node_visited(node_id, pawn_id := "")` | method | Adds a visited node ID on entry, moves the selected pawn by default, reveals that node, and reveals descriptor-connected neighbors. |
+| `mark_dungeon_node_resolved(node_id)` | method | Adds a resolved node ID. |
+| `reveal_connected_dungeon_nodes(node_id)` | method | Reveals neighboring node IDs using descriptor connections, with linear fallback for older descriptors. |
+| `is_dungeon_node_visited(node_id)` | method | Checks whether a pawn has entered a node. |
+| `is_dungeon_node_revealed(node_id)` | method | Checks whether a node is visible on the map. |
+| `is_dungeon_node_resolved(node_id)` | method | Checks whether a node's event/effect is complete. |
 | `get_visited_dungeon_node_ids()` | method | Returns a duplicate of visited node IDs for reveal calculations. |
-| `get_last_visited_dungeon_node_id()` | method | Returns the latest visited node ID, or `-1` before Haven is completed. |
+| `get_revealed_dungeon_node_ids()` | method | Returns a duplicate of revealed node IDs. |
+| `get_resolved_dungeon_node_ids()` | method | Returns a duplicate of resolved node IDs. |
+| `get_occupied_dungeon_node_ids()` | method | Derives occupied node IDs from current pawn positions. |
+| `get_last_visited_dungeon_node_id()` | method | Compatibility helper that returns the selected pawn/current node first, then the latest visited node. |
+| `request_selected_dungeon_pawn_travel(destination_node_id)` | method | Requests a path-based travel order for the selected pawn. |
+| `request_dungeon_pawn_travel(pawn_id, destination_node_id)` | method | Validates pathing and stores a travel order or pending replacement for one pawn. |
+| `can_request_selected_dungeon_pawn_travel(destination_node_id)` | method | Checks whether the selected pawn can path to a destination without mutating travel state. |
+| `get_dungeon_pawn_travel_path(pawn_id, destination_node_id)` | method | Returns the allowed path for a pawn using current descriptor connections and revealed/visited/resolved node IDs. |
+| `get_allowed_dungeon_path_node_ids()` | method | Returns the current pathable node set derived from revealed, visited, resolved, and current pawn position. |
+| `get_dungeon_connection_graph()` | method | Returns a descriptor-derived connection graph for pathfinding. |
+| `unlock_dungeon_pawns_for_event_node(node_id)` | method | Clears event lock state for pawns whose active event node was resolved. |
 | `apply_encounter_choice(choice_data)` | method | Applies an inline encounter choice dictionary, currently damage and stat modifiers. |
 | `get_effective_stat(stat_id)` | method | Returns a stat after active run modifiers. |
+
+## DungeonMapPawnState
+
+| Surface | Type | Notes |
+| --- | --- | --- |
+| `pawn_id`, `party_member_id`, `combatant_id`, `owner_player_id` | `String` | Identity links for party, combat, and future co-op ownership. |
+| `control_mode` | `int` | Mirrors the owning party member's `PartyControlMode`. |
+| `current_node_id` | `int` | Authoritative dungeon map position for this pawn. |
+| `travel_origin_node_id`, `destination_node_id`, `travel_path`, `travel_path_index`, `pending_destination_node_id` | mixed | Travel-order state used by path-based dungeon movement. |
+| `step_game_cost_seconds`, `visual_steps_per_second` | `float` | Per-order tuning values that keep game-time cost separate from visual playback speed. |
+| `cancel_requested` | `bool` | Defers cancellation until the movement coordinator finishes the current node step. |
+| `travel_state` | `int` | One of `Idle`, `Traveling`, `InEvent`, or `Inactive`. |
+| `is_locked_by_event`, `active_event_node_id` | mixed | Event-lock state used when an unresolved Fight, Boss, or Encounter arrival starts an active event. |
+| `set_travel_order(destination_node_id, travel_path, step_cost, visual_speed)` | method | Assigns a validated path order without advancing the pawn. |
+| `request_destination_replacement(destination_node_id)` | method | Queues a new destination to apply after the current node step. |
+| `request_cancel_after_current_step()` | method | Marks the active order for cancellation after the current step. |
+| `has_active_travel_order()` | method | Checks whether this pawn has an active path order. |
+| `next_path_node_id()` | method | Returns the next node in the active path, or `-1` if none is available. |
+
+## DungeonMovementCoordinator
+
+| Surface | Type | Notes |
+| --- | --- | --- |
+| `has_active_travel_orders(run_data)` | static method | Checks whether any active pawn has a travel order with a next node step. |
+| `advance_one_step(run_data, interrupt_node_ids := [])` | static method | Advances all active traveling pawns one node step and returns moved/pause/replacement/cancel/interruption details. |
+| `RESULT_PAUSE_REQUESTED`, `RESULT_PAUSE_REASONS` | constants | Result keys used by `DungeonController` to decide whether the shared movement loop should stop. |
+
+## DungeonMapPawnView
+
+| Surface | Type | Notes |
+| --- | --- | --- |
+| `configure(pawn, node_data, cell_size)` | method | Initializes a visual marker from a pawn and the node containing it. |
+| `apply_pawn_state(pawn, node_data, cell_size)` | method | Repositions and redraws the marker from authoritative run-owned pawn state. |
+| `marker_center_for_node(node_data, cell_size)` | static method | Returns the marker center in map-content coordinates, centered on `1x1` nodes and top-left anchored on larger nodes. |
+| `marker_color`, `outline_color`, `marker_diameter` | exports | Tune the placeholder circle marker without changing gameplay state. |
 
 ## Dungeon helpers
 
 | Surface | Type | Notes |
 | --- | --- | --- |
 | `DungeonNodeEventHelper.build_node_event(node)` | static method | Builds the shared dictionary payload for dungeon node visit events. |
-| `DungeonNodeEventHelper.process_node_event(node, game_manager, sound_manager)` | static method | Handles currently-routed node types and reports whether completion is deferred. |
+| `DungeonNodeEventHelper.process_node_event(node, game_manager, sound_manager, charge_travel_time := true)` | static method | Handles currently-routed legacy node dispatch and reports whether completion is deferred. Movement arrival should avoid the extra travel charge. |
+| `DungeonPathfinder.connection_graph_from_descriptors(descriptors, use_linear_fallback := true)` | static method | Builds a symmetric connection graph from dungeon descriptors, with linear fallback for older descriptor sets. |
+| `DungeonPathfinder.find_path(start_node_id, destination_node_id, allowed_node_ids, connection_graph)` | static method | Returns an ordered allowed route from start to destination, or an empty array when the destination is hidden/disallowed/unreachable. |
 | `DungeonFloorGenerator.generate_floor(seed, layer, difficulty, config, encounter_pool)` | static method | Seeds global RNG from `seed`, then returns deterministic flat descriptor arrays with optional `connections` and encounter IDs. |
 | `DungeonFloorGenerator.generate_floor_from_global_rng(layer, difficulty, config, encounter_pool)` | static method | Returns descriptors by consuming the current global gameplay RNG stream. |
 | `DungeonFloorGenerator.validate_descriptors(descriptors, grid_size := Vector2i.ZERO)` | static method | Checks bounds, overlaps, graph reachability, and symmetric connections. |

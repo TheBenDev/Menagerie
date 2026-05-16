@@ -28,12 +28,14 @@ Gameplay data is authored as Godot `.tres` resources that point to resource scri
 1. A `CombatantProfile` stores display data, battle visual scene, stats, moveset, audio IDs, reward/AI references, and resource bar configs.
 2. `RunData.initialize_player_state()` creates a `PlayerPartyState` with one active Warrior `PlayerPartyMemberState`.
 3. Warrior's `PlayerPartyMemberState` references a reusable `CombatantState` built from `warrior_profile.tres`.
-4. Existing single-combatant battle scenes still instantiate `WarriorCombatant` and call `Combatant.apply_profile()` to copy stats and actions from the profile into node runtime fields.
-5. Before battle, `GameManager.apply_run_player_state_to_combatant()` copies effective Warrior `CombatantState` stats onto the node-based combatant bridge.
-6. A player combatant reads `profile.moveset.actions`.
-7. An enemy combatant reads `profile.enemy_ai_profile.moves`.
-8. `BattleScene` owns combatant display nodes. Each `CombatantDisplay` reads `profile.battle_visual_scene` and `profile.health_bar`, while `BattleHUD` reads the player's `profile.resource_bars` for the hotbar resource bar.
-9. `CombatAudioBridge` reads profile SFX IDs for hit, block, and death events.
+4. `RunData.initialize_dungeon_map_state()` creates Warrior's `DungeonMapPawnState`, links it through `PlayerPartyMemberState.map_pawn_id`, and seeds Haven/neighbor node state from generated descriptors.
+5. `DungeonController` creates `DungeonMapPawnView` markers on `DungeonMap.tscn`'s `PawnLayer` from the active pawn state; marker views are display-only.
+6. Existing single-combatant battle scenes still instantiate `WarriorCombatant` and call `Combatant.apply_profile()` to copy stats and actions from the profile into node runtime fields.
+7. Before battle, `GameManager.apply_run_player_state_to_combatant()` copies effective Warrior `CombatantState` stats onto the node-based combatant bridge.
+8. A player combatant reads `profile.moveset.actions`.
+9. An enemy combatant reads `profile.enemy_ai_profile.moves`.
+10. `BattleScene` owns combatant display nodes. Each `CombatantDisplay` reads `profile.battle_visual_scene` and `profile.health_bar`, while `BattleHUD` reads the player's `profile.resource_bars` for the hotbar resource bar.
+11. `CombatAudioBridge` reads profile SFX IDs for hit, block, and death events.
 
 ## Runtime state objects
 
@@ -43,8 +45,11 @@ Gameplay data is authored as Godot `.tres` resources that point to resource scri
 | `PartyControlMode` | `res://core/party/party_control_mode.gd` | Shared enum and helpers for `LocalPlayer`, `AutoPilot`, `RemotePlayer`, and `Inactive`. |
 | `PlayerPartyMemberState` | `res://core/party/player_party_member_state.gd` | Player-party wrapper around a `CombatantState`, including control mode and future pawn ID. |
 | `PlayerPartyState` | `res://core/party/player_party_state.gd` | Player-owned roster, active member IDs, leader, and selected member. |
+| `DungeonMapPawnState` | `res://core/dungeon/dungeon_map_pawn_state.gd` | Run-owned dungeon position, control mode, travel placeholders, and event-lock placeholders for one active party member. |
+| `DungeonPathfinder` | `res://core/dungeon/dungeon_pathfinder.gd` | Reusable route helper for allowed paths through dungeon descriptor connection graphs. |
+| `DungeonMovementCoordinator` | `res://core/dungeon/dungeon_movement_coordinator.gd` | Reusable synchronized node-step coordinator for active dungeon pawn travel orders. |
 
-Phase 1 keeps legacy `RunData.player_current_hp`, `player_max_hp`, and `player_base_stats` as synchronized mirrors so existing dungeon HUD and combat code keep working while later phases migrate more systems to party and combatant state directly.
+Phase 1 keeps legacy `RunData.player_current_hp`, `player_max_hp`, and `player_base_stats` as synchronized mirrors so existing dungeon HUD and combat code keep working while later phases migrate more systems to party and combatant state directly. Phase 2 similarly keeps `RunData.current_dungeon_node_id` synchronized while the selected `DungeonMapPawnState` becomes the intended source of map position. Phase 3 displays that pawn state through `DungeonMapPawnView` markers without moving gameplay authority into scene visuals. Phase 4 separates `visited_dungeon_node_ids` from `resolved_dungeon_node_ids`: visited means a pawn entered the node, while resolved means the node's event/effect is complete. Phase 5 adds `DungeonPathfinder` as a scene-independent route helper for later travel orders. Phase 6 stores path-based travel orders on `DungeonMapPawnState`; Phase 7 advances those orders in synchronized node steps; Phase 8 applies arrival effects by marking nodes visited, revealing neighbors, emitting entry signals, resolving Empty nodes, leaving Haven unresolved, and starting routed events from the arrived node.
 
 ## Action data flow
 

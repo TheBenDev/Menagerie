@@ -2,11 +2,15 @@
 extends Node
 
 signal node_event_emitted(event: Dictionary)
+signal empty_node_entered(node_id: int)
+signal haven_node_entered(node_id: int)
 signal node_completed(node_id: int, node_type: String)
 
 const DungeonNodeDataScript := preload("res://core/dungeon/dungeon_node_data.gd")
 const DungeonNodeEventHelperScript := preload("res://core/dungeon/dungeon_node_event_helper.gd")
 const DungeonFloorGeneratorScript := preload("res://core/dungeon/dungeon_floor_generator.gd")
+const DungeonMapPawnViewScript := preload("res://scenes/dungeon/dungeon_map_pawn_view.gd")
+const DungeonMovementCoordinatorScript := preload("res://core/dungeon/dungeon_movement_coordinator.gd")
 const DungeonNodeViewScript := preload("res://scenes/dungeon/dungeon_node_view.gd")
 const NumberFontHelper := preload("res://scenes/ui/common/number_font.gd")
 const ResourceBarScript := preload("res://scenes/ui/common/resource_bar.gd")
@@ -18,6 +22,7 @@ const START_NODE_ID := 0
 @export var map_content_path: NodePath
 @export var grid_view_path: NodePath
 @export var node_layer_path: NodePath
+@export var pawn_layer_path: NodePath = ^"../MapViewport/MapContent/PawnLayer"
 @export var encounter_layer_path: NodePath
 
 @onready var difficulty_label: Label = $"../InfoPanel/PanelMargin/InfoLayout/DifficultyLabel"
@@ -35,13 +40,17 @@ const START_NODE_ID := 0
 @onready var map_content: Control = get_node(map_content_path)
 @onready var grid_view: Control = get_node(grid_view_path)
 @onready var node_layer: Control = get_node(node_layer_path)
+@onready var pawn_layer: Control = _resolve_pawn_layer()
 @onready var encounter_layer: Control = get_node(encounter_layer_path)
 
 var node_views_by_id: Dictionary = {}
+var pawn_views_by_id: Dictionary = {}
 var node_order: Array[int] = []
 var nodes_by_id: Dictionary = {}
 var map_grid_size: Vector2i = Vector2i.ONE
 var active_encounter_scene: Node = null
+var is_processing_travel_orders: bool = false
+var has_emitted_initial_haven_entry: bool = false
 
 func _ready() -> void:
 	var copy_seed_callback := Callable(self, "_on_copy_seed_button_pressed")
@@ -59,6 +68,7 @@ func _ready() -> void:
 
 	_apply_progress_state()
 	_refresh_view()
+	_emit_initial_haven_entry()
 	call_deferred("_center_map_content")
 
 func _create_path_data(descriptors: Array) -> void:
@@ -124,11 +134,18 @@ func _connect_node_ids(first_id: int, second_id: int) -> void:
 func _build_node_views() -> void:
 	for child in node_layer.get_children():
 		child.queue_free()
+	if pawn_layer != null:
+		for child in pawn_layer.get_children():
+			child.queue_free()
 
 	node_views_by_id.clear()
+	pawn_views_by_id.clear()
 	var map_size := Vector2(map_grid_size) * GRID_CELL_SIZE
 	map_content.size = map_size
 	node_layer.size = map_size
+	if pawn_layer != null:
+		pawn_layer.size = map_size
+		pawn_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	grid_view.call("configure", map_grid_size.x, map_grid_size.y, GRID_CELL_SIZE)
 
 	for node_id in node_order:
@@ -144,10 +161,32 @@ func _build_node_views() -> void:
 		if not view.pressed.is_connected(callback):
 			view.pressed.connect(callback)
 
+	_build_pawn_views()
+
+func _build_pawn_views() -> void:
+	if pawn_layer == null:
+		return
+
+	var run_data: Variant = _run_data()
+	for raw_pawn_id in run_data.active_dungeon_pawn_ids:
+		var pawn_id := str(raw_pawn_id)
+		var pawn: Variant = run_data.get_dungeon_map_pawn(pawn_id)
+		if pawn == null:
+			continue
+
+		var view: Control = DungeonMapPawnViewScript.new() as Control
+		view.name = _pawn_view_name(pawn_id)
+		pawn_layer.add_child(view)
+		pawn_views_by_id[pawn_id] = view
+		var node: DungeonNodeData = nodes_by_id.get(int(pawn.current_node_id)) as DungeonNodeData
+		view.call("configure", pawn, node, GRID_CELL_SIZE)
+
 func _sync_run_data_metadata() -> void:
 	var run_data: Variant = _run_data()
 	run_data.total_nodes = nodes_by_id.size()
 	run_data.boss_node_index = _boss_node_id()
+	if not run_data.has_dungeon_map_pawns():
+		run_data.initialize_dungeon_map_state(START_NODE_ID)
 
 func _apply_pending_combat_result() -> bool:
 	if not GameManager.has_pending_combat_result():
@@ -169,14 +208,22 @@ func _apply_pending_combat_result() -> bool:
 func _apply_progress_state() -> void:
 	var run_data: Variant = _run_data()
 	var visited_ids: Array = run_data.get_visited_dungeon_node_ids()
+	var revealed_ids: Array = run_data.get_revealed_dungeon_node_ids()
+	var resolved_ids: Array = run_data.get_resolved_dungeon_node_ids()
+	var has_run_reveal_state := not revealed_ids.is_empty()
 
 	for raw_node in nodes_by_id.values():
 		var node = raw_node
 		if node == null:
 			continue
 		node.visited = visited_ids.has(node.id)
-		node.revealed = node.visited or node.id == START_NODE_ID
+		node.resolved = resolved_ids.has(node.id)
+		node.revealed = revealed_ids.has(node.id) or node.visited or node.id == START_NODE_ID
 
+	if has_run_reveal_state:
+		return
+
+	#; Compatibility fallback for run data created before explicit reveal collections existed.
 	for raw_node in nodes_by_id.values():
 		var node = raw_node
 		if node == null or not node.visited:
@@ -192,18 +239,54 @@ func _refresh_view() -> void:
 	seed_label.text = "Seed: %s" % run_data.dungeon_seed
 	_refresh_dungeon_hotbar()
 
-	var current_node_id := int(run_data.get_last_visited_dungeon_node_id())
+	var current_node_id := int(run_data.get_current_dungeon_node_id())
 	for node_id in node_order:
 		var node = nodes_by_id.get(node_id)
 		var view: DungeonNodeView = node_views_by_id.get(node_id)
 		if view != null:
 			view.apply_state(node, node != null and node.id == current_node_id, _can_select_node(node))
+	_refresh_pawn_views(run_data)
+
+func _refresh_pawn_views(run_data: Variant) -> void:
+	if run_data == null or pawn_layer == null:
+		return
+
+	var active_pawn_lookup: Dictionary = {}
+	for raw_pawn_id in run_data.active_dungeon_pawn_ids:
+		var pawn_id := str(raw_pawn_id)
+		active_pawn_lookup[pawn_id] = true
+		var pawn: Variant = run_data.get_dungeon_map_pawn(pawn_id)
+		if pawn == null:
+			continue
+
+		var view: Control = pawn_views_by_id.get(pawn_id, null) as Control
+		if view == null:
+			view = DungeonMapPawnViewScript.new() as Control
+			view.name = _pawn_view_name(pawn_id)
+			pawn_layer.add_child(view)
+			pawn_views_by_id[pawn_id] = view
+
+		var node: DungeonNodeData = nodes_by_id.get(int(pawn.current_node_id)) as DungeonNodeData
+		view.call("apply_pawn_state", pawn, node, GRID_CELL_SIZE)
+
+	for raw_view_pawn_id in pawn_views_by_id.keys():
+		var view_pawn_id := str(raw_view_pawn_id)
+		if active_pawn_lookup.has(view_pawn_id):
+			continue
+
+		var stale_view: Node = pawn_views_by_id.get(view_pawn_id, null) as Node
+		if stale_view != null:
+			stale_view.queue_free()
+		pawn_views_by_id.erase(view_pawn_id)
 
 func _can_select_node(node: Variant) -> bool:
-	if node == null or node.visited or not node.revealed:
+	if node == null or not node.revealed:
+		return false
+	var run_data: Variant = _run_data()
+	if node.id == int(run_data.get_current_dungeon_node_id()):
 		return false
 
-	return node.id == START_NODE_ID or _has_visited_neighbor(node)
+	return run_data.can_request_selected_dungeon_pawn_travel(node.id)
 
 func _has_visited_neighbor(node: Variant) -> bool:
 	for connected_id in node.connected_node_ids:
@@ -315,24 +398,176 @@ func _on_node_pressed(node_id: int) -> void:
 	if not _can_select_node(node):
 		return
 
-	var event := DungeonNodeEventHelperScript.build_node_event(node)
-	node_event_emitted.emit(event)
-	if node.node_type == DungeonNodeDataScript.TYPE_ENCOUNTER:
-		_start_encounter_node(node)
+	var travel_request: Dictionary = _run_data().request_selected_dungeon_pawn_travel(node_id)
+	if not bool(travel_request.get("accepted", false)):
 		return
 
-	var result := DungeonNodeEventHelperScript.process_node_event(node, GameManager, SoundManager)
-	if bool(result.get(DungeonNodeEventHelperScript.RESULT_COMPLETION_DEFERRED, false)):
-		return
-	if _run_data().has_ended():
+	_refresh_view()
+	_ensure_travel_processing()
+
+func _ensure_travel_processing() -> void:
+	if is_processing_travel_orders:
 		return
 
-	_complete_node_visit(node)
+	call_deferred("_process_travel_orders")
 
-func _start_encounter_node(node: DungeonNodeData) -> void:
+func _process_travel_orders() -> void:
+	if is_processing_travel_orders:
+		return
+
+	is_processing_travel_orders = true
+	while DungeonMovementCoordinatorScript.has_active_travel_orders(_run_data()):
+		if not GameManager.advance_run_time(RunData.NODE_STEP_DUNGEON_TIME_SECONDS):
+			break
+
+		var step_result: Dictionary = DungeonMovementCoordinatorScript.advance_one_step(_run_data(), _unresolved_event_node_ids())
+		var route_started: bool = _handle_travel_step_arrivals(step_result)
+		if route_started:
+			break
+
+		_apply_progress_state()
+		_refresh_view()
+
+		if bool(step_result.get(DungeonMovementCoordinatorScript.RESULT_PAUSE_REQUESTED, false)):
+			break
+
+		var delay_seconds: float = _travel_step_delay_seconds()
+		if delay_seconds > 0.0:
+			await get_tree().create_timer(delay_seconds).timeout
+
+	is_processing_travel_orders = false
+
+func _enter_unresolved_node(node: DungeonNodeData) -> void:
+	var run_data: Variant = _run_data()
+	var pawn: Variant = run_data.get_selected_dungeon_map_pawn()
+	if pawn == null:
+		return
+
+	var route_started: bool = _handle_pawn_arrival_at_node(str(pawn.pawn_id), node)
+	if not route_started:
+		_apply_progress_state()
+		_refresh_view()
+
+## Processes every pawn that moved during the last synchronized travel step.
+func _handle_travel_step_arrivals(step_result: Dictionary) -> bool:
+	var moved_pawn_ids: Array = step_result.get(DungeonMovementCoordinatorScript.RESULT_MOVED_PAWN_IDS, [])
+	for raw_pawn_id in moved_pawn_ids:
+		var pawn_id := str(raw_pawn_id)
+		var pawn: Variant = _run_data().get_dungeon_map_pawn(pawn_id)
+		if pawn == null:
+			continue
+
+		var node: DungeonNodeData = nodes_by_id.get(int(pawn.current_node_id)) as DungeonNodeData
+		if _handle_pawn_arrival_at_node(pawn_id, node):
+			return true
+
+	return false
+
+## Applies visit/reveal state and node-type behavior when one pawn enters a node.
+func _handle_pawn_arrival_at_node(pawn_id: String, node: DungeonNodeData) -> bool:
+	if node == null:
+		return false
+
+	var run_data: Variant = _run_data()
+	var pawn: Variant = run_data.get_dungeon_map_pawn(pawn_id)
+	if pawn == null:
+		return false
+
+	run_data.mark_dungeon_node_visited(node.id, pawn_id)
+	_emit_node_entered(node)
+
+	match node.node_type:
+		DungeonNodeDataScript.TYPE_EMPTY:
+			empty_node_entered.emit(node.id)
+			_resolve_node_visit(node, pawn_id)
+		DungeonNodeDataScript.TYPE_HAVEN:
+			haven_node_entered.emit(node.id)
+			GameManager.emit_run_state()
+		DungeonNodeDataScript.TYPE_FIGHT, DungeonNodeDataScript.TYPE_BOSS:
+			if not run_data.is_dungeon_node_resolved(node.id):
+				pawn.lock_for_event(node.id)
+				_apply_progress_state()
+				_refresh_view()
+				_start_combat_node(node, false)
+				return true
+			GameManager.emit_run_state()
+		DungeonNodeDataScript.TYPE_ENCOUNTER:
+			if not run_data.is_dungeon_node_resolved(node.id):
+				pawn.lock_for_event(node.id)
+				_apply_progress_state()
+				_refresh_view()
+				_start_encounter_node(node, false)
+				return true
+			GameManager.emit_run_state()
+		_:
+			GameManager.emit_run_state()
+
+	return false
+
+func _emit_initial_haven_entry() -> void:
+	if has_emitted_initial_haven_entry:
+		return
+
+	var run_data: Variant = _run_data()
+	var pawn: Variant = run_data.get_selected_dungeon_map_pawn()
+	if pawn == null:
+		return
+
+	var node: DungeonNodeData = nodes_by_id.get(int(pawn.current_node_id)) as DungeonNodeData
+	if node == null or node.node_type != DungeonNodeDataScript.TYPE_HAVEN:
+		return
+
+	has_emitted_initial_haven_entry = true
+	if not _handle_pawn_arrival_at_node(str(pawn.pawn_id), node):
+		_apply_progress_state()
+		_refresh_view()
+
+func _emit_node_entered(node: DungeonNodeData) -> void:
+	node_event_emitted.emit(DungeonNodeEventHelperScript.build_node_event(node))
+
+func _move_to_resolved_node(node: DungeonNodeData) -> void:
 	if node == null:
 		return
-	if not GameManager.advance_run_time(RunData.NODE_TRAVEL_TIME_SECONDS):
+
+	var run_data: Variant = _run_data()
+	run_data.mark_dungeon_node_visited(node.id)
+	GameManager.emit_run_state()
+	_apply_progress_state()
+	_refresh_view()
+
+func _unresolved_event_node_ids() -> Array[int]:
+	var event_node_ids: Array[int] = []
+	var run_data: Variant = _run_data()
+	for node_id in node_order:
+		var node = nodes_by_id.get(node_id)
+		if node == null or not _is_event_node(node):
+			continue
+		if not run_data.is_dungeon_node_resolved(node.id):
+			event_node_ids.append(node.id)
+
+	return event_node_ids
+
+func _is_event_node(node: DungeonNodeData) -> bool:
+	return node.node_type == DungeonNodeDataScript.TYPE_FIGHT \
+		or node.node_type == DungeonNodeDataScript.TYPE_BOSS \
+		or node.node_type == DungeonNodeDataScript.TYPE_ENCOUNTER
+
+func _travel_step_delay_seconds() -> float:
+	return 1.0 / max(RunData.VISUAL_NODE_STEPS_PER_REAL_SECOND, 0.01)
+
+func _start_combat_node(node: DungeonNodeData, charge_travel_time: bool = true) -> void:
+	if node == null:
+		return
+
+	var starts_boss_combat: bool = node.is_boss or node.node_type == DungeonNodeDataScript.TYPE_BOSS
+	if starts_boss_combat and SoundManager != null:
+		SoundManager.play_sfx(&"sfx.global.boss.boss_start_fight")
+	GameManager.start_combat(node.id, node.node_type, node.enemy_profile, starts_boss_combat, charge_travel_time)
+
+func _start_encounter_node(node: DungeonNodeData, charge_travel_time: bool = true) -> void:
+	if node == null:
+		return
+	if charge_travel_time and not GameManager.advance_run_time(RunData.NODE_TRAVEL_TIME_SECONDS):
 		return
 
 	var encounter_data: Resource = GameManager.get_dungeon_encounter(node.encounter_id)
@@ -383,12 +618,20 @@ func _clear_active_encounter_scene() -> void:
 	encounter_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 func _complete_node_visit(node: DungeonNodeData) -> void:
-	var run_data: Variant = _run_data()
-	run_data.mark_dungeon_node_visited(node.id)
-	node_completed.emit(node.id, node.node_type)
-	GameManager.emit_run_state()
+	_resolve_node_visit(node)
 	_apply_progress_state()
 	_refresh_view()
+
+func _resolve_node_visit(node: DungeonNodeData, pawn_id: String = "") -> void:
+	if node == null:
+		return
+
+	var run_data: Variant = _run_data()
+	var was_resolved: bool = run_data.is_dungeon_node_resolved(node.id)
+	run_data.complete_dungeon_node(node.id, pawn_id)
+	if not was_resolved:
+		node_completed.emit(node.id, node.node_type)
+	GameManager.emit_run_state()
 
 func _center_map_content() -> void:
 	var viewport_size := map_viewport.size
@@ -401,6 +644,14 @@ func _run_data() -> Variant:
 
 	return GameManager.current_run_data
 
+func _resolve_pawn_layer() -> Control:
+	if not pawn_layer_path.is_empty():
+		var configured_layer: Control = get_node_or_null(pawn_layer_path) as Control
+		if configured_layer != null:
+			return configured_layer
+
+	return get_node_or_null("../MapViewport/MapContent/PawnLayer") as Control
+
 func _generate_run_descriptors() -> Array:
 	var run_data: Variant = _run_data()
 	if run_data.dungeon_node_descriptors.is_empty():
@@ -411,6 +662,8 @@ func _generate_run_descriptors() -> Array:
 			GameManager.DEFAULT_DUNGEON_GENERATION_CONFIG,
 			GameManager.DEFAULT_DUNGEON_ENCOUNTER_POOL
 		)
+	if not run_data.has_dungeon_map_pawns():
+		run_data.initialize_dungeon_map_state(START_NODE_ID)
 
 	return run_data.dungeon_node_descriptors.duplicate(true)
 
@@ -421,6 +674,13 @@ func _boss_node_id() -> int:
 			return node.id
 
 	return node_order[node_order.size() - 1] if not node_order.is_empty() else START_NODE_ID
+
+func _pawn_view_name(pawn_id: String) -> String:
+	var normalized := pawn_id.strip_edges().replace(".", "_").replace(" ", "_")
+	if normalized.is_empty():
+		normalized = "pawn"
+
+	return "PawnMarker_%s" % normalized
 
 func _default_grid_size_for_type(node_type: String) -> Vector2i:
 	if node_type == DungeonNodeDataScript.TYPE_EMPTY:

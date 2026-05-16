@@ -12,16 +12,16 @@ This inventory lists runtime `.gd` scripts under `res://core` and `res://scenes`
 | --- | ---: |
 | `core/audio` | 7 |
 | `core/combat` | 14 |
-| `core/dungeon` | 9 |
+| `core/dungeon` | 12 |
 | `core/input` | 1 |
 | `core/party` | 3 |
 | `core/difficulty`, `core/rewards`, `core/statuses` | 3 |
 | `scenes/combat` | 6 |
 | `scenes/combatants` | 8 |
-| `scenes/dungeon` | 5 |
+| `scenes/dungeon` | 6 |
 | `scenes/ui` | 8 |
 | Root scripts | 2 |
-| Total | 66 |
+| Total | 70 |
 
 ## Root scripts
 
@@ -96,6 +96,9 @@ This inventory lists runtime `.gd` scripts under `res://core` and `res://scenes`
 | `res://scenes/dungeon/dungeon_controller.gd` | None | Builds dungeon grid nodes, controls reveal state, refreshes dungeon hotbar HP/action slots, applies combat results, and starts routed encounters. |
 | `res://core/dungeon/abilities/dungeon_ability_data.gd` | `DungeonAbilityData` | Class-agnostic dungeon hotbar ability metadata. |
 | `res://core/dungeon/abilities/dungeon_ability_pool.gd` | `DungeonAbilityPool` | Ordered pool of dungeon map abilities for the hotbar. |
+| `res://core/dungeon/dungeon_map_pawn_state.gd` | `DungeonMapPawnState` | Run-owned dungeon map position, travel placeholders, and event-lock placeholders for one active party member. |
+| `res://core/dungeon/dungeon_movement_coordinator.gd` | `DungeonMovementCoordinator` | Advances active dungeon pawn travel orders in synchronized node steps. |
+| `res://core/dungeon/dungeon_pathfinder.gd` | `DungeonPathfinder` | Finds allowed routes through descriptor connection graphs. |
 | `res://core/dungeon/dungeon_floor_generation_config.gd` | `DungeonFloorGenerationConfig` | Resource tuning profile for deterministic dungeon generation. |
 | `res://core/dungeon/dungeon_floor_generator.gd` | `DungeonFloorGenerator` | Builds seeded dungeon descriptor arrays and validates generated graph data. |
 | `res://core/dungeon/dungeon_node_data.gd` | `DungeonNodeData` | Runtime dungeon node state for grid placement, visited/revealed state, and connections. |
@@ -105,6 +108,7 @@ This inventory lists runtime `.gd` scripts under `res://core` and `res://scenes`
 | `res://core/dungeon/encounters/dungeon_encounter_resolver.gd` | `DungeonEncounterResolver` | Resolves encounter IDs, scenes, and choices. |
 | `res://scenes/dungeon/dungeon_grid_view.gd` | `DungeonGridView` | Draws the dungeon map grid behind generated nodes. |
 | `res://scenes/dungeon/dungeon_map_input_connector.gd` | `DungeonMapInputConnector` | Applies map navigation keybinds to dungeon zooming and panning. |
+| `res://scenes/dungeon/dungeon_map_pawn_view.gd` | `DungeonMapPawnView` | Draws one display-only marker for a run-owned dungeon pawn. |
 | `res://scenes/dungeon/dungeon_node_view.gd` | `DungeonNodeView` | Texture button view for dungeon nodes and selection tooltips. |
 | `res://scenes/dungeon/encounters/dungeon_choice_encounter.gd` | `DungeonChoiceEncounter` | Generic encounter choice scene that emits selected encounter results. |
 

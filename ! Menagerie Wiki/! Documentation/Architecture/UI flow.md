@@ -42,6 +42,8 @@ The UI layer is scene-driven: scene scripts call `GameManager`, reusable control
 2. The dungeon hotbar layers solid art, three action slots, the persistent player HP bar, and transparent frame art.
 3. The HP bar reads `GameManager.get_run_player_hp_snapshot()` so encounter damage and combat results carry back to the map, and its overlay label shows current/max HP on hover.
 4. The three action slots read from `GameManager.get_dungeon_abilities()`, which uses the class-agnostic default dungeon ability pool.
+5. `DungeonMap.tscn` places `PawnLayer` above `NodeLayer`; `DungeonController` fills it with `DungeonMapPawnView` markers that display active pawn positions from `RunData`.
+6. Node buttons request selected-pawn travel orders through `RunData`; the controller travel loop advances pawn state one node step at a time, applies arrival visit/reveal behavior, and marker positions refresh from that state.
 
 ## Shared controls
 
@@ -52,6 +54,7 @@ The UI layer is scene-driven: scene scripts call `GameManager`, reusable control
 | `NumberFont` | `res://scenes/ui/common/number_font.gd` | Applies or draws shared-font number spans in mixed-width UI text. |
 | `TimelineView` | `res://scenes/combat/timeline_view.gd` | Draws and scrolls the battle timeline ruler and action markers. |
 | `DungeonMapInputConnector` | `res://scenes/dungeon/dungeon_map_input_connector.gd` | Connects shared map navigation keybinds to dungeon zooming and panning. |
+| `DungeonMapPawnView` | `res://scenes/dungeon/dungeon_map_pawn_view.gd` | Draws one display-only dungeon pawn marker from run-owned pawn state. |
 
 ## See also
 

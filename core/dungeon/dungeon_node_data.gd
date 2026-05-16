@@ -14,6 +14,7 @@ var grid_position: Vector2i = Vector2i.ZERO
 var grid_size: Vector2i = Vector2i.ONE
 var visited: bool = false
 var revealed: bool = false
+var resolved: bool = false
 var connected_node_ids: Array[int] = []
 var enemy_profile: String = ""
 var encounter_id: StringName = &""

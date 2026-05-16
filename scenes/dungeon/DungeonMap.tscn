@@ -71,6 +71,13 @@ offset_right = 1656.0
 offset_bottom = 216.0
 mouse_filter = 2
 
+[node name="PawnLayer" type="Control" parent="MapViewport/MapContent" unique_id=1586885601]
+z_index = 1
+anchors_preset = 0
+offset_right = 1656.0
+offset_bottom = 216.0
+mouse_filter = 2
+
 [node name="EncounterLayer" type="Control" parent="." unique_id=1460772312]
 visible = false
 layout_mode = 1

@@ -23,7 +23,12 @@ static func build_node_event(node: DungeonNodeData) -> Dictionary:
 		EVENT_IS_BOSS: node.is_boss,
 	}
 
-static func process_node_event(node: DungeonNodeData, game_manager: Node, sound_manager: Node = null) -> Dictionary:
+static func process_node_event(
+	node: DungeonNodeData,
+	game_manager: Node,
+	sound_manager: Node = null,
+	charge_travel_time: bool = true
+) -> Dictionary:
 	var event := build_node_event(node)
 	var handled := false
 	var completion_deferred := false
@@ -45,7 +50,7 @@ static func process_node_event(node: DungeonNodeData, game_manager: Node, sound_
 			if (node.is_boss or node.node_type == DungeonNodeData.TYPE_BOSS) and sound_manager != null:
 				sound_manager.call("play_sfx", &"sfx.global.boss.boss_start_fight")
 			if game_manager != null:
-				game_manager.call("start_combat", node.id, node.node_type, node.enemy_profile, node.is_boss)
+				game_manager.call("start_combat", node.id, node.node_type, node.enemy_profile, node.is_boss, charge_travel_time)
 
 	return {
 		RESULT_EVENT: event,

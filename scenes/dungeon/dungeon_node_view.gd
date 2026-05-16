@@ -56,6 +56,8 @@ func apply_state(data: DungeonNodeData, is_current: bool, can_select: bool) -> v
 	mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND if can_select else Control.CURSOR_ARROW
 	if data.visited and is_current:
 		modulate = Color(1.0, 0.95, 0.72, 1.0)
+	elif data.resolved and can_select:
+		modulate = Color(0.84, 0.88, 0.92, 0.92)
 	elif data.visited:
 		modulate = Color(0.68, 0.70, 0.72, 0.86)
 	elif can_select:
@@ -69,8 +71,10 @@ func _tooltip_for(data: DungeonNodeData, is_current: bool, can_select: bool) -> 
 		return "Hidden"
 	if is_current:
 		return "Current location"
+	if data.resolved and can_select:
+		return "Move to %s" % data.node_type
 	if data.visited:
-		return "Visited"
+		return "Visited" if not can_select else "Return to %s" % data.node_type
 	if can_select:
 		return "Visit %s" % data.node_type
 

@@ -64,6 +64,7 @@ func start_new_run(character: String, difficulty: String, dungeon_seed: String =
 		DEFAULT_DUNGEON_GENERATION_CONFIG,
 		DEFAULT_DUNGEON_ENCOUNTER_POOL
 	)
+	current_run_data.initialize_dungeon_map_state(RunDataScript.START_DUNGEON_NODE_ID)
 	run_setup_data.configure_selection(current_run_data.selected_character, current_run_data.selected_difficulty)
 	run_setup_data.dungeon_seed = current_run_data.dungeon_seed
 	run_setup_data.dungeon_floor_layer = current_run_data.dungeon_floor_layer
@@ -74,7 +75,13 @@ func start_new_run(character: String, difficulty: String, dungeon_seed: String =
 func clear_run() -> void:
 	current_run_data = null
 
-func start_combat(node_id: int, node_type: String, enemy_profile_path: String, is_boss: bool) -> void:
+func start_combat(
+	node_id: int,
+	node_type: String,
+	enemy_profile_path: String,
+	is_boss: bool,
+	charge_travel_time: bool = true
+) -> void:
 	if current_run_data == null:
 		start_new_run(
 			run_setup_data.selected_character,
@@ -85,7 +92,7 @@ func start_combat(node_id: int, node_type: String, enemy_profile_path: String, i
 
 	current_run_data.set_encounter(node_id, node_type, enemy_profile_path, is_boss, DEFAULT_ENEMY_PROFILE_PATH)
 
-	if not advance_run_time(RunDataScript.NODE_TRAVEL_TIME_SECONDS):
+	if charge_travel_time and not advance_run_time(RunDataScript.NODE_TRAVEL_TIME_SECONDS):
 		return
 
 	go_to_scene("combat/BattleScene")
