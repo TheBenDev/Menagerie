@@ -27,19 +27,19 @@ Gameplay data is authored as Godot `.tres` resources that point to resource scri
 
 ## Character and enemy data flow
 
-1. A `CombatantProfile` stores display data, battle visual scene, stats, moveset, audio IDs, reward/AI references, and resource bar configs.
+1. A `CombatantProfile` stores display data, battle visual scene, base stats, stat weights, moveset, audio IDs, reward/AI references, and resource bar configs.
 2. `RunData.initialize_player_state()` creates a `PlayerPartyState` with one active Warrior `PlayerPartyMemberState`.
 3. Warrior's `PlayerPartyMemberState` references a reusable `CombatantState` built from `warrior_profile.tres`.
 4. `RunData.initialize_dungeon_map_state()` creates Warrior's `DungeonMapPawnState`, links it through `PlayerPartyMemberState.map_pawn_id`, and seeds Haven/neighbor node state from generated descriptors.
 5. `DungeonController` creates `DungeonMapPawnView` markers on `DungeonMap.tscn`'s `PawnLayer` from the active pawn state; marker views are display-only.
-6. Existing single-combatant battle scenes still instantiate `WarriorCombatant` and `EnemyCombatant` nodes and call `Combatant.apply_profile()` to copy stats and actions from profiles into node runtime fields.
+6. `BattleScene` instantiates player and enemy combatant nodes under its runtime `Combatants` root, instantiates temporary combat-only copies for extra allies/enemies, and calls `Combatant.apply_profile()` to copy identity/actions before runtime stat changes.
 7. Before battle, `GameManager.apply_run_player_state_to_combatant()` copies effective Warrior `CombatantState` stats onto the node-based player combatant bridge.
-8. Generated Fight/Boss descriptors store `combat_encounter_id`, `combat_encounter_profile_path`, and the first enemy slot's `enemy` profile path as compatibility data.
-9. `BattleScene` loads the routed `DungeonCombatEncounterData` first and uses its first enemy slot to configure the current enemy node.
-10. The first enemy slot's `position_id` selects an authored `EnemySlots/*` marker in `BattleScene.tscn`; the current Warrior display is placed at `PlayerSlot1`.
-11. `BattleScene` wraps the current Warrior and enemy nodes in one-combatant `CombatantGroup` instances before starting `BattleController`.
+8. Generated Fight/Boss descriptors store `combat_encounter_id`, `combat_encounter_profile_path`, legacy `enemy` profile path data, and generated `enemy_instances` with profile path, slot position, enemy level, and stat seed.
+9. `BattleScene` consumes `enemy_instances` to create enemy combatants, rolls fallback instances from `DungeonCombatEncounterData` only when old descriptors do not contain generated payloads, and applies level-scaled stats through `CombatantStatAllocator`.
+10. Enemy `position_id` values select authored `EnemySlots/*` markers in `BattleScene.tscn`; the current player display is placed at `PlayerSlot1`, while temporary AI player copies use `PlayerSlot2/3`.
+11. `BattleScene` wraps current player/enemy arrays in `CombatantGroup` instances before starting `BattleController`.
 12. A player combatant reads `profile.moveset.actions`.
-13. An enemy combatant reads `profile.enemy_ai_profile.moves`.
+13. Enemy combatants read `profile.enemy_ai_profile.moves`; AI-controlled player copies use their normal `profile.moveset.actions`.
 14. `BattleScene` owns combatant display nodes. Each `CombatantDisplay` reads `profile.battle_visual_scene` and `profile.health_bar`, while `BattleHUD` reads the player's `profile.resource_bars` for the hotbar resource bar.
 15. `CombatAudioBridge` reads profile SFX IDs for hit, block, and death events across configured combatant groups.
 
@@ -56,16 +56,17 @@ Gameplay data is authored as Godot `.tres` resources that point to resource scri
 | `DungeonPathfinder` | `res://core/dungeon/dungeon_pathfinder.gd` | Reusable route helper for allowed paths through dungeon descriptor connection graphs. |
 | `DungeonMovementCoordinator` | `res://core/dungeon/dungeon_movement_coordinator.gd` | Reusable synchronized node-step coordinator for active dungeon pawn travel orders. |
 
-Phase 1 keeps legacy `RunData.player_current_hp`, `player_max_hp`, and `player_base_stats` as synchronized mirrors so existing dungeon HUD and combat code keep working while later phases migrate more systems to party and combatant state directly. Phase 2 similarly keeps `RunData.current_dungeon_node_id` synchronized while the selected `DungeonMapPawnState` becomes the intended source of map position. Phase 3 displays that pawn state through `DungeonMapPawnView` markers without moving gameplay authority into scene visuals. Phase 4 separates `visited_dungeon_node_ids` from `resolved_dungeon_node_ids`: visited means a pawn entered the node, while resolved means the node's event/effect is complete. Phase 5 adds `DungeonPathfinder` as a scene-independent route helper for later travel orders. Phase 6 stores path-based travel orders on `DungeonMapPawnState`; Phase 7 advances those orders in synchronized node steps; Phase 8 applies arrival effects by marking nodes visited, revealing neighbors, emitting entry signals, resolving Empty nodes, leaving Haven unresolved, and starting routed events from the arrived node. Phase 9 treats `DungeonMapPawnState.active_event_node_id` as the participant link for event completion so resolving a node unlocks only pawns that entered that event. Phase 10 uses `PartyControlMode.AutoPilot` as simple same-destination follow behavior when the local leader receives a valid travel order. Phase 11 wraps current 1v1 battle nodes in `CombatantGroup` objects so battle logic can reason about player and enemy sides without changing the current combat layout. Phase 12 assigns seeded `DungeonCombatEncounterData` references to generated Fight/Boss descriptors while keeping the first enemy slot mirrored into the legacy single-enemy profile path. Phase 13 adds authored combat display slot markers and routes the current enemy display through the first enemy slot `position_id`. Phase 14 makes player targeting explicit by passing confirmed display targets into `BattleController.player_choose_action()`.
+Phase 1 keeps legacy `RunData.player_current_hp`, `player_max_hp`, and `player_base_stats` as synchronized mirrors so existing dungeon HUD and combat code keep working while later phases migrate more systems to party and combatant state directly. Phase 2 similarly keeps `RunData.current_dungeon_node_id` synchronized while the selected `DungeonMapPawnState` becomes the intended source of map position. Phase 3 displays that pawn state through `DungeonMapPawnView` markers without moving gameplay authority into scene visuals. Phase 4 separates `visited_dungeon_node_ids` from `resolved_dungeon_node_ids`: visited means a pawn entered the node, while resolved means the node's event/effect is complete. Phase 5 adds `DungeonPathfinder` as a scene-independent route helper for later travel orders. Phase 6 stores path-based travel orders on `DungeonMapPawnState`; Phase 7 advances those orders in synchronized node steps; Phase 8 applies arrival effects by marking nodes visited, revealing neighbors, emitting entry signals, resolving Empty nodes, leaving Haven unresolved, and starting routed events from the arrived node. Phase 9 treats `DungeonMapPawnState.active_event_node_id` as the participant link for event completion so resolving a node unlocks only pawns that entered that event. Phase 10 uses `PartyControlMode.AutoPilot` as simple same-destination follow behavior when the local leader receives a valid travel order. Phase 11 wraps battle nodes in `CombatantGroup` objects so battle logic can reason about player and enemy sides. Phase 12 assigns seeded `DungeonCombatEncounterData` references to generated Fight/Boss descriptors while keeping the first enemy slot mirrored into the legacy enemy profile path. Phase 13 adds authored combat display slot markers. Phase 14 makes player targeting explicit by passing confirmed display targets into `BattleController.player_choose_action()`. Phase 15 generates enemy instances with level/stat seeds, supports multiple enemy displays, and uses combat-only AI Warrior copies for hybrid party-combat testing.
 
 ## Action data flow
 
-1. `CombatActionData` defines ID, display name, time cost, costs, target side, SFX IDs, and `effect_data`.
+1. `CombatActionData` defines ID, display name, time cost, costs, `target_rule`, legacy target side, SFX IDs, and `effect_data`.
 2. `PlayerActionData` adds player-only fields such as rage cost and tooltip text.
-3. `EnemyMoveData` adds AI metadata such as weights, HP gates, target rules, roles, and status preferences.
+3. `EnemyMoveData` adds AI metadata such as weights, HP gates, roles, and status preferences.
 4. Each action owns an ordered `effect_data` array of dictionaries.
 5. Each effect dictionary uses `id` for the namespaced effect behavior and adds the fields needed by that behavior.
-6. `CombatEffectLibrary` maps the ID to runtime behavior.
+6. `CombatTargeting` resolves `SingleEnemy`, `SingleAlly`, `RandomEnemy`, `Self`, `AllAllies`, and `AllEnemies` target modes for local input and AI.
+7. `CombatEffectLibrary` maps the ID to runtime behavior.
 
 ## Dungeon map ability data flow
 

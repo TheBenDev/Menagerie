@@ -46,6 +46,7 @@ effect_data = Array[Dictionary]([{
 "amount": 12,
 "id": &"combat.block"
 }])
+target_rule = "Self"
 target_enemy = false
 
 [resource]

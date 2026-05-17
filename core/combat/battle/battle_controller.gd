@@ -3,7 +3,8 @@ class_name BattleController
 extends Node
 
 const CombatantGroupScript := preload("res://core/combat/combatant_group.gd")
-const EnemyBrainScript := preload("res://core/combat/ai/enemy_brain.gd")
+const CombatBrainScript := preload("res://core/combat/ai/combat_brain.gd")
+const CombatTargetingScript := preload("res://core/combat/actions/combat_targeting.gd")
 const ValueReaderScript := preload("res://core/utils/value_reader.gd")
 const DEFAULT_DIFFICULTY_PROFILE := preload("res://core/difficulty/normal.tres")
 const PLAYER_GROUP_ID := "player"
@@ -23,6 +24,7 @@ var enemy: Combatant = null
 var player_group: Variant = null
 var enemy_group: Variant = null
 @export var difficulty_profile: DifficultyProfile = null
+var ai_controlled_combatants: Array[Combatant] = []
 
 var current_time: float = 0.0
 var tick_size: float = CombatTime.TIME_STEP_SECONDS
@@ -46,6 +48,13 @@ func configure_combatant_groups(player_combatants: Array, enemy_combatants: Arra
 	player_group = CombatantGroupScript.new(PLAYER_GROUP_ID, player_combatants)
 	enemy_group = CombatantGroupScript.new(ENEMY_GROUP_ID, enemy_combatants)
 	_sync_convenience_refs_from_groups()
+
+func set_ai_controlled_combatants(combatants: Array) -> void:
+	ai_controlled_combatants.clear()
+	for raw_combatant in combatants:
+		var combatant := raw_combatant as Combatant
+		if combatant != null and not ai_controlled_combatants.has(combatant):
+			ai_controlled_combatants.append(combatant)
 
 func get_player_combatants() -> Array[Combatant]:
 	_ensure_combatant_groups()
@@ -95,7 +104,12 @@ func start_battle() -> void:
 	action_queue_changed.emit()
 
 	battle_log.emit("Battle started.")
-	player_ready.emit(player)
+	if player != null and player.hp > 0:
+		player_ready.emit(player)
+	else:
+		waiting_for_player_input = false
+		_choose_ready_ai_actions()
+		advance_until_input_needed()
 
 func _ensure_combatant_groups() -> void:
 	if player_group == null:
@@ -112,8 +126,8 @@ func _ensure_combatant_groups() -> void:
 
 func _sync_convenience_refs_from_groups() -> void:
 	if player_group != null:
-		var primary_player: Combatant = player_group.get_first_living_combatant()
-		if primary_player == null:
+		var primary_player: Combatant = player
+		if primary_player == null or not player_group.has_combatant(primary_player):
 			primary_player = player_group.get_first_combatant()
 		if primary_player != null:
 			player = primary_player
@@ -170,7 +184,7 @@ func player_choose_action(action: CombatActionData, explicit_targets: Array[Comb
 	_enqueue_action(player, action)
 	battle_log.emit(player.display_name + " starts " + action.display_name + ".")
 
-	_choose_ready_enemy_actions()
+	_choose_ready_ai_actions()
 
 	advance_until_input_needed()
 
@@ -218,7 +232,7 @@ func advance_until_input_needed() -> void:
 		if battle_over:
 			break
 
-		_choose_ready_enemy_actions()
+		_choose_ready_ai_actions()
 
 		_sync_convenience_refs_from_groups()
 		if player != null and player.hp > 0 and not player.is_busy:
@@ -249,22 +263,29 @@ func _wait_tick_delay(delay_seconds: float) -> void:
 		if not is_paused:
 			elapsed_seconds += delta_seconds
 
-func _choose_ready_enemy_actions() -> void:
+func _choose_ready_ai_actions() -> void:
 	if battle_over:
 		return
 
 	for active_enemy in get_living_enemy_combatants():
 		if active_enemy == null or active_enemy.is_busy:
 			continue
-		_enemy_choose_action(active_enemy)
+		_ai_choose_action(active_enemy, enemy_group, player_group)
 
-func _enemy_choose_action(active_enemy: Combatant) -> void:
-	if active_enemy == null or active_enemy.hp <= 0:
+	for active_player in get_living_player_combatants():
+		if active_player == null or active_player.is_busy or active_player == player:
+			continue
+		if not ai_controlled_combatants.has(active_player):
+			continue
+		_ai_choose_action(active_player, player_group, enemy_group)
+
+func _ai_choose_action(actor: Combatant, ally_group: Variant, opponent_group: Variant) -> void:
+	if actor == null or actor.hp <= 0:
 		return
 
-	var opponents: Array[Combatant] = get_living_player_combatants()
-	var allies: Array[Combatant] = get_living_enemy_combatants()
-	var choice := EnemyBrainScript.choose_action(active_enemy, opponents, allies, _active_difficulty_profile())
+	var opponents: Array[Combatant] = opponent_group.get_living_combatants() if opponent_group != null else []
+	var allies: Array[Combatant] = ally_group.get_living_combatants() if ally_group != null else []
+	var choice := CombatBrainScript.choose_action(actor, opponents, allies, _active_difficulty_profile())
 	if choice.is_empty():
 		return
 
@@ -274,9 +295,9 @@ func _enemy_choose_action(active_enemy: Combatant) -> void:
 	if action == null or targets.is_empty():
 		return
 
-	active_enemy.start_action(action, targets, current_time)
-	_enqueue_action(active_enemy, action)
-	battle_log.emit(active_enemy.display_name + " starts " + action.display_name + ".")
+	actor.start_action(action, targets, current_time)
+	_enqueue_action(actor, action)
+	battle_log.emit(actor.display_name + " starts " + action.display_name + ".")
 
 func _active_difficulty_profile() -> DifficultyProfile:
 	if difficulty_profile != null:
@@ -308,25 +329,9 @@ func _apply_enemy_difficulty_profile(enemy_combatant: Combatant, active_difficul
 	enemy_combatant.block_changed.emit(enemy_combatant)
 
 func _targets_for_player_action(action: CombatActionData, explicit_targets: Array[Combatant]) -> Array[Combatant]:
-	var targets := _living_targets_from(explicit_targets)
-	if not targets.is_empty():
-		return targets
-
-	var target_group: Variant = enemy_group if action.target_enemy else player_group
-	var default_target: Combatant = target_group.get_first_living_combatant() if target_group != null else null
-	if default_target == null:
-		return []
-
-	targets.append(default_target)
-	return targets
-
-func _living_targets_from(raw_targets: Array[Combatant]) -> Array[Combatant]:
-	var targets: Array[Combatant] = []
-	for target in raw_targets:
-		if target != null and target.hp > 0 and not targets.has(target):
-			targets.append(target)
-
-	return targets
+	var opponents: Array[Combatant] = enemy_group.get_living_combatants() if enemy_group != null else []
+	var allies: Array[Combatant] = player_group.get_living_combatants() if player_group != null else []
+	return CombatTargetingScript.targets_for_action(action, player, opponents, allies, explicit_targets)
 
 func _combatant_targets_from(raw_targets: Variant) -> Array[Combatant]:
 	var targets: Array[Combatant] = []
@@ -347,6 +352,10 @@ func _on_combatant_died(combatant: Combatant) -> void:
 	var players_defeated := is_player_group_defeated()
 	var enemies_defeated := is_enemy_group_defeated()
 	if not players_defeated and not enemies_defeated:
+		if combatant == player:
+			waiting_for_player_input = false
+			_choose_ready_ai_actions()
+			advance_until_input_needed()
 		return
 
 	battle_over = true

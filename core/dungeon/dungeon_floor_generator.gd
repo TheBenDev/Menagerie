@@ -12,6 +12,11 @@ const LARGE_SIZE := Vector2i(3, 3)
 const DEFAULT_COMBAT_ENCOUNTER_ID := "training_ghoul_fight"
 const DEFAULT_COMBAT_ENCOUNTER_PROFILE_PATH := "res://core/dungeon/encounters/combat/training_ghoul_fight.tres"
 const DEFAULT_ENEMY_PROFILE_PATH := "res://scenes/combatants/enemies/training_ghoul/training_ghoul_profile.tres"
+const ENEMY_INSTANCE_PROFILE_PATH := "combatant_profile_path"
+const ENEMY_INSTANCE_POSITION_ID := "position_id"
+const ENEMY_INSTANCE_LEVEL := "enemy_level"
+const ENEMY_INSTANCE_STAT_SEED := "stat_seed"
+const ENEMY_INSTANCE_ID := "instance_id"
 const TYPE_SORT_ORDER := {
 	DungeonNodeDataScript.TYPE_EMPTY: 0,
 	DungeonNodeDataScript.TYPE_FIGHT: 1,
@@ -288,6 +293,7 @@ static func _build_settings(
 		"encounter_count": encounter_count,
 		"encounter_pool": typed_encounter_pool,
 		"combat_encounter_pool": typed_combat_encounter_pool,
+		"enemy_level_range": _enemy_level_range_for_floor(config, floor_layer),
 		"branch_chance": clampf(config.base_branch_chance + layer_offset * config.branch_chance_per_layer + difficulty_index * config.branch_chance_per_difficulty, 0.0, 1.0),
 		"extra_connection_chance": clampf(config.base_extra_connection_chance + layer_offset * config.extra_connection_chance_per_layer + difficulty_index * config.extra_connection_chance_per_difficulty, 0.0, 1.0),
 		"path_noise": clampf(config.base_path_noise + layer_offset * config.path_noise_per_layer + difficulty_index * config.path_noise_per_difficulty, 0.0, 1.0),
@@ -370,6 +376,7 @@ static func _assign_combat_encounters(combat_nodes: Array, settings: Dictionary)
 		combat_node["combat_encounter_id"] = encounter_id
 		combat_node["combat_encounter_profile_path"] = encounter_profile_path
 		combat_node["enemy"] = enemy_profile_path
+		combat_node["enemy_instances"] = _build_enemy_instances(encounter_data, settings, bool(combat_node.get("is_boss", false)))
 
 static func _pick_combat_encounter(settings: Dictionary) -> Resource:
 	var combat_encounter_pool := settings.get("combat_encounter_pool", null) as Resource
@@ -408,6 +415,60 @@ static func _primary_enemy_profile_path(encounter_data: Resource) -> String:
 			return profile_path
 
 	return ""
+
+static func _build_enemy_instances(encounter_data: Resource, settings: Dictionary, is_boss: bool) -> Array[Dictionary]:
+	var enemy_instances: Array[Dictionary] = []
+	var enemy_slots := _enemy_slots(encounter_data)
+	if enemy_slots.is_empty():
+		return enemy_instances
+
+	var min_count := _encounter_count_value(encounter_data, "min_enemy_count", 1)
+	var max_count := _encounter_count_value(encounter_data, "max_enemy_count", min_count)
+	min_count = clamp(min_count, 1, enemy_slots.size())
+	max_count = clamp(max(max_count, min_count), min_count, enemy_slots.size())
+	var enemy_count := randi_range(min_count, max_count)
+	var enemy_level_range: Vector2i = settings.get("enemy_level_range", Vector2i(0, 5))
+	for index in range(enemy_count):
+		var slot_data: Dictionary = enemy_slots[index]
+		var profile_path := str(slot_data.get(DungeonCombatEncounterData.SLOT_COMBATANT_PROFILE_PATH, "")).strip_edges()
+		if profile_path.is_empty():
+			continue
+
+		var enemy_level := enemy_level_range.y if is_boss else randi_range(enemy_level_range.x, enemy_level_range.y)
+		enemy_instances.append({
+			ENEMY_INSTANCE_ID: "enemy_%s" % (index + 1),
+			ENEMY_INSTANCE_PROFILE_PATH: profile_path,
+			ENEMY_INSTANCE_POSITION_ID: str(slot_data.get(DungeonCombatEncounterData.SLOT_POSITION_ID, "EnemySlot%s" % (index + 1))),
+			ENEMY_INSTANCE_LEVEL: enemy_level,
+			ENEMY_INSTANCE_STAT_SEED: int(randi()),
+		})
+
+	return enemy_instances
+
+static func _enemy_slots(encounter_data: Resource) -> Array[Dictionary]:
+	var slots: Array[Dictionary] = []
+	if encounter_data == null:
+		return slots
+
+	var enemy_slots_value: Variant = encounter_data.get("enemy_slots")
+	if not (enemy_slots_value is Array):
+		return slots
+
+	for slot in enemy_slots_value:
+		if slot is Dictionary:
+			slots.append(slot)
+
+	return slots
+
+static func _encounter_count_value(encounter_data: Resource, field_name: String, default_value: int) -> int:
+	if encounter_data == null:
+		return default_value
+
+	var value: Variant = encounter_data.get(field_name)
+	if value is int or value is float:
+		return int(value)
+
+	return default_value
 
 static func _assign_default_combat_encounter(combat_node: Dictionary) -> void:
 	combat_node["combat_encounter_id"] = DEFAULT_COMBAT_ENCOUNTER_ID
@@ -564,6 +625,7 @@ static func _export_descriptors(nodes: Array, edges: Dictionary) -> Array:
 			descriptor["combat_encounter_id"] = str(node.get("combat_encounter_id", DEFAULT_COMBAT_ENCOUNTER_ID))
 			descriptor["combat_encounter_profile_path"] = str(node.get("combat_encounter_profile_path", DEFAULT_COMBAT_ENCOUNTER_PROFILE_PATH))
 			descriptor["enemy"] = str(node.get("enemy", DEFAULT_ENEMY_PROFILE_PATH))
+			descriptor["enemy_instances"] = _duplicate_enemy_instances(node.get("enemy_instances", []))
 
 		var connections: Array[int] = []
 		for connected_uid in edges.get(node.uid, []):
@@ -766,6 +828,23 @@ static func _difficulty_index(difficulty_id: String) -> int:
 			return 2
 		_:
 			return 1
+
+static func _enemy_level_range_for_floor(config: Resource, floor_layer: int) -> Vector2i:
+	if config != null and config.has_method("enemy_level_range_for_floor"):
+		return config.call("enemy_level_range_for_floor", floor_layer)
+
+	return Vector2i(0, 5)
+
+static func _duplicate_enemy_instances(raw_enemy_instances: Variant) -> Array[Dictionary]:
+	var enemy_instances: Array[Dictionary] = []
+	if not (raw_enemy_instances is Array):
+		return enemy_instances
+
+	for raw_enemy_instance in raw_enemy_instances:
+		if raw_enemy_instance is Dictionary:
+			enemy_instances.append(raw_enemy_instance.duplicate(true))
+
+	return enemy_instances
 
 static func _is_in_bounds(cell: Vector2i, grid_size: Vector2i) -> bool:
 	return cell.x >= 0 and cell.y >= 0 and cell.x < grid_size.x and cell.y < grid_size.y

@@ -11,6 +11,7 @@ extends Resource
 @export var dexterity: int = 0
 @export var intelligence: int = 0
 @export var vitality: int = 0
+@export var stat_weights: Dictionary = {}
 @export var moveset: CombatMovesetData = null
 @export var enemy_ai_profile: EnemyAIProfile = null
 @export var reward_profile: Resource = null

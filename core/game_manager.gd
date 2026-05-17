@@ -70,7 +70,8 @@ func start_combat(
 	is_boss: bool,
 	charge_travel_time: bool = true,
 	combat_encounter_id: StringName = &"",
-	combat_encounter_profile_path: String = ""
+	combat_encounter_profile_path: String = "",
+	enemy_instances: Array[Dictionary] = []
 ) -> void:
 	if current_run_data == null:
 		start_new_run(
@@ -87,7 +88,8 @@ func start_combat(
 		is_boss,
 		DEFAULT_ENEMY_PROFILE_PATH,
 		combat_encounter_id,
-		combat_encounter_profile_path
+		combat_encounter_profile_path,
+		enemy_instances
 	)
 
 	if charge_travel_time and not advance_run_time(RunDataScript.NODE_TRAVEL_TIME):
@@ -208,6 +210,9 @@ func export_current_run_memories() -> int:
 func calculate_rewards_for_profile(profile: CombatantProfile, is_boss: bool) -> Dictionary:
 	return RewardServiceScript.calculate_combat_rewards(profile, get_selected_difficulty_profile(), is_boss)
 
+func calculate_rewards_for_profiles(profiles: Array, is_boss: bool) -> Dictionary:
+	return RewardServiceScript.calculate_combat_rewards_for_profiles(profiles, get_selected_difficulty_profile(), is_boss)
+
 func get_selected_difficulty_profile() -> Resource:
 	var profile_path := get_selected_difficulty_profile_path()
 	if profile_path.is_empty():
@@ -253,6 +258,7 @@ func get_current_encounter() -> Dictionary:
 			"node_id": -1,
 			"node_type": "",
 			"enemy_profile_path": DEFAULT_ENEMY_PROFILE_PATH,
+			"enemy_instances": [],
 			"combat_encounter_id": &"",
 			"combat_encounter_profile_path": "",
 			"is_boss": false,

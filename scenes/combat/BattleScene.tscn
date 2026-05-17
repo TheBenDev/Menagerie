@@ -3,12 +3,7 @@
 [ext_resource type="Script" uid="uid://8rh3mj12ue6h" path="res://scenes/combat/battle_scene.gd" id="1_85vv1"]
 [ext_resource type="Script" uid="uid://51s8h5ue8jh" path="res://core/combat/battle/battle_controller.gd" id="2_2fq3d"]
 [ext_resource type="Texture2D" uid="uid://d3ovr4oae0nno" path="res://assets/ui/global/background/textured_background.png" id="2_5jc5f"]
-[ext_resource type="Script" uid="uid://fj4deylw7c0y" path="res://scenes/combatants/characters/warrior/warrior_combatant.gd" id="3_8e0o3"]
-[ext_resource type="Script" uid="uid://cw3sq4phvybjg" path="res://scenes/combatants/enemies/enemy_combatant.gd" id="4_2t1y0"]
 [ext_resource type="PackedScene" uid="uid://bg5fnqiiruwgf" path="res://scenes/combat/ui/BattleHUD.tscn" id="5_wvw5b"]
-[ext_resource type="Resource" uid="uid://da7mses80no5m" path="res://scenes/combatants/characters/warrior/warrior_profile.tres" id="6_warrior_profile"]
-[ext_resource type="Resource" uid="uid://q6rixmj2hsjf" path="res://scenes/combatants/enemies/training_ghoul/training_ghoul_profile.tres" id="7_ghoul_profile"]
-[ext_resource type="PackedScene" uid="uid://c4s3g3ql734w7" path="res://scenes/combat/ui/CombatantDisplay.tscn" id="8_5jc5f"]
 
 [node name="BattleScene" type="Node" unique_id=1966631071]
 script = ExtResource("1_85vv1")
@@ -22,33 +17,20 @@ expand_mode = 2
 [node name="BattleController" type="Node" parent="." unique_id=994767867]
 script = ExtResource("2_2fq3d")
 
-[node name="Warrior" type="Node" parent="." unique_id=1576678820]
-script = ExtResource("3_8e0o3")
-profile = ExtResource("6_warrior_profile")
+[node name="Combatants" type="Node" parent="." unique_id=1576678820]
 
-[node name="Enemy" type="Node" parent="." unique_id=1024762925]
-script = ExtResource("4_2t1y0")
-profile = ExtResource("7_ghoul_profile")
+[node name="CombatantDisplays" type="Control" parent="." unique_id=806953201]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 1920.0
+offset_bottom = 1080.0
+mouse_filter = 2
 
 [node name="BattleHUD" parent="." unique_id=1283886424 instance=ExtResource("5_wvw5b")]
 offset_left = 1.0
 offset_top = -1.0
 offset_right = 1.0
 offset_bottom = -1.0
-
-[node name="EnemyDisplay" parent="." unique_id=806953201 instance=ExtResource("8_5jc5f")]
-custom_minimum_size = Vector2(100, 200)
-offset_left = 1230.0
-offset_top = 357.0
-offset_right = 1580.0
-offset_bottom = 777.0
-
-[node name="WarriorDisplay" parent="." unique_id=717719744 instance=ExtResource("8_5jc5f")]
-custom_minimum_size = Vector2(100, 200)
-offset_left = 381.0
-offset_top = 369.0
-offset_right = 731.0
-offset_bottom = 789.0
 
 [node name="PlayerSlots" type="Control" parent="." unique_id=1310777311]
 visible = false
@@ -61,28 +43,28 @@ mouse_filter = 2
 [node name="PlayerSlot1" type="Control" parent="PlayerSlots" unique_id=649244423]
 custom_minimum_size = Vector2(350, 420)
 anchors_preset = 0
-offset_left = 381.0
-offset_top = 369.0
-offset_right = 731.0
-offset_bottom = 789.0
+offset_left = 524.0
+offset_top = 354.0
+offset_right = 874.0
+offset_bottom = 774.0
 mouse_filter = 2
 
 [node name="PlayerSlot2" type="Control" parent="PlayerSlots" unique_id=91560257]
 custom_minimum_size = Vector2(350, 420)
 anchors_preset = 0
-offset_left = 230.0
-offset_top = 260.0
-offset_right = 580.0
-offset_bottom = 680.0
+offset_left = 22.0
+offset_top = 141.0
+offset_right = 372.0
+offset_bottom = 561.0
 mouse_filter = 2
 
 [node name="PlayerSlot3" type="Control" parent="PlayerSlots" unique_id=1577734793]
 custom_minimum_size = Vector2(350, 420)
 anchors_preset = 0
-offset_left = 545.0
-offset_top = 245.0
-offset_right = 895.0
-offset_bottom = 665.0
+offset_left = 97.0
+offset_top = 580.0
+offset_right = 447.0
+offset_bottom = 1000.0
 mouse_filter = 2
 
 [node name="EnemySlots" type="Control" parent="." unique_id=374756090]
@@ -96,35 +78,35 @@ mouse_filter = 2
 [node name="EnemySlot1" type="Control" parent="EnemySlots" unique_id=2014457219]
 custom_minimum_size = Vector2(350, 420)
 anchors_preset = 0
-offset_left = 1230.0
-offset_top = 357.0
-offset_right = 1580.0
-offset_bottom = 777.0
+offset_left = 1054.0
+offset_top = 461.0
+offset_right = 1404.0
+offset_bottom = 881.0
 mouse_filter = 2
 
 [node name="EnemySlot2" type="Control" parent="EnemySlots" unique_id=1030965439]
 custom_minimum_size = Vector2(350, 420)
 anchors_preset = 0
-offset_left = 1390.0
-offset_top = 250.0
-offset_right = 1740.0
-offset_bottom = 670.0
+offset_left = 1483.0
+offset_top = 463.0
+offset_right = 1833.0
+offset_bottom = 883.0
 mouse_filter = 2
 
 [node name="EnemySlot3" type="Control" parent="EnemySlots" unique_id=1692003553]
 custom_minimum_size = Vector2(350, 420)
 anchors_preset = 0
-offset_left = 1080.0
-offset_top = 235.0
-offset_right = 1430.0
-offset_bottom = 655.0
+offset_left = 1563.0
+offset_top = 134.0
+offset_right = 1913.0
+offset_bottom = 554.0
 mouse_filter = 2
 
 [node name="EnemySlot4" type="Control" parent="EnemySlots" unique_id=640151834]
 custom_minimum_size = Vector2(350, 420)
 anchors_preset = 0
-offset_left = 1260.0
-offset_top = 170.0
-offset_right = 1610.0
-offset_bottom = 590.0
+offset_left = 1340.0
+offset_top = 146.0
+offset_right = 1690.0
+offset_bottom = 566.0
 mouse_filter = 2

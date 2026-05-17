@@ -28,14 +28,14 @@ The UI layer is scene-driven: scene scripts call `GameManager`, reusable control
 ## Battle HUD flow
 
 1. `BattleScene` is the combat scene root and owns the battle controller, combatants, background, combatant displays, and HUD.
-2. `BattleScene` positions the current warrior and enemy displays from authored `PlayerSlots` and `EnemySlots` markers before calling `CombatantDisplay.setup()`.
-3. `BattleScene` configures one-combatant `player_group` and `enemy_group` values, then calls `hud.setup(battle, warrior, enemy, player_group, enemy_group)` for the current bridge combatants.
+2. `BattleScene` positions the current player, combat-only AI player copies, and generated enemy displays from authored `PlayerSlots` and `EnemySlots` markers before calling `CombatantDisplay.setup()`.
+3. `BattleScene` configures player/enemy `CombatantGroup` values, including combat-only AI allies and generated enemies, then calls `hud.setup(battle, player_leader, primary_enemy, player_group, enemy_group)` for the primary bridge combatants.
 4. `BattleActionBar` receives `player.actions` and updates the bottom hotbar buttons.
 5. `BattleHUD` reads the player's active statuses and shows status icons in the transparent status bar above the hotbar.
 6. `TimelineView` receives marker dictionaries derived from `battle.action_queue`.
 7. Hover information from action resources, status resources, and `HoverInfoButton` nodes is exposed as hover metadata and rendered by the fixed info panel beside the hotbar.
 8. `BattleHUD` emits `action_selected`, `speed_requested`, and `pause_requested`.
-9. `BattleScene` turns `action_selected` into explicit target selection. While targeting, `BattleHUD.set_targeting_active(true)` disables further action-slot selection without disabling speed or pause controls.
+9. `BattleScene` turns manual single-target `action_selected` events into explicit target selection. `Self`, `AllAllies`, and `AllEnemies` actions queue immediately without target picking. While targeting, `BattleHUD.set_targeting_active(true)` disables further action-slot selection without disabling speed or pause controls.
 10. `CombatantDisplay` nodes show a target highlight when valid and emit `target_selected(combatant)` on left click.
 11. Confirming a target calls `BattleController.player_choose_action(action, [target])`. The HUD still renders the primary player action bar until later phases add multi-combatant controls.
 

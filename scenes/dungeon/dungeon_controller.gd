@@ -86,6 +86,7 @@ func _create_path_data(descriptors: Array) -> void:
 			int(descriptor.get("id", -1)),
 			str(descriptor.get("type", DungeonNodeDataScript.TYPE_FIGHT)),
 			str(descriptor.get("enemy", "")),
+			_enemy_instances_from_descriptor(descriptor),
 			ValueReaderScript.string_name_from_variant(descriptor.get("encounter_id", &"")),
 			ValueReaderScript.string_name_from_variant(descriptor.get("combat_encounter_id", &"")),
 			str(descriptor.get("combat_encounter_profile_path", "")),
@@ -543,7 +544,8 @@ func _start_combat_node(node: DungeonNodeData, charge_travel_time: bool = true) 
 		starts_boss_combat,
 		charge_travel_time,
 		node.combat_encounter_id,
-		node.combat_encounter_profile_path
+		node.combat_encounter_profile_path,
+		node.enemy_instances
 	)
 
 func _start_encounter_node(node: DungeonNodeData, charge_travel_time: bool = true) -> void:
@@ -672,3 +674,15 @@ func _default_grid_size_for_type(node_type: String) -> Vector2i:
 		return Vector2i.ONE
 
 	return Vector2i(3, 3)
+
+func _enemy_instances_from_descriptor(descriptor: Dictionary) -> Array[Dictionary]:
+	var enemy_instances: Array[Dictionary] = []
+	var raw_enemy_instances: Variant = descriptor.get("enemy_instances", [])
+	if not (raw_enemy_instances is Array):
+		return enemy_instances
+
+	for raw_enemy_instance in raw_enemy_instances:
+		if raw_enemy_instance is Dictionary:
+			enemy_instances.append(raw_enemy_instance.duplicate(true))
+
+	return enemy_instances

@@ -53,3 +53,12 @@ static func calculate_combat_rewards(profile: Resource, difficulty_profile: Reso
 		0
 	)
 	return rewards
+
+static func calculate_combat_rewards_for_profiles(profiles: Array, difficulty_profile: Resource, is_boss: bool) -> Dictionary:
+	var rewards := empty_reward_result()
+	for profile in profiles:
+		var profile_rewards := calculate_combat_rewards(profile as Resource, difficulty_profile, is_boss)
+		rewards["memories_awarded"] = int(rewards.get("memories_awarded", 0)) + int(profile_rewards.get("memories_awarded", 0))
+		rewards["gold_awarded"] = int(rewards.get("gold_awarded", 0)) + int(profile_rewards.get("gold_awarded", 0))
+
+	return rewards

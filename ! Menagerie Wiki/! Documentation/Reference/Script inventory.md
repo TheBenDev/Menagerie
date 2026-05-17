@@ -11,7 +11,7 @@ This inventory lists runtime `.gd` scripts under `res://core` and `res://scenes`
 | Group | Count |
 | --- | ---: |
 | `core/audio` | 7 |
-| `core/combat` | 15 |
+| `core/combat` | 17 |
 | `core/dungeon` | 15 |
 | `core/input` | 1 |
 | `core/party` | 4 |
@@ -22,7 +22,7 @@ This inventory lists runtime `.gd` scripts under `res://core` and `res://scenes`
 | `scenes/dungeon` | 6 |
 | `scenes/ui` | 8 |
 | Root scripts | 3 |
-| Total | 82 |
+| Total | 84 |
 
 ## Root scripts
 
@@ -58,10 +58,12 @@ This inventory lists runtime `.gd` scripts under `res://core` and `res://scenes`
 | --- | --- | --- |
 | `res://core/combat/actions/action_resolver.gd` | `ActionResolver` | Applies action costs and effect data. |
 | `res://core/combat/actions/combat_effect_library.gd` | `CombatEffectLibrary` | Resolves namespaced effect IDs and shared runtime effect behavior. |
+| `res://core/combat/actions/combat_targeting.gd` | `CombatTargeting` | Resolves action target modes for local input and AI-controlled combatants. |
 | `res://core/combat/actions/queued_action.gd` | `QueuedAction` | Represents timeline queue entries, status, resolution order, and tie rolls. |
-| `res://core/combat/ai/enemy_brain.gd` | `EnemyBrain` | Chooses enemy actions and targets using authored move weights and difficulty scoring. |
+| `res://core/combat/ai/combat_brain.gd` | `CombatBrain` | Chooses AI actions and targets for either side using authored move weights and difficulty scoring. |
 | `res://core/combat/battle/battle_controller.gd` | `BattleController` | Advances combat time, queues actions, resolves simultaneous actions, requests player input. |
 | `res://core/combat/combatant_group.gd` | `CombatantGroup` | Temporary combat-side container for player or enemy combatants in battle. |
+| `res://core/combat/combatant_stat_allocator.gd` | `CombatantStatAllocator` | Allocates level-scaled enemy stats from profile weights and difficulty budgets. |
 | `res://core/combat/combatant_state.gd` | `CombatantState` | Persistent runtime combat state for combat-capable characters or enemies. |
 | `res://scenes/combat/battle_scene.gd` | None | Wires combatants, targeting, HUD, audio, run data, and final combat result reporting. |
 | `res://core/combat/combat_result.gd` | `CombatResult` | Encounter result used by run progress, rewards, and summary UI. |
@@ -82,19 +84,19 @@ This inventory lists runtime `.gd` scripts under `res://core` and `res://scenes`
 | --- | --- | --- |
 | `res://core/combat/actions/combat_action_data.gd` | `CombatActionData` | Base combat action resource fields and hover description. |
 | `res://core/combat/actions/combat_moveset_data.gd` | `CombatMovesetData` | Container for actions available to a profile. |
-| `res://core/combat/actions/enemy_move_data.gd` | `EnemyMoveData` | Enemy action data with AI weights, target rules, HP gates, and role metadata. |
+| `res://core/combat/actions/enemy_move_data.gd` | `EnemyMoveData` | Enemy action data with AI weights, HP gates, and role metadata. |
 | `res://core/combat/actions/player_action_data.gd` | `PlayerActionData` | Player action fields for rage, stance, action bar visibility, and tooltip. |
 | `res://core/combat/ai/enemy_ai_profile.gd` | `EnemyAIProfile` | Enemy move list and behavior mode. |
 | `res://core/audio/audio_cue_data.gd` | `AudioCueData` | Sound cue streams, bus, volume, pitch, cooldown, instances, and priority. |
 | `res://core/audio/audio_library_data.gd` | `AudioLibraryData` | Catalog for authored cues and music tracks. |
 | `res://core/audio/music_state_data.gd` | `MusicStateData` | Adaptive music state variant. |
 | `res://core/audio/music_track_data.gd` | `MusicTrackData` | Music track, playlist, state variants, bus, volume, fades, and looping. |
-| `res://scenes/combatants/combatant_profile.gd` | `CombatantProfile` | Identity, stats, moveset, rewards, AI, SFX IDs, and UI bars. |
+| `res://scenes/combatants/combatant_profile.gd` | `CombatantProfile` | Identity, base stats, stat weights, moveset, rewards, AI, SFX IDs, and UI bars. |
 | `res://core/party/party_control_mode.gd` | `PartyControlMode` | Party control mode enum and behavior helpers. |
 | `res://core/party/player_party_member_state.gd` | `PlayerPartyMemberState` | Player-party wrapper around one reusable combatant state. |
 | `res://core/party/player_party_state.gd` | `PlayerPartyState` | Player-owned roster, active member IDs, leader, and selected member. |
 | `res://core/party/player_run_state_service.gd` | `PlayerRunStateService` | Shared helpers for player profile stat snapshots, persistent HP, and combatant bridge setup. |
-| `res://core/difficulty/difficulty_profile.gd` | `DifficultyProfile` | Enemy stat/reward multipliers and AI tuning values. |
+| `res://core/difficulty/difficulty_profile.gd` | `DifficultyProfile` | Enemy stat budgets, stat/reward multipliers, and AI tuning values. |
 | `res://core/rewards/reward_profile.gd` | `RewardProfile` | Base memory/gold rewards and boss multiplier. |
 | `res://core/rewards/reward_service.gd` | `RewardService` | Calculates combat rewards and normalizes/applies reward-shaped results. |
 | `res://core/statuses/status_data.gd` | `StatusData` | Timed status hover description, atlas coordinates, and outgoing/incoming damage multipliers. |

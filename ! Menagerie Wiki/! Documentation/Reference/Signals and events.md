@@ -48,7 +48,7 @@ Signals are the main event contract between combat, UI, audio, and run state.
 
 | Emitter | Signal | Payload | Consumer |
 | --- | --- | --- | --- |
-| `BattleHUD` | `action_selected` | `index: int` | `BattleScene._choose_warrior_action()` |
+| `BattleHUD` | `action_selected` | `index: int` | `BattleScene._choose_player_action()` |
 | `BattleHUD` | `hotbar_slot_used` | `slot_id: StringName`, `slot_entry: Dictionary` | Future inventory or loadout consumers. |
 | `BattleHUD` | `speed_requested` | none | `BattleScene._on_speed_requested()` |
 | `BattleHUD` | `pause_requested` | none | `BattleScene._on_pause_requested()` |
@@ -79,8 +79,8 @@ Signals are the main event contract between combat, UI, audio, and run state.
 | `Haven` | Starts revealed/visited/occupied but unresolved, emits node-entry and Haven-entry signals, and remains unresolved until future Haven behavior defines completion. |
 | `Empty` | Marks visited, emits node-entry and Empty-entry signals, reveals connected neighbors, then resolves immediately. |
 | `Encounter` | Marks visited, emits a node event, reveals connected neighbors, locks the entering pawn, loads the encounter scene by `encounter_id`, and resolves after a supported `encounter_finished` completion result. |
-| `Fight` | Marks visited, emits a node event containing `combat_encounter_id` / `combat_encounter_profile_path`, locks the entering pawn, and routes through `GameManager.start_combat()`. Resolution waits for a victorious combat result. |
-| `Boss` | Marks visited, emits a node event containing `combat_encounter_id` / `combat_encounter_profile_path`, locks the entering pawn, and routes through `GameManager.start_combat()`. Resolution waits for the boss combat result. |
+| `Fight` | Marks visited, emits a node event containing `combat_encounter_id`, `combat_encounter_profile_path`, and generated `enemy_instances`, locks the entering pawn, and routes through `GameManager.start_combat()`. Resolution waits for a victorious combat result. |
+| `Boss` | Marks visited, emits a node event containing `combat_encounter_id`, `combat_encounter_profile_path`, and generated `enemy_instances`, locks the entering pawn, and routes through `GameManager.start_combat()`. Resolution waits for the boss combat result. |
 
 ## Event locks
 

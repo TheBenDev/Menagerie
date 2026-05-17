@@ -22,7 +22,7 @@ Use this guide to add a player action or enemy move backed by `CombatActionData`
    - `display_name`: UI label.
    - `description`: hover info panel description.
    - `time_cost`: base duration in seconds.
-   - `target_enemy`: true for attacks, false for self-targeting actions.
+   - `target_rule`: `SingleEnemy` for manual target picking, `Self`, `AllAllies`, or `AllEnemies` for actions that queue without target picking, or `RandomEnemy` for random enemy targeting.
    - `effect_data`: ordered effect dictionaries such as `{"id": &"combat.damage", "base_damage": 4}`.
    - `start_sfx_id` and `resolve_sfx_id` if needed.
 5. Add the action to the moveset `actions` array.
@@ -36,7 +36,7 @@ Use this guide to add a player action or enemy move backed by `CombatActionData`
 4. Set base action fields from `CombatActionData`.
 5. Set enemy-only fields:
    - `weight`: authored random/scored weight.
-   - `target_rule`: `RandomOpponent` or `Self`.
+   - `target_rule`: `SingleEnemy`, `RandomEnemy`, `Self`, `AllAllies`, or `AllEnemies`.
    - `min_hp_percent` and `max_hp_percent`: HP gate for valid move selection.
    - `ai_role`: damage, debuff, defense, finisher, etc.
    - `status_id`: useful for debuff scoring.

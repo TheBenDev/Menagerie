@@ -6,8 +6,9 @@
 script = ExtResource("1_difficulty_profile")
 id = "hard"
 display_name = "Hard"
-enemy_health_multiplier = 1.15
-enemy_damage_multiplier = 1.10
+enemy_stat_budget = 20
+enemy_health_multiplier = 1.0
+enemy_damage_multiplier = 1.0
 enemy_time_cost_multiplier = 0.95
 reward_multiplier = 1.25
 ai_randomness = 0.20

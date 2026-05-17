@@ -16,6 +16,9 @@ extends Resource
 @export var fight_count_per_difficulty: int = 1
 @export var min_fight_count: int = 1
 @export var max_fight_count: int = 8
+@export var enemy_level_ranges_by_floor: Dictionary = {
+	1: Vector2i(0, 5),
+}
 
 @export var base_encounter_count: int = 1
 @export var encounter_count_per_layer: int = 1
@@ -36,3 +39,31 @@ extends Resource
 @export var room_padding: int = 1
 @export var max_room_placement_attempts: int = 200
 @export var max_generation_retries: int = 16
+
+func enemy_level_range_for_floor(floor_layer: int) -> Vector2i:
+	var resolved_floor: int = max(floor_layer, 1)
+	if enemy_level_ranges_by_floor.has(resolved_floor):
+		return _normalized_level_range(enemy_level_ranges_by_floor[resolved_floor])
+
+	var closest_floor: int = -1
+	for raw_floor in enemy_level_ranges_by_floor.keys():
+		var floor_value: int = int(raw_floor)
+		if floor_value <= resolved_floor and floor_value > closest_floor:
+			closest_floor = floor_value
+
+	if closest_floor >= 0:
+		return _normalized_level_range(enemy_level_ranges_by_floor[closest_floor])
+
+	return Vector2i(0, 5)
+
+func _normalized_level_range(raw_range: Variant) -> Vector2i:
+	if raw_range is Vector2i:
+		var range_value := raw_range as Vector2i
+		return Vector2i(mini(range_value.x, range_value.y), maxi(range_value.x, range_value.y))
+	if raw_range is Vector2:
+		var range_value := raw_range as Vector2
+		return Vector2i(mini(int(range_value.x), int(range_value.y)), maxi(int(range_value.x), int(range_value.y)))
+	if raw_range is Array and raw_range.size() >= 2:
+		return Vector2i(mini(int(raw_range[0]), int(raw_range[1])), maxi(int(raw_range[0]), int(raw_range[1])))
+
+	return Vector2i(0, 5)

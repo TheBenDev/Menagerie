@@ -6,8 +6,15 @@
 script = ExtResource("1_data")
 id = &"training_ghoul_fight"
 display_name = "Training Ghoul Fight"
-description = "A baseline seeded combat encounter using one Training Ghoul enemy."
+description = "A baseline seeded combat encounter that rolls one to three Training Ghoul enemies."
+max_enemy_count = 3
 enemy_slots = Array[Dictionary]([{
 "combatant_profile_path": "res://scenes/combatants/enemies/training_ghoul/training_ghoul_profile.tres",
 "position_id": "EnemySlot1"
+}, {
+"combatant_profile_path": "res://scenes/combatants/enemies/training_ghoul/training_ghoul_profile.tres",
+"position_id": "EnemySlot2"
+}, {
+"combatant_profile_path": "res://scenes/combatants/enemies/training_ghoul/training_ghoul_profile.tres",
+"position_id": "EnemySlot3"
 }])

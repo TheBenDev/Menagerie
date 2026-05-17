@@ -12,7 +12,7 @@ This page summarizes the most important runtime APIs new developers usually need
 | --- | --- | --- |
 | `current_run_data` | `RunData` or `null` | Active run state. May be null outside a run. |
 | `start_new_run(character, difficulty, dungeon_seed := "", dungeon_floor_layer := 1)` | method | Creates and stores fresh `RunData`; blank seed resolves to an auto-generated replay seed. |
-| `start_combat(node_id, node_type, enemy_profile_path, is_boss, charge_travel_time := true, combat_encounter_id := &"", combat_encounter_profile_path := "")` | method | Stores routed combat encounter metadata and routes to battle. Direct route calls can charge node travel time; movement-arrival calls pass `false` because the node step already charged time. |
+| `start_combat(node_id, node_type, enemy_profile_path, is_boss, charge_travel_time := true, combat_encounter_id := &"", combat_encounter_profile_path := "", enemy_instances := [])` | method | Stores routed combat encounter metadata, including generated enemy instances, and routes to battle. Direct route calls can charge node travel time; movement-arrival calls pass `false` because the node step already charged time. |
 | `complete_combat(result)` | method | Stores pending result, routes to dungeon. |
 | `advance_run_time(seconds)` | method | Decrements remaining run time and handles timeout. |
 | `get_dungeon_encounter(encounter_id)` | method | Resolves an authored dungeon encounter resource by ID. |
@@ -53,7 +53,7 @@ This page summarizes the most important runtime APIs new developers usually need
 | `resolved_dungeon_node_ids` | `Array[int]` | Nodes whose current event/effect is complete. |
 | `dungeon_seed` | `String` | Stored seed used to reproduce the generated dungeon map and gameplay RNG stream. |
 | `dungeon_floor_layer` | `int` | Current floor layer; `1` until multi-floor progression exists. |
-| `dungeon_node_descriptors` | `Array` | Stored generated map descriptors for the active run. Fight/Boss descriptors carry `combat_encounter_id`, `combat_encounter_profile_path`, and legacy `enemy` profile path data. |
+| `dungeon_node_descriptors` | `Array` | Stored generated map descriptors for the active run. Fight/Boss descriptors carry `combat_encounter_id`, `combat_encounter_profile_path`, legacy `enemy` profile path data, and generated `enemy_instances`. |
 | `current_dungeon_node_id` | `int` | Compatibility mirror of the selected dungeon pawn's current node. |
 | `player_current_hp`, `player_max_hp` | `int` | Compatibility mirrors for Warrior `CombatantState` HP, still used by existing HUD and combat setup APIs. |
 | `run_stat_modifiers` | `Array[Dictionary]` | Permanent and run-time-limited stat modifiers from encounter choices, mirrored into Warrior `CombatantState`. |
@@ -139,8 +139,9 @@ Accepted leader travel results may include `autopilot_follow_results`, an array 
 | `DungeonEncounterPoolHelper.pick_weighted(encounters)` | static method | Shared weighted-pick helper for already-filtered encounter resources. |
 | `DungeonCombatEncounterPool.pick_for_floor(floor_layer)` | method | Uses seeded RNG to choose a weighted Fight/Boss combat encounter valid for the floor. |
 | `DungeonCombatEncounterPool.profile_path_for_id(encounter_id)` | method | Returns the resource path for a loaded combat encounter ID. |
-| `DungeonCombatEncounterData.enemy_slots` | exported array | Enemy slot dictionaries use `combatant_profile_path` and `position_id`; `BattleScene` currently consumes the first slot for the active enemy profile and display placement. |
-| `DungeonCombatEncounterData.primary_enemy_profile_path()` | method | Returns the first enemy slot's combatant profile path for the current one-enemy battle scene bridge. |
+| `DungeonCombatEncounterData.min_enemy_count`, `max_enemy_count` | exported ints | Count range used by dungeon generation to roll generated enemy instances from authored slots. |
+| `DungeonCombatEncounterData.enemy_slots` | exported array | Enemy slot dictionaries use `combatant_profile_path` and `position_id`; generated `enemy_instances` copy these values into battle payloads. |
+| `DungeonCombatEncounterData.primary_enemy_profile_path()` | method | Returns the first enemy slot's combatant profile path for legacy compatibility data. |
 | `KeybindsHelper.process_map_navigation_event(event, is_panning)` | static method | Converts wheel and middle-mouse events into zoom/pan action dictionaries. |
 
 ## Shared services
@@ -148,7 +149,12 @@ Accepted leader travel results may include `autopilot_follow_results`, an array 
 | Surface | Type | Notes |
 | --- | --- | --- |
 | `RewardService.calculate_combat_rewards(profile, difficulty_profile, is_boss)` | static method | Calculates non-negative memory/gold rewards from a combatant reward profile and selected difficulty. |
+| `RewardService.calculate_combat_rewards_for_profiles(profiles, difficulty_profile, is_boss)` | static method | Aggregates non-negative combat rewards across multiple defeated profiles. |
 | `RewardService.normalize_reward_result(reward_result)` | static method | Converts reward-shaped dictionaries or objects into `{memories_awarded, gold_awarded}`. |
+| `CombatTargeting.target_rule_for(action)` | static method | Normalizes authored and legacy action target modes. |
+| `CombatTargeting.requires_manual_target(action)` | static method | Returns true for `SingleEnemy` and `SingleAlly`; `Self`, `AllAllies`, and `AllEnemies` queue without explicit target picking. |
+| `CombatTargeting.targets_for_action(action, actor, opponents, allies, explicit_targets := [])` | static method | Resolves the living target array used by `BattleController` and `CombatBrain`. |
+| `CombatantStatAllocator.allocate_enemy_stats(profile, difficulty_profile, enemy_level, stat_seed)` | static method | Allocates level-scaled enemy stats from difficulty budgets and profile stat weights. |
 | `PlayerRunStateService.effective_player_stats(run_data, fallback_profile)` | static method | Returns current run stats, or profile base stats when no run exists. |
 | `PlayerRunStateService.hp_snapshot(run_data)` | static method | Returns persistent player HP as `{current, max}` with an empty-state fallback. |
 | `SceneRouteService.scene_path_for(scene_ref)` | static method | Normalizes route references to `res://scenes/... .tscn` paths. |
@@ -170,13 +176,15 @@ Accepted leader travel results may include `autopilot_follow_results`, an array 
 
 | Surface | Type | Notes |
 | --- | --- | --- |
-| `player_group`, `enemy_group` | `CombatantGroup`-like or `null` | Temporary combat-side groups used by the battle loop. Current gameplay configures one combatant per side. |
-| `player`, `enemy` | `Combatant` or `null` | Primary convenience references preserved for current HUD/display/audio code. They mirror the first living combatant in each group when possible. |
+| `player_group`, `enemy_group` | `CombatantGroup`-like or `null` | Temporary combat-side groups used by the battle loop. Current combat can configure multiple combatants per side. |
+| `player`, `enemy` | `Combatant` or `null` | Primary convenience references preserved for current HUD/display/audio code. `player` remains the local leader; `enemy` mirrors the first living enemy when possible. |
+| `ai_controlled_combatants` | `Array[Combatant]` | Player-side combatants that should use `CombatBrain` instead of local input. Enemies are always AI controlled. |
 | `difficulty_profile` | exported field | Optional; falls back to `normal.tres`. |
 | `current_time` | field | Snapped combat time in seconds. |
 | `waiting_for_player_input` | field | Controls HUD action availability. |
 | `action_queue` | `Array[QueuedAction]` | Timeline queue consumed by HUD and audio bridge. |
 | `configure_combatant_groups(player_combatants, enemy_combatants)` | method | Sets the player and enemy combatant groups and refreshes the primary convenience references. |
+| `set_ai_controlled_combatants(combatants)` | method | Marks non-leader player-side combatants as AI controlled for this battle. |
 | `get_player_combatants()`, `get_enemy_combatants()` | method | Returns duplicates of the configured side combatant arrays. |
 | `get_living_player_combatants()`, `get_living_enemy_combatants()` | method | Returns living combatants for each side. |
 | `is_player_group_defeated()`, `is_enemy_group_defeated()` | method | Checks whether an entire side has no living combatants. |
@@ -225,7 +233,8 @@ Accepted leader travel results may include `autopilot_follow_results`, an array 
 | `start_sfx_id` | `StringName` | Played by `CombatAudioBridge` when action starts. |
 | `resolve_sfx_id` | `StringName` | Played by `CombatAudioBridge` when action resolves. |
 | `hp_cost`, `mana_cost` | `int` | HP cost is applied by `ActionResolver`; mana is reserved. |
-| `target_enemy` | `bool` | Player action targeting side. |
+| `target_rule` | `String` | `SingleEnemy`, `SingleAlly`, `RandomEnemy`, `Self`, `AllAllies`, or `AllEnemies`. Only the single-target modes require explicit player targeting. |
+| `target_enemy` | `bool` | Legacy target side flag for older resources; prefer `target_rule` for new actions. |
 
 ## Effect Data
 

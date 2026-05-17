@@ -13,12 +13,14 @@ const SLOT_MODIFIER_DATA := "modifier_data"
 @export_multiline var description: String = ""
 @export var valid_floor_layers: Array[int] = []
 @export_range(0.0, 100.0, 0.1) var weight: float = 1.0
+@export_range(1, 8, 1) var min_enemy_count: int = 1
+@export_range(1, 8, 1) var max_enemy_count: int = 1
 @export var enemy_slots: Array[Dictionary] = []
 
 func is_valid_for_floor(floor_layer: int) -> bool:
 	return DungeonEncounterPoolHelperScript.is_valid_for_floor(self, floor_layer)
 
-## Returns the first enemy profile path for the current one-enemy battle scene bridge.
+## Returns the first enemy profile path for legacy single-profile encounter fallback.
 func primary_enemy_profile_path() -> String:
 	for slot in enemy_slots:
 		var slot_data: Dictionary = slot

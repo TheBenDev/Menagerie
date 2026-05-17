@@ -20,7 +20,7 @@ Battle visuals are reusable `Control` scenes with an `AnimatedSprite2D` and Easy
 - `EnemySlots/EnemySlot3`
 - `EnemySlots/EnemySlot4`
 
-`PlayerSlot1` and `EnemySlot1` match the original one-player/one-enemy display positions. `BattleScene` currently places the single `WarriorDisplay` at `PlayerSlot1` and the single `EnemyDisplay` at the first enemy slot `position_id` from the routed `DungeonCombatEncounterData`, falling back to `EnemySlot1`. Later multi-combatant phases should instantiate or assign additional `CombatantDisplay` nodes from these same markers rather than hardcoding coordinates in script.
+`PlayerSlot1` and `EnemySlot1` are the primary combatant display positions. `BattleScene` instantiates `CombatantDisplay.tscn` for every player and enemy combatant. Player-side copies use `PlayerSlot2/3`; enemies use generated `enemy_instances[].position_id` with `EnemySlot*` fallbacks.
 
 ## Current visual scenes
 

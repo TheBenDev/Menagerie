@@ -75,6 +75,7 @@ var pending_combat_result = null
 var current_encounter_node_id: int = -1
 var current_encounter_node_type: String = ""
 var current_encounter_enemy_profile_path: String = ""
+var current_encounter_enemy_instances: Array[Dictionary] = []
 var current_encounter_combat_id: StringName = &""
 var current_encounter_combat_profile_path: String = ""
 var current_encounter_is_boss: bool = false
@@ -157,6 +158,7 @@ func reset_encounter(default_enemy_profile_path: String) -> void:
 	current_encounter_node_id = -1
 	current_encounter_node_type = ""
 	current_encounter_enemy_profile_path = default_enemy_profile_path
+	current_encounter_enemy_instances.clear()
 	current_encounter_combat_id = &""
 	current_encounter_combat_profile_path = ""
 	current_encounter_is_boss = false
@@ -278,11 +280,13 @@ func set_encounter(
 	is_boss: bool,
 	default_enemy_profile_path: String,
 	combat_encounter_id: StringName = &"",
-	combat_encounter_profile_path: String = ""
+	combat_encounter_profile_path: String = "",
+	enemy_instances: Array[Dictionary] = []
 ) -> void:
 	current_encounter_node_id = node_id
 	current_encounter_node_type = node_type
 	current_encounter_enemy_profile_path = enemy_profile_path if not enemy_profile_path.is_empty() else default_enemy_profile_path
+	current_encounter_enemy_instances = enemy_instances.duplicate(true)
 	current_encounter_combat_id = combat_encounter_id
 	current_encounter_combat_profile_path = combat_encounter_profile_path.strip_edges()
 	current_encounter_is_boss = is_boss
@@ -293,6 +297,7 @@ func get_current_encounter(default_enemy_profile_path: String) -> Dictionary:
 		"node_id": current_encounter_node_id,
 		"node_type": current_encounter_node_type,
 		"enemy_profile_path": current_encounter_enemy_profile_path if not current_encounter_enemy_profile_path.is_empty() else default_enemy_profile_path,
+		"enemy_instances": current_encounter_enemy_instances.duplicate(true),
 		"combat_encounter_id": current_encounter_combat_id,
 		"combat_encounter_profile_path": current_encounter_combat_profile_path,
 		"is_boss": current_encounter_is_boss,
