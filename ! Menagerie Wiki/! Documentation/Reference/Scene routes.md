@@ -38,6 +38,8 @@ These are real scenes but are not direct route targets today:
 | `res://scenes/combatants/characters/warrior/WarriorBattleVisual.tscn` | Player battle visual loaded through the warrior profile's `battle_visual_scene`. |
 | `res://scenes/combatants/enemies/training_ghoul/TrainingGhoulBattleVisual.tscn` | Enemy battle visual loaded through the enemy profile's `battle_visual_scene`. |
 
+`BattleScene.tscn` also contains authored invisible combat placement markers under `PlayerSlots` and `EnemySlots`. Current runtime uses `PlayerSlot1` for the Warrior display and the first combat encounter enemy slot `position_id` for the Enemy display.
+
 ## Route call sites
 
 | Caller | Route |

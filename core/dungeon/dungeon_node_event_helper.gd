@@ -6,6 +6,8 @@ const EVENT_NODE_ID := "node_id"
 const EVENT_NODE_TYPE := "node_type"
 const EVENT_ENEMY_PROFILE := "enemy_profile"
 const EVENT_ENCOUNTER_ID := "encounter_id"
+const EVENT_COMBAT_ENCOUNTER_ID := "combat_encounter_id"
+const EVENT_COMBAT_ENCOUNTER_PROFILE_PATH := "combat_encounter_profile_path"
 const EVENT_IS_BOSS := "is_boss"
 const RESULT_EVENT := "event"
 const RESULT_COMPLETION_DEFERRED := "completion_deferred"
@@ -20,6 +22,8 @@ static func build_node_event(node: DungeonNodeData) -> Dictionary:
 		EVENT_NODE_TYPE: node.node_type,
 		EVENT_ENEMY_PROFILE: node.enemy_profile,
 		EVENT_ENCOUNTER_ID: node.encounter_id,
+		EVENT_COMBAT_ENCOUNTER_ID: node.combat_encounter_id,
+		EVENT_COMBAT_ENCOUNTER_PROFILE_PATH: node.combat_encounter_profile_path,
 		EVENT_IS_BOSS: node.is_boss,
 	}
 
@@ -50,7 +54,16 @@ static func process_node_event(
 			if (node.is_boss or node.node_type == DungeonNodeData.TYPE_BOSS) and sound_manager != null:
 				sound_manager.call("play_sfx", &"sfx.global.boss.boss_start_fight")
 			if game_manager != null:
-				game_manager.call("start_combat", node.id, node.node_type, node.enemy_profile, node.is_boss, charge_travel_time)
+				game_manager.call(
+					"start_combat",
+					node.id,
+					node.node_type,
+					node.enemy_profile,
+					node.is_boss,
+					charge_travel_time,
+					node.combat_encounter_id,
+					node.combat_encounter_profile_path
+				)
 
 	return {
 		RESULT_EVENT: event,

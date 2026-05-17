@@ -28,13 +28,16 @@ The UI layer is scene-driven: scene scripts call `GameManager`, reusable control
 ## Battle HUD flow
 
 1. `BattleScene` is the combat scene root and owns the battle controller, combatants, background, combatant displays, and HUD.
-2. `BattleScene` calls `hud.setup(battle, warrior, enemy)` and `CombatantDisplay.setup()` for the warrior and enemy displays.
-3. `BattleActionBar` receives `player.actions` and updates the bottom hotbar buttons.
-4. `BattleHUD` reads the player's active statuses and shows status icons in the transparent status bar above the hotbar.
-5. `TimelineView` receives marker dictionaries derived from `battle.action_queue`.
-6. Hover information from action resources, status resources, and `HoverInfoButton` nodes is exposed as hover metadata and rendered by the fixed info panel beside the hotbar.
-7. `BattleHUD` emits `action_selected`, `speed_requested`, and `pause_requested`.
-8. `BattleScene` handles those signals and calls `BattleController`.
+2. `BattleScene` positions the current warrior and enemy displays from authored `PlayerSlots` and `EnemySlots` markers before calling `CombatantDisplay.setup()`.
+3. `BattleScene` configures one-combatant `player_group` and `enemy_group` values, then calls `hud.setup(battle, warrior, enemy, player_group, enemy_group)` for the current bridge combatants.
+4. `BattleActionBar` receives `player.actions` and updates the bottom hotbar buttons.
+5. `BattleHUD` reads the player's active statuses and shows status icons in the transparent status bar above the hotbar.
+6. `TimelineView` receives marker dictionaries derived from `battle.action_queue`.
+7. Hover information from action resources, status resources, and `HoverInfoButton` nodes is exposed as hover metadata and rendered by the fixed info panel beside the hotbar.
+8. `BattleHUD` emits `action_selected`, `speed_requested`, and `pause_requested`.
+9. `BattleScene` turns `action_selected` into explicit target selection. While targeting, `BattleHUD.set_targeting_active(true)` disables further action-slot selection without disabling speed or pause controls.
+10. `CombatantDisplay` nodes show a target highlight when valid and emit `target_selected(combatant)` on left click.
+11. Confirming a target calls `BattleController.player_choose_action(action, [target])`. The HUD still renders the primary player action bar until later phases add multi-combatant controls.
 
 ## Dungeon Map HUD Flow
 

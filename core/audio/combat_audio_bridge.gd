@@ -9,22 +9,33 @@ const MUSIC_STATE_CRITICAL := &"combat_critical"
 var battle: BattleController = null
 var player: Combatant = null
 var enemy: Combatant = null
+var player_group: Variant = null
+var enemy_group: Variant = null
 var is_boss: bool = false
 
 var _last_hp_by_combatant: Dictionary = {}
 var _last_block_by_combatant: Dictionary = {}
 
-func setup(new_battle: BattleController, new_player: Combatant, new_enemy: Combatant, new_is_boss: bool) -> void:
+func setup(
+	new_battle: BattleController,
+	new_player: Combatant,
+	new_enemy: Combatant,
+	new_is_boss: bool,
+	new_player_group: Variant = null,
+	new_enemy_group: Variant = null
+) -> void:
 	battle = new_battle
 	player = new_player
 	enemy = new_enemy
 	is_boss = new_is_boss
+	player_group = new_player_group
+	enemy_group = new_enemy_group
 
 	_connect_battle_signals()
-	_connect_combatant_signals(player)
-	_connect_combatant_signals(enemy)
-	_capture_combatant_snapshot(player)
-	_capture_combatant_snapshot(enemy)
+	_connect_group_combatant_signals(player_group, player)
+	_connect_group_combatant_signals(enemy_group, enemy)
+	_capture_group_snapshots(player_group, player)
+	_capture_group_snapshots(enemy_group, enemy)
 	_refresh_music_state()
 
 func _connect_battle_signals() -> void:
@@ -53,12 +64,32 @@ func _connect_combatant_signals(combatant: Combatant) -> void:
 	if not combatant.died.is_connected(_on_died):
 		combatant.died.connect(_on_died)
 
+func _connect_group_combatant_signals(group: Variant, fallback_combatant: Combatant) -> void:
+	var connected_any := false
+	if group != null:
+		for combatant in group.combatants:
+			_connect_combatant_signals(combatant)
+			connected_any = connected_any or combatant != null
+
+	if not connected_any:
+		_connect_combatant_signals(fallback_combatant)
+
 func _capture_combatant_snapshot(combatant: Combatant) -> void:
 	if combatant == null:
 		return
 
 	_last_hp_by_combatant[combatant.get_instance_id()] = combatant.hp
 	_last_block_by_combatant[combatant.get_instance_id()] = combatant.block
+
+func _capture_group_snapshots(group: Variant, fallback_combatant: Combatant) -> void:
+	var captured_any := false
+	if group != null:
+		for combatant in group.combatants:
+			_capture_combatant_snapshot(combatant)
+			captured_any = captured_any or combatant != null
+
+	if not captured_any:
+		_capture_combatant_snapshot(fallback_combatant)
 
 func _on_action_started(_combatant: Combatant, action: CombatActionData) -> void:
 	_play_sfx(action.start_sfx_id, 2)
@@ -95,7 +126,7 @@ func _on_battle_state_changed(_arg: Variant = null) -> void:
 
 func _refresh_music_state() -> void:
 	var sound_manager := _sound_manager()
-	if sound_manager == null or player == null or enemy == null:
+	if sound_manager == null or not _has_music_pressure_sources():
 		return
 	if not _should_update_music_state(sound_manager):
 		return
@@ -110,15 +141,15 @@ func _should_update_music_state(sound_manager: Node) -> bool:
 	return StringName(sound_manager.call("get_current_music_id")) == COMBAT_MUSIC_ID
 
 func _combat_intensity() -> float:
-	var player_pressure: float = 1.0 - _hp_percent(player)
-	var enemy_pressure: float = 1.0 - _hp_percent(enemy)
+	var player_pressure: float = _group_hp_pressure(player_group, player)
+	var enemy_pressure: float = _group_hp_pressure(enemy_group, enemy)
 	var queue_pressure: float = min(float(_pending_action_count()) / 3.0, 1.0)
 	var boss_pressure: float = 0.25 if is_boss else 0.0
 	var intensity: float = max(player_pressure, enemy_pressure * 0.75, queue_pressure * 0.5, boss_pressure)
 	return clamp(intensity, 0.0, 1.0)
 
 func _music_state_for_intensity(intensity: float) -> StringName:
-	if _hp_percent(player) <= 0.25 or intensity >= 0.7:
+	if _group_hp_pressure(player_group, player) >= 0.75 or intensity >= 0.7:
 		return MUSIC_STATE_CRITICAL
 	if intensity >= 0.35:
 		return MUSIC_STATE_TENSE
@@ -141,6 +172,33 @@ func _hp_percent(combatant: Combatant) -> float:
 		return 0.0
 
 	return clamp(float(combatant.hp) / float(combatant.max_hp), 0.0, 1.0)
+
+func _has_music_pressure_sources() -> bool:
+	return _has_group_or_fallback_combatant(player_group, player) \
+		and _has_group_or_fallback_combatant(enemy_group, enemy)
+
+func _has_group_or_fallback_combatant(group: Variant, fallback_combatant: Combatant) -> bool:
+	if group != null:
+		for combatant in group.combatants:
+			if combatant != null:
+				return true
+
+	return fallback_combatant != null
+
+func _group_hp_pressure(group: Variant, fallback_combatant: Combatant) -> float:
+	var pressure := 0.0
+	var saw_combatant := false
+	if group != null:
+		for combatant in group.combatants:
+			if combatant == null:
+				continue
+			saw_combatant = true
+			pressure = max(pressure, 1.0 - _hp_percent(combatant))
+
+	if saw_combatant:
+		return clamp(pressure, 0.0, 1.0)
+
+	return clamp(1.0 - _hp_percent(fallback_combatant), 0.0, 1.0)
 
 func _profile_sfx_id(combatant: Combatant, field_name: String) -> StringName:
 	if combatant == null or combatant.profile == null:

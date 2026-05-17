@@ -12,11 +12,12 @@ This page summarizes the most important runtime APIs new developers usually need
 | --- | --- | --- |
 | `current_run_data` | `RunData` or `null` | Active run state. May be null outside a run. |
 | `start_new_run(character, difficulty, dungeon_seed := "", dungeon_floor_layer := 1)` | method | Creates and stores fresh `RunData`; blank seed resolves to an auto-generated replay seed. |
-| `start_combat(node_id, node_type, enemy_profile_path, is_boss, charge_travel_time := true)` | method | Stores encounter and routes to battle. Direct legacy calls can charge old travel time; movement-arrival calls pass `false` because the node step already charged time. |
+| `start_combat(node_id, node_type, enemy_profile_path, is_boss, charge_travel_time := true, combat_encounter_id := &"", combat_encounter_profile_path := "")` | method | Stores routed combat encounter metadata and routes to battle. Direct legacy calls can charge old travel time; movement-arrival calls pass `false` because the node step already charged time. |
 | `complete_combat(result)` | method | Stores pending result, routes to dungeon. |
 | `advance_run_time(seconds)` | method | Decrements remaining run time and handles timeout. |
 | `get_dungeon_encounter(encounter_id)` | method | Resolves an authored dungeon encounter resource by ID. |
 | `get_dungeon_encounter_scene(encounter_id)` | method | Resolves the presentation scene for an encounter ID. |
+| `get_dungeon_combat_encounter(encounter_id)` | method | Resolves an authored Fight/Boss combat encounter resource by ID. |
 | `get_dungeon_abilities(slot_count := 3)` | method | Returns class-agnostic dungeon hotbar abilities from the default pool. |
 | `apply_dungeon_encounter_result(encounter_id, result)` | method | Applies a completed encounter choice result to `RunData`. |
 | `apply_run_player_state_to_combatant(combatant)` | method | Copies effective run stats onto the player combatant before battle. |
@@ -52,7 +53,7 @@ This page summarizes the most important runtime APIs new developers usually need
 | `resolved_dungeon_node_ids` | `Array[int]` | Nodes whose current event/effect is complete. |
 | `dungeon_seed` | `String` | Stored seed used to reproduce the generated dungeon map and gameplay RNG stream. |
 | `dungeon_floor_layer` | `int` | Current floor layer; `1` until multi-floor progression exists. |
-| `dungeon_node_descriptors` | `Array` | Stored generated map descriptors for the active run. |
+| `dungeon_node_descriptors` | `Array` | Stored generated map descriptors for the active run. Fight/Boss descriptors carry `combat_encounter_id`, `combat_encounter_profile_path`, and legacy `enemy` profile path data. |
 | `current_dungeon_node_id` | `int` | Compatibility mirror of the selected dungeon pawn's current node. |
 | `player_current_hp`, `player_max_hp` | `int` | Compatibility mirrors for Warrior `CombatantState` HP, still used by existing HUD and combat setup APIs. |
 | `run_stat_modifiers` | `Array[Dictionary]` | Permanent and run-time-limited stat modifiers from encounter choices, mirrored into Warrior `CombatantState`. |
@@ -129,12 +130,16 @@ Accepted leader travel results may include `autopilot_follow_results`, an array 
 | `DungeonNodeEventHelper.process_node_event(node, game_manager, sound_manager, charge_travel_time := true)` | static method | Handles currently-routed legacy node dispatch and reports whether completion is deferred. Movement arrival should avoid the extra travel charge. |
 | `DungeonPathfinder.connection_graph_from_descriptors(descriptors, use_linear_fallback := true)` | static method | Builds a symmetric connection graph from dungeon descriptors, with linear fallback for older descriptor sets. |
 | `DungeonPathfinder.find_path(start_node_id, destination_node_id, allowed_node_ids, connection_graph)` | static method | Returns an ordered allowed route from start to destination, or an empty array when the destination is hidden/disallowed/unreachable. |
-| `DungeonFloorGenerator.generate_floor(seed, layer, difficulty, config, encounter_pool)` | static method | Seeds global RNG from `seed`, then returns deterministic flat descriptor arrays with optional `connections` and encounter IDs. |
-| `DungeonFloorGenerator.generate_floor_from_global_rng(layer, difficulty, config, encounter_pool)` | static method | Returns descriptors by consuming the current global gameplay RNG stream. |
+| `DungeonFloorGenerator.generate_floor(seed, layer, difficulty, config, encounter_pool, combat_encounter_pool)` | static method | Seeds global RNG from `seed`, then returns deterministic flat descriptor arrays with optional `connections`, choice encounter IDs, and combat encounter IDs. |
+| `DungeonFloorGenerator.generate_floor_from_global_rng(layer, difficulty, config, encounter_pool, combat_encounter_pool)` | static method | Returns descriptors by consuming the current global gameplay RNG stream, including seeded Fight/Boss combat encounter assignments. |
 | `DungeonFloorGenerator.validate_descriptors(descriptors, grid_size := Vector2i.ZERO)` | static method | Checks bounds, overlaps, graph reachability, and symmetric connections. |
 | `DungeonEncounterResolver.encounter_for_id(pool, encounter_id)` | static method | Resolves encounter data from a pool. |
 | `DungeonEncounterResolver.scene_for_encounter(encounter_data)` | static method | Returns the encounter presentation scene. |
 | `DungeonEncounterResolver.choice_for_index(encounter_data, choice_index)` | static method | Resolves an inline choice dictionary by emitted choice index. |
+| `DungeonCombatEncounterPool.pick_for_floor(floor_layer)` | method | Uses seeded RNG to choose a weighted Fight/Boss combat encounter valid for the floor. |
+| `DungeonCombatEncounterPool.profile_path_for_id(encounter_id)` | method | Returns the resource path for a loaded combat encounter ID. |
+| `DungeonCombatEncounterData.enemy_slots` | exported array | Enemy slot dictionaries use `combatant_profile_path` and `position_id`; `BattleScene` currently consumes the first slot for the active enemy profile and display placement. |
+| `DungeonCombatEncounterData.primary_enemy_profile_path()` | method | Returns the first enemy slot's combatant profile path for the current one-enemy battle scene bridge. |
 | `KeybindsHelper.process_map_navigation_event(event, is_panning)` | static method | Converts wheel and middle-mouse events into zoom/pan action dictionaries. |
 
 ## SoundManager
@@ -152,17 +157,34 @@ Accepted leader travel results may include `autopilot_follow_results`, an array 
 
 | Surface | Type | Notes |
 | --- | --- | --- |
-| `player` | field | Assigned by `BattleScene` before `start_battle()`. |
-| `enemy` | field | Assigned by `BattleScene` before `start_battle()`. |
+| `player_group`, `enemy_group` | `CombatantGroup`-like or `null` | Temporary combat-side groups used by the battle loop. Current gameplay configures one combatant per side. |
+| `player`, `enemy` | `Combatant` or `null` | Primary convenience references preserved for current HUD/display/audio code. They mirror the first living combatant in each group when possible. |
 | `difficulty_profile` | exported field | Optional; falls back to `normal.tres`. |
 | `current_time` | field | Snapped combat time in seconds. |
 | `waiting_for_player_input` | field | Controls HUD action availability. |
 | `action_queue` | `Array[QueuedAction]` | Timeline queue consumed by HUD and audio bridge. |
+| `configure_combatant_groups(player_combatants, enemy_combatants)` | method | Sets the player and enemy combatant groups and refreshes the primary convenience references. |
+| `get_player_combatants()`, `get_enemy_combatants()` | method | Returns duplicates of the configured side combatant arrays. |
+| `get_living_player_combatants()`, `get_living_enemy_combatants()` | method | Returns living combatants for each side. |
+| `is_player_group_defeated()`, `is_enemy_group_defeated()` | method | Checks whether an entire side has no living combatants. |
 | `start_battle()` | method | Resets state, applies difficulty, emits initial signals. |
-| `player_choose_action(action)` | method | Queues player action, triggers enemy choice, advances time. |
+| `player_choose_action(action, explicit_targets := [])` | method | Queues the primary player action, optionally using one or more explicit targets for later targeting flows. |
 | `cycle_time_scale()` | method | Rotates through `[0.5, 1.0, 2.0, 4.0]`. |
 | `set_paused(new_is_paused)` | method | Updates pause state and emits `pause_changed`. |
 | `advance_until_input_needed()` | method | Main async time loop. |
+
+## CombatantGroup
+
+| Surface | Type | Notes |
+| --- | --- | --- |
+| `group_id` | `String` | Side identifier such as `player` or `enemy`. |
+| `combatants` | `Array[Combatant]` | Unique combatants on that temporary battle side. |
+| `set_combatants(combatants)` | method | Replaces the group with valid unique combatants. |
+| `add_combatant(combatant)`, `remove_combatant(combatant)` | method | Mutates the temporary group membership. |
+| `get_living_combatants()`, `get_dead_combatants()` | method | Returns side members split by HP state. |
+| `has_living_combatants()` | method | Returns true if at least one group member has HP remaining. |
+| `contains_combatant(combatant_id)` | method | Looks up a combatant by explicit ID when present, then node name, then instance ID. |
+| `get_first_combatant()`, `get_first_living_combatant()` | method | Convenience helpers used to preserve current primary 1v1 references. |
 
 ## Combatant
 

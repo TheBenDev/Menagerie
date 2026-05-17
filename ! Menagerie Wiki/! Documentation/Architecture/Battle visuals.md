@@ -8,6 +8,20 @@ Battle visuals are reusable `Control` scenes with an `AnimatedSprite2D` and Easy
 
 `res://scenes/combat/BattleScene.tscn` is the combat scene root. Add any future visual-stage layout directly in that scene rather than through a separate child scene.
 
+## Combat slot markers
+
+`BattleScene.tscn` owns invisible authored `Control` markers for combatant display placement:
+
+- `PlayerSlots/PlayerSlot1`
+- `PlayerSlots/PlayerSlot2`
+- `PlayerSlots/PlayerSlot3`
+- `EnemySlots/EnemySlot1`
+- `EnemySlots/EnemySlot2`
+- `EnemySlots/EnemySlot3`
+- `EnemySlots/EnemySlot4`
+
+`PlayerSlot1` and `EnemySlot1` match the original one-player/one-enemy display positions. `BattleScene` currently places the single `WarriorDisplay` at `PlayerSlot1` and the single `EnemyDisplay` at the first enemy slot `position_id` from the routed `DungeonCombatEncounterData`, falling back to `EnemySlot1`. Later multi-combatant phases should instantiate or assign additional `CombatantDisplay` nodes from these same markers rather than hardcoding coordinates in script.
+
 ## Current visual scenes
 
 | Scene | Purpose |
@@ -42,6 +56,8 @@ Each visual scene should contain:
 - A SpriteFrames resource in the combatant's `textures` folder.
 
 `CombatantDisplay` places the combatant name in a hover-only contrast panel below the HP row. Class-specific resource bars are shown by the combat hotbar, not by the combatant visual.
+
+During explicit player targeting, `CombatantDisplay` creates a runtime `TargetHighlight` overlay and emits `target_selected(combatant)` when a highlighted display is left-clicked. The overlay is not authored in `CombatantDisplay.tscn`; it is created by the display script so later instantiated displays inherit the same target behavior.
 
 ## See also
 

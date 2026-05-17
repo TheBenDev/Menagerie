@@ -14,6 +14,8 @@ Gameplay data is authored as Godot `.tres` resources that point to resource scri
 | Moveset | `CombatMovesetData` | `res://scenes/combatants/characters/warrior/warrior_moveset.tres` |
 | Enemy profile | `CombatantProfile` | `res://scenes/combatants/enemies/training_ghoul/training_ghoul_profile.tres` |
 | Enemy AI profile | `EnemyAIProfile` | `res://scenes/combatants/enemies/training_ghoul/training_ghoul_ai.tres` |
+| Combat encounter profile | `DungeonCombatEncounterData` | `res://core/dungeon/encounters/combat/training_ghoul_fight.tres` |
+| Combat encounter pool | `DungeonCombatEncounterPool` | `res://core/dungeon/encounters/default_dungeon_combat_encounter_pool.tres` |
 | Difficulty | `DifficultyProfile` | `res://core/difficulty/easy.tres`, `res://core/difficulty/normal.tres`, `res://core/difficulty/hard.tres` |
 | Status | `StatusData` | `res://core/statuses/weaken.tres`, `res://core/statuses/vulnerable.tres` |
 | Reward | `RewardProfile` | `res://core/rewards/training_ghoul_rewards.tres` |
@@ -30,18 +32,23 @@ Gameplay data is authored as Godot `.tres` resources that point to resource scri
 3. Warrior's `PlayerPartyMemberState` references a reusable `CombatantState` built from `warrior_profile.tres`.
 4. `RunData.initialize_dungeon_map_state()` creates Warrior's `DungeonMapPawnState`, links it through `PlayerPartyMemberState.map_pawn_id`, and seeds Haven/neighbor node state from generated descriptors.
 5. `DungeonController` creates `DungeonMapPawnView` markers on `DungeonMap.tscn`'s `PawnLayer` from the active pawn state; marker views are display-only.
-6. Existing single-combatant battle scenes still instantiate `WarriorCombatant` and call `Combatant.apply_profile()` to copy stats and actions from the profile into node runtime fields.
-7. Before battle, `GameManager.apply_run_player_state_to_combatant()` copies effective Warrior `CombatantState` stats onto the node-based combatant bridge.
-8. A player combatant reads `profile.moveset.actions`.
-9. An enemy combatant reads `profile.enemy_ai_profile.moves`.
-10. `BattleScene` owns combatant display nodes. Each `CombatantDisplay` reads `profile.battle_visual_scene` and `profile.health_bar`, while `BattleHUD` reads the player's `profile.resource_bars` for the hotbar resource bar.
-11. `CombatAudioBridge` reads profile SFX IDs for hit, block, and death events.
+6. Existing single-combatant battle scenes still instantiate `WarriorCombatant` and `EnemyCombatant` nodes and call `Combatant.apply_profile()` to copy stats and actions from profiles into node runtime fields.
+7. Before battle, `GameManager.apply_run_player_state_to_combatant()` copies effective Warrior `CombatantState` stats onto the node-based player combatant bridge.
+8. Generated Fight/Boss descriptors store `combat_encounter_id`, `combat_encounter_profile_path`, and the first enemy slot's `enemy` profile path as compatibility data.
+9. `BattleScene` loads the routed `DungeonCombatEncounterData` first and uses its first enemy slot to configure the current enemy node.
+10. The first enemy slot's `position_id` selects an authored `EnemySlots/*` marker in `BattleScene.tscn`; the current Warrior display is placed at `PlayerSlot1`.
+11. `BattleScene` wraps the current Warrior and enemy nodes in one-combatant `CombatantGroup` instances before starting `BattleController`.
+12. A player combatant reads `profile.moveset.actions`.
+13. An enemy combatant reads `profile.enemy_ai_profile.moves`.
+14. `BattleScene` owns combatant display nodes. Each `CombatantDisplay` reads `profile.battle_visual_scene` and `profile.health_bar`, while `BattleHUD` reads the player's `profile.resource_bars` for the hotbar resource bar.
+15. `CombatAudioBridge` reads profile SFX IDs for hit, block, and death events across configured combatant groups.
 
 ## Runtime state objects
 
 | Runtime state | Source | Purpose |
 | --- | --- | --- |
 | `CombatantState` | `res://core/combat/combatant_state.gd` | Reusable persistent combat state for anything that can participate in combat. |
+| `CombatantGroup` | `res://core/combat/combatant_group.gd` | Temporary combat-side collection for player or enemy combatants during one battle. |
 | `PartyControlMode` | `res://core/party/party_control_mode.gd` | Shared enum and helpers for `LocalPlayer`, `AutoPilot`, `RemotePlayer`, and `Inactive`. |
 | `PlayerPartyMemberState` | `res://core/party/player_party_member_state.gd` | Player-party wrapper around a `CombatantState`, including control mode and future pawn ID. |
 | `PlayerPartyState` | `res://core/party/player_party_state.gd` | Player-owned roster, active member IDs, leader, and selected member. |
@@ -49,7 +56,7 @@ Gameplay data is authored as Godot `.tres` resources that point to resource scri
 | `DungeonPathfinder` | `res://core/dungeon/dungeon_pathfinder.gd` | Reusable route helper for allowed paths through dungeon descriptor connection graphs. |
 | `DungeonMovementCoordinator` | `res://core/dungeon/dungeon_movement_coordinator.gd` | Reusable synchronized node-step coordinator for active dungeon pawn travel orders. |
 
-Phase 1 keeps legacy `RunData.player_current_hp`, `player_max_hp`, and `player_base_stats` as synchronized mirrors so existing dungeon HUD and combat code keep working while later phases migrate more systems to party and combatant state directly. Phase 2 similarly keeps `RunData.current_dungeon_node_id` synchronized while the selected `DungeonMapPawnState` becomes the intended source of map position. Phase 3 displays that pawn state through `DungeonMapPawnView` markers without moving gameplay authority into scene visuals. Phase 4 separates `visited_dungeon_node_ids` from `resolved_dungeon_node_ids`: visited means a pawn entered the node, while resolved means the node's event/effect is complete. Phase 5 adds `DungeonPathfinder` as a scene-independent route helper for later travel orders. Phase 6 stores path-based travel orders on `DungeonMapPawnState`; Phase 7 advances those orders in synchronized node steps; Phase 8 applies arrival effects by marking nodes visited, revealing neighbors, emitting entry signals, resolving Empty nodes, leaving Haven unresolved, and starting routed events from the arrived node. Phase 9 treats `DungeonMapPawnState.active_event_node_id` as the participant link for event completion so resolving a node unlocks only pawns that entered that event. Phase 10 uses `PartyControlMode.AutoPilot` as simple same-destination follow behavior when the local leader receives a valid travel order.
+Phase 1 keeps legacy `RunData.player_current_hp`, `player_max_hp`, and `player_base_stats` as synchronized mirrors so existing dungeon HUD and combat code keep working while later phases migrate more systems to party and combatant state directly. Phase 2 similarly keeps `RunData.current_dungeon_node_id` synchronized while the selected `DungeonMapPawnState` becomes the intended source of map position. Phase 3 displays that pawn state through `DungeonMapPawnView` markers without moving gameplay authority into scene visuals. Phase 4 separates `visited_dungeon_node_ids` from `resolved_dungeon_node_ids`: visited means a pawn entered the node, while resolved means the node's event/effect is complete. Phase 5 adds `DungeonPathfinder` as a scene-independent route helper for later travel orders. Phase 6 stores path-based travel orders on `DungeonMapPawnState`; Phase 7 advances those orders in synchronized node steps; Phase 8 applies arrival effects by marking nodes visited, revealing neighbors, emitting entry signals, resolving Empty nodes, leaving Haven unresolved, and starting routed events from the arrived node. Phase 9 treats `DungeonMapPawnState.active_event_node_id` as the participant link for event completion so resolving a node unlocks only pawns that entered that event. Phase 10 uses `PartyControlMode.AutoPilot` as simple same-destination follow behavior when the local leader receives a valid travel order. Phase 11 wraps current 1v1 battle nodes in `CombatantGroup` objects so battle logic can reason about player and enemy sides without changing the current combat layout. Phase 12 assigns seeded `DungeonCombatEncounterData` references to generated Fight/Boss descriptors while keeping the first enemy slot mirrored into the legacy single-enemy profile path. Phase 13 adds authored combat display slot markers and routes the current enemy display through the first enemy slot `position_id`. Phase 14 makes player targeting explicit by passing confirmed display targets into `BattleController.player_choose_action()`.
 
 ## Action data flow
 

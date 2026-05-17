@@ -5,9 +5,13 @@ extends RefCounted
 const DungeonNodeDataScript := preload("res://core/dungeon/dungeon_node_data.gd")
 const DungeonFloorGenerationConfigScript := preload("res://core/dungeon/dungeon_floor_generation_config.gd")
 const DEFAULT_DUNGEON_ENCOUNTER_POOL := preload("res://core/dungeon/encounters/default_dungeon_encounter_pool.tres")
+const DEFAULT_DUNGEON_COMBAT_ENCOUNTER_POOL := preload("res://core/dungeon/encounters/default_dungeon_combat_encounter_pool.tres")
 
 const EMPTY_SIZE := Vector2i.ONE
 const LARGE_SIZE := Vector2i(3, 3)
+const DEFAULT_COMBAT_ENCOUNTER_ID := "training_ghoul_fight"
+const DEFAULT_COMBAT_ENCOUNTER_PROFILE_PATH := "res://core/dungeon/encounters/combat/training_ghoul_fight.tres"
+const DEFAULT_ENEMY_PROFILE_PATH := "res://scenes/combatants/enemies/training_ghoul/training_ghoul_profile.tres"
 const TYPE_SORT_ORDER := {
 	DungeonNodeDataScript.TYPE_EMPTY: 0,
 	DungeonNodeDataScript.TYPE_FIGHT: 1,
@@ -19,36 +23,52 @@ const FALLBACK_NODE_DESCRIPTORS := [
 	{"id": 0, "type": "Haven", "grid": Vector2i(0, 0), "size": Vector2i(3, 3), "connections": [1]},
 	{"id": 1, "type": "Empty", "grid": Vector2i(3, 1), "size": Vector2i(1, 1), "connections": [0, 2]},
 	{"id": 2, "type": "Empty", "grid": Vector2i(4, 1), "size": Vector2i(1, 1), "connections": [1, 3]},
-	{"id": 3, "type": "Fight", "grid": Vector2i(5, 0), "size": Vector2i(3, 3), "connections": [2, 4]},
+	{"id": 3, "type": "Fight", "grid": Vector2i(5, 0), "size": Vector2i(3, 3), "combat_encounter_id": DEFAULT_COMBAT_ENCOUNTER_ID, "combat_encounter_profile_path": DEFAULT_COMBAT_ENCOUNTER_PROFILE_PATH, "enemy": DEFAULT_ENEMY_PROFILE_PATH, "connections": [2, 4]},
 	{"id": 4, "type": "Empty", "grid": Vector2i(8, 1), "size": Vector2i(1, 1), "connections": [3, 5]},
 	{"id": 5, "type": "Empty", "grid": Vector2i(9, 1), "size": Vector2i(1, 1), "connections": [4, 6]},
 	{"id": 6, "type": "Encounter", "grid": Vector2i(10, 0), "size": Vector2i(3, 3), "encounter_id": "mysterious_shrine", "connections": [5, 7]},
 	{"id": 7, "type": "Empty", "grid": Vector2i(13, 1), "size": Vector2i(1, 1), "connections": [6, 8]},
 	{"id": 8, "type": "Empty", "grid": Vector2i(14, 1), "size": Vector2i(1, 1), "connections": [7, 9]},
-	{"id": 9, "type": "Fight", "grid": Vector2i(15, 0), "size": Vector2i(3, 3), "connections": [8, 10]},
+	{"id": 9, "type": "Fight", "grid": Vector2i(15, 0), "size": Vector2i(3, 3), "combat_encounter_id": DEFAULT_COMBAT_ENCOUNTER_ID, "combat_encounter_profile_path": DEFAULT_COMBAT_ENCOUNTER_PROFILE_PATH, "enemy": DEFAULT_ENEMY_PROFILE_PATH, "connections": [8, 10]},
 	{"id": 10, "type": "Empty", "grid": Vector2i(18, 1), "size": Vector2i(1, 1), "connections": [9, 11]},
 	{"id": 11, "type": "Empty", "grid": Vector2i(19, 1), "size": Vector2i(1, 1), "connections": [10, 12]},
-	{"id": 12, "type": "Boss", "grid": Vector2i(20, 0), "size": Vector2i(3, 3), "is_boss": true, "connections": [11]},
+	{"id": 12, "type": "Boss", "grid": Vector2i(20, 0), "size": Vector2i(3, 3), "is_boss": true, "combat_encounter_id": DEFAULT_COMBAT_ENCOUNTER_ID, "combat_encounter_profile_path": DEFAULT_COMBAT_ENCOUNTER_PROFILE_PATH, "enemy": DEFAULT_ENEMY_PROFILE_PATH, "connections": [11]},
 ]
 
-static func generate_floor(base_seed: String, floor_layer: int, difficulty_id: String, config: Resource = null, encounter_pool: Resource = null) -> Array:
+static func generate_floor(
+	base_seed: String,
+	floor_layer: int,
+	difficulty_id: String,
+	config: Resource = null,
+	encounter_pool: Resource = null,
+	combat_encounter_pool: Resource = null
+) -> Array:
 	seed(base_seed.hash())
-	return generate_floor_from_global_rng(floor_layer, difficulty_id, config, encounter_pool)
+	return generate_floor_from_global_rng(floor_layer, difficulty_id, config, encounter_pool, combat_encounter_pool)
 
-static func generate_floor_from_global_rng(floor_layer: int, difficulty_id: String, config: Resource = null, encounter_pool: Resource = null) -> Array:
+static func generate_floor_from_global_rng(
+	floor_layer: int,
+	difficulty_id: String,
+	config: Resource = null,
+	encounter_pool: Resource = null,
+	combat_encounter_pool: Resource = null
+) -> Array:
 	var active_config: Resource = config
 	if active_config == null:
 		active_config = DungeonFloorGenerationConfigScript.new()
 	var active_encounter_pool: Resource = encounter_pool
 	if active_encounter_pool == null:
 		active_encounter_pool = DEFAULT_DUNGEON_ENCOUNTER_POOL
+	var active_combat_encounter_pool: Resource = combat_encounter_pool
+	if active_combat_encounter_pool == null:
+		active_combat_encounter_pool = DEFAULT_DUNGEON_COMBAT_ENCOUNTER_POOL
 
 	var resolved_layer: int = max(floor_layer, 1)
 	var resolved_difficulty := difficulty_id.strip_edges().to_lower()
 	if resolved_difficulty.is_empty():
 		resolved_difficulty = "normal"
 
-	var settings := _build_settings(resolved_layer, resolved_difficulty, active_config, active_encounter_pool)
+	var settings := _build_settings(resolved_layer, resolved_difficulty, active_config, active_encounter_pool, active_combat_encounter_pool)
 	for retry_index in range(max(settings.max_generation_retries, 1)):
 		var descriptors := _try_generate_floor(settings)
 		if not descriptors.is_empty() and validate_descriptors(descriptors, settings.grid_size):
@@ -155,8 +175,10 @@ static func _try_generate_floor(settings: Dictionary) -> Array:
 	var fights := _place_fights(settings, grid_size, large_occupied)
 	if fights.size() < int(settings.fight_count):
 		return []
+	_assign_combat_encounters(fights, settings)
 	for fight in fights:
 		major_nodes.append(fight)
+	_assign_combat_encounters([boss], settings)
 
 	var encounters := _place_major_nodes(
 		settings,
@@ -225,7 +247,13 @@ static func _try_generate_floor(settings: Dictionary) -> Array:
 
 	return _export_descriptors(all_nodes, edges)
 
-static func _build_settings(floor_layer: int, difficulty_id: String, config: Resource, encounter_pool: Resource) -> Dictionary:
+static func _build_settings(
+	floor_layer: int,
+	difficulty_id: String,
+	config: Resource,
+	encounter_pool: Resource,
+	combat_encounter_pool: Resource
+) -> Dictionary:
 	var difficulty_index := _difficulty_index(difficulty_id)
 	var layer_offset: int = max(floor_layer - 1, 0)
 	var width: int = min(
@@ -252,12 +280,14 @@ static func _build_settings(floor_layer: int, difficulty_id: String, config: Res
 		available_encounters = typed_encounter_pool.call("available_for_floor", floor_layer)
 	if typed_encounter_pool == null or available_encounters.is_empty():
 		encounter_count = 0
+	var typed_combat_encounter_pool := combat_encounter_pool as Resource
 	return {
 		"floor_layer": floor_layer,
 		"grid_size": Vector2i(max(width, 9), max(height, 3)),
 		"fight_count": fight_count,
 		"encounter_count": encounter_count,
 		"encounter_pool": typed_encounter_pool,
+		"combat_encounter_pool": typed_combat_encounter_pool,
 		"branch_chance": clampf(config.base_branch_chance + layer_offset * config.branch_chance_per_layer + difficulty_index * config.branch_chance_per_difficulty, 0.0, 1.0),
 		"extra_connection_chance": clampf(config.base_extra_connection_chance + layer_offset * config.extra_connection_chance_per_layer + difficulty_index * config.extra_connection_chance_per_difficulty, 0.0, 1.0),
 		"path_noise": clampf(config.base_path_noise + layer_offset * config.path_noise_per_layer + difficulty_index * config.path_noise_per_difficulty, 0.0, 1.0),
@@ -319,6 +349,70 @@ static func _assign_encounter_ids(encounter_nodes: Array, settings: Dictionary) 
 		encounter_node["encounter_id"] = String(encounter_data.get("id"))
 
 	return true
+
+static func _assign_combat_encounters(combat_nodes: Array, settings: Dictionary) -> void:
+	for combat_node in combat_nodes:
+		if not (combat_node is Dictionary):
+			continue
+
+		var encounter_data := _pick_combat_encounter(settings)
+		if encounter_data == null:
+			_assign_default_combat_encounter(combat_node)
+			continue
+
+		var encounter_id := String(encounter_data.get("id")).strip_edges()
+		var encounter_profile_path := _combat_encounter_profile_path(encounter_data, settings)
+		var enemy_profile_path := _primary_enemy_profile_path(encounter_data)
+		if encounter_id.is_empty() or encounter_profile_path.is_empty() or enemy_profile_path.is_empty():
+			_assign_default_combat_encounter(combat_node)
+			continue
+
+		combat_node["combat_encounter_id"] = encounter_id
+		combat_node["combat_encounter_profile_path"] = encounter_profile_path
+		combat_node["enemy"] = enemy_profile_path
+
+static func _pick_combat_encounter(settings: Dictionary) -> Resource:
+	var combat_encounter_pool := settings.get("combat_encounter_pool", null) as Resource
+	if combat_encounter_pool == null:
+		return null
+	if not combat_encounter_pool.has_method("pick_for_floor"):
+		return null
+
+	return combat_encounter_pool.call("pick_for_floor", int(settings.floor_layer)) as Resource
+
+static func _combat_encounter_profile_path(encounter_data: Resource, settings: Dictionary) -> String:
+	if encounter_data == null:
+		return ""
+
+	var combat_encounter_pool := settings.get("combat_encounter_pool", null) as Resource
+	if combat_encounter_pool != null and combat_encounter_pool.has_method("profile_path_for_id"):
+		var pool_path := str(combat_encounter_pool.call("profile_path_for_id", StringName(str(encounter_data.get("id"))))).strip_edges()
+		if not pool_path.is_empty():
+			return pool_path
+
+	return str(encounter_data.resource_path).strip_edges()
+
+static func _primary_enemy_profile_path(encounter_data: Resource) -> String:
+	if encounter_data == null:
+		return ""
+	if encounter_data.has_method("primary_enemy_profile_path"):
+		return str(encounter_data.call("primary_enemy_profile_path")).strip_edges()
+
+	var enemy_slots: Array = encounter_data.get("enemy_slots")
+	for slot in enemy_slots:
+		if not (slot is Dictionary):
+			continue
+		var slot_data: Dictionary = slot
+		var profile_path := str(slot_data.get("combatant_profile_path", "")).strip_edges()
+		if not profile_path.is_empty():
+			return profile_path
+
+	return ""
+
+static func _assign_default_combat_encounter(combat_node: Dictionary) -> void:
+	combat_node["combat_encounter_id"] = DEFAULT_COMBAT_ENCOUNTER_ID
+	combat_node["combat_encounter_profile_path"] = DEFAULT_COMBAT_ENCOUNTER_PROFILE_PATH
+	combat_node["enemy"] = DEFAULT_ENEMY_PROFILE_PATH
 
 static func _connect_nodes_with_path(
 	from_node: Dictionary,
@@ -466,6 +560,10 @@ static func _export_descriptors(nodes: Array, edges: Dictionary) -> Array:
 			descriptor["is_boss"] = true
 		if str(node.type) == DungeonNodeDataScript.TYPE_ENCOUNTER:
 			descriptor["encounter_id"] = str(node.get("encounter_id", ""))
+		if _is_combat_node_type(str(node.type)):
+			descriptor["combat_encounter_id"] = str(node.get("combat_encounter_id", DEFAULT_COMBAT_ENCOUNTER_ID))
+			descriptor["combat_encounter_profile_path"] = str(node.get("combat_encounter_profile_path", DEFAULT_COMBAT_ENCOUNTER_PROFILE_PATH))
+			descriptor["enemy"] = str(node.get("enemy", DEFAULT_ENEMY_PROFILE_PATH))
 
 		var connections: Array[int] = []
 		for connected_uid in edges.get(node.uid, []):
@@ -476,6 +574,9 @@ static func _export_descriptors(nodes: Array, edges: Dictionary) -> Array:
 		descriptors.append(descriptor)
 
 	return descriptors
+
+static func _is_combat_node_type(node_type: String) -> bool:
+	return node_type == DungeonNodeDataScript.TYPE_FIGHT or node_type == DungeonNodeDataScript.TYPE_BOSS
 
 static func _connection_cells_touch(first: Dictionary, second: Dictionary) -> bool:
 	var first_type := str(first.get("type", ""))

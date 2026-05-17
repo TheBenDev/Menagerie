@@ -6,6 +6,12 @@ const NumberFontHelper := preload("res://scenes/ui/common/number_font.gd")
 const ResourceBarScript := preload("res://scenes/ui/common/resource_bar.gd")
 const StatusIconViewScene := preload("res://scenes/combat/ui/StatusIconView.tscn")
 
+const TARGET_HIGHLIGHT_FILL := Color(1.0, 0.82, 0.24, 0.12)
+const TARGET_HIGHLIGHT_BORDER := Color(1.0, 0.82, 0.24, 0.95)
+const TARGET_HIGHLIGHT_BORDER_WIDTH := 4
+
+signal target_selected(combatant: Combatant)
+
 @export var status_icon_size: Vector2 = Vector2(32.0, 32.0)
 
 @onready var visual_root: Control = $DisplayColumn/VisualFrame/VisualRoot
@@ -26,20 +32,41 @@ var visual_instance: Node = null
 var health_bar_config: Resource = null
 var status_buttons: Array[Control] = []
 var is_hovering_display: bool = false
+var can_select_as_target: bool = false
+var is_target_highlighted: bool = false
+var target_highlight_overlay: Panel = null
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_PASS
 	mouse_entered.connect(_on_mouse_entered)
 	mouse_exited.connect(_on_mouse_exited)
+	_ensure_target_highlight_overlay()
 	NumberFontHelper.apply_to_label(health_label)
 	NumberFontHelper.apply_to_label(block_label)
 	_configure_empty_state()
 
 func setup(new_combatant: Combatant) -> void:
 	combatant = new_combatant
+	clear_targeting_state()
 	_connect_combatant_signals()
 	_apply_profile()
 	refresh()
+
+## Enables or clears this display as an explicit combat target candidate.
+func set_targeting_state(can_select: bool, highlighted: bool = true) -> void:
+	can_select_as_target = can_select and combatant != null and combatant.hp > 0
+	is_target_highlighted = highlighted and can_select_as_target
+	mouse_filter = Control.MOUSE_FILTER_STOP if can_select_as_target else Control.MOUSE_FILTER_PASS
+	mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND if can_select_as_target else Control.CURSOR_ARROW
+	_update_target_highlight()
+
+## Clears any targeting highlight or click-selection state from this display.
+func clear_targeting_state() -> void:
+	can_select_as_target = false
+	is_target_highlighted = false
+	mouse_filter = Control.MOUSE_FILTER_PASS
+	mouse_default_cursor_shape = Control.CURSOR_ARROW
+	_update_target_highlight()
 
 func refresh(_arg_a: Variant = null, _arg_b: Variant = null) -> void:
 	if combatant == null:
@@ -51,6 +78,16 @@ func refresh(_arg_a: Variant = null, _arg_b: Variant = null) -> void:
 	_sync_nameplate_visibility()
 	_update_health_and_block_bars()
 	_update_status_bar()
+
+func _gui_input(event: InputEvent) -> void:
+	if not can_select_as_target or combatant == null:
+		return
+
+	if event is InputEventMouseButton:
+		var mouse_button := event as InputEventMouseButton
+		if mouse_button.button_index == MOUSE_BUTTON_LEFT and mouse_button.pressed:
+			accept_event()
+			target_selected.emit(combatant)
 
 func _configure_empty_state() -> void:
 	name_label.text = ""
@@ -64,6 +101,35 @@ func _configure_empty_state() -> void:
 	health_label.visible = false
 	block_label.visible = false
 	status_bar.visible = true
+
+func _ensure_target_highlight_overlay() -> void:
+	if target_highlight_overlay != null and is_instance_valid(target_highlight_overlay):
+		return
+
+	target_highlight_overlay = Panel.new()
+	target_highlight_overlay.name = "TargetHighlight"
+	target_highlight_overlay.visible = false
+	target_highlight_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	target_highlight_overlay.z_index = 100
+	target_highlight_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+	target_highlight_overlay.offset_left = 0.0
+	target_highlight_overlay.offset_top = 0.0
+	target_highlight_overlay.offset_right = 0.0
+	target_highlight_overlay.offset_bottom = 0.0
+	target_highlight_overlay.add_theme_stylebox_override("panel", _target_highlight_stylebox())
+	add_child(target_highlight_overlay)
+
+func _target_highlight_stylebox() -> StyleBoxFlat:
+	var stylebox := StyleBoxFlat.new()
+	stylebox.bg_color = TARGET_HIGHLIGHT_FILL
+	stylebox.border_color = TARGET_HIGHLIGHT_BORDER
+	stylebox.set_border_width_all(TARGET_HIGHLIGHT_BORDER_WIDTH)
+	stylebox.corner_detail = 2
+	return stylebox
+
+func _update_target_highlight() -> void:
+	_ensure_target_highlight_overlay()
+	target_highlight_overlay.visible = is_target_highlighted
 
 func _connect_combatant_signals() -> void:
 	if combatant == null:

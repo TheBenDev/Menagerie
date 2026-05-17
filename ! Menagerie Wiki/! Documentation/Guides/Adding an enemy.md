@@ -39,11 +39,11 @@ Use existing Training Ghoul resources as the pattern:
 
 ## Add to dungeon
 
-1. Open `res://core/dungeon/dungeon_floor_generator.gd` if this enemy should appear in generated map descriptors.
-2. Add an `enemy` value to the generated `Fight` or `Boss` descriptor path selection for the new profile.
-3. Set `is_boss` for boss encounters.
-4. Keep descriptor `connections` symmetric when adding authored or special-case paths.
-5. Open `res://scenes/dungeon/DungeonMap.tscn` through Godot to verify the generated node placement and seed display.
+1. Create a `DungeonCombatEncounterData` resource under `res://core/dungeon/encounters/combat/`.
+2. Set `id`, display fields, floor validity, and `weight`.
+3. Add an `enemy_slots` dictionary with `combatant_profile_path` pointing at the enemy profile and `position_id` such as `EnemySlot1`.
+4. Confirm `res://core/dungeon/encounters/default_dungeon_combat_encounter_pool.tres` scans that folder.
+5. Open `res://scenes/dungeon/DungeonMap.tscn` through Godot to verify generated Fight/Boss nodes receive a stable `combat_encounter_id` and compatibility enemy profile path.
 
 ## Optional battle visual
 
@@ -52,7 +52,7 @@ If the enemy needs unique art, follow [[Adding a battle visual]] and then assign
 ## Validate behavior
 
 - Start a run and select a node with the new enemy profile.
-- Confirm `BattleScene` loads the profile from `GameManager.get_current_encounter()`.
+- Confirm `BattleScene` loads the combat encounter from `GameManager.get_current_encounter()` and uses the first enemy slot's profile in the current one-enemy battle scene.
 - Confirm the enemy has actions after `EnemyCombatant.apply_profile()`.
 - Confirm rewards are granted on victory.
 - Run the headless load command after changing resources/scenes.

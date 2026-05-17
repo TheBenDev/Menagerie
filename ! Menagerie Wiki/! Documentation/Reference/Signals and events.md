@@ -20,6 +20,8 @@ Signals are the main event contract between combat, UI, audio, and run state.
 | --- | --- | --- |
 | `time_changed` | `current_time: float` | `BattleScene._refresh_hud()`, `BattleScene._on_battle_time_changed()`, `CombatAudioBridge._on_battle_state_changed()` |
 | `player_ready` | `player: Combatant` | `BattleScene._refresh_hud()`, `CombatAudioBridge._on_battle_state_changed()` |
+| `player_group_defeated` | none | `BattleScene._on_player_group_defeated()` |
+| `enemy_group_defeated` | none | `BattleScene._on_enemy_group_defeated()` |
 | `battle_log` | `message: String` | `BattleScene._refresh_hud()` |
 | `time_scale_changed` | `time_scale: float` | `BattleScene._refresh_hud()` |
 | `pause_changed` | `is_paused: bool` | `BattleScene._refresh_hud()` |
@@ -32,7 +34,7 @@ Signals are the main event contract between combat, UI, audio, and run state.
 | `hp_changed` | `combatant: Combatant` | HUD refresh, audio hit snapshots, run result calculations. |
 | `block_changed` | `combatant: Combatant` | HUD refresh, audio block snapshots. |
 | `statuses_changed` | `combatant: Combatant` | HUD refresh and status label updates. |
-| `died` | `combatant: Combatant` | `BattleController`, `BattleScene`, `CombatAudioBridge`. |
+| `died` | `combatant: Combatant` | `BattleController` group defeat checks, `BattleScene` HUD refresh, `CombatAudioBridge` death SFX. |
 | `action_started` | `combatant: Combatant`, `action: CombatActionData` | HUD refresh and action start SFX. |
 | `action_resolved` | `combatant: Combatant`, `action: CombatActionData` | HUD refresh and action resolve SFX. |
 
@@ -53,6 +55,7 @@ Signals are the main event contract between combat, UI, audio, and run state.
 | `BattleActionBar` | `slot_selected` | `slot_id: StringName` | `BattleHUD._on_hotbar_slot_selected()` |
 | `BattleActionBar` | `slot_hovered` | `source: Control` | `BattleHUD._show_hover_info_for_source()` |
 | `BattleActionBar` | `slot_hover_ended` | none | `BattleHUD._clear_hover_info()` |
+| `CombatantDisplay` | `target_selected` | `combatant: Combatant` | `BattleScene._on_target_display_selected()` during explicit player targeting. |
 | `CombatantBattleVisual` | `visual_bounds_changed` | `bounds: Rect2` | Available for visual-bound consumers; no current HUD consumer. |
 
 ## Button and route events
@@ -76,8 +79,8 @@ Signals are the main event contract between combat, UI, audio, and run state.
 | `Haven` | Starts revealed/visited/occupied but unresolved, emits node-entry and Haven-entry signals, and remains unresolved until future Haven behavior defines completion. |
 | `Empty` | Marks visited, emits node-entry and Empty-entry signals, reveals connected neighbors, then resolves immediately. |
 | `Encounter` | Marks visited, emits a node event, reveals connected neighbors, locks the entering pawn, loads the encounter scene by `encounter_id`, and resolves after a supported `encounter_finished` completion result. |
-| `Fight` | Marks visited, emits a node event, locks the entering pawn, and routes through `GameManager.start_combat()`. Resolution waits for a victorious combat result. |
-| `Boss` | Marks visited, emits a node event, locks the entering pawn, and routes through `GameManager.start_combat()`. Resolution waits for the boss combat result. |
+| `Fight` | Marks visited, emits a node event containing `combat_encounter_id` / `combat_encounter_profile_path`, locks the entering pawn, and routes through `GameManager.start_combat()`. Resolution waits for a victorious combat result. |
+| `Boss` | Marks visited, emits a node event containing `combat_encounter_id` / `combat_encounter_profile_path`, locks the entering pawn, and routes through `GameManager.start_combat()`. Resolution waits for the boss combat result. |
 
 ## Event locks
 

@@ -86,6 +86,8 @@ func _create_path_data(descriptors: Array) -> void:
 			str(descriptor.get("type", DungeonNodeDataScript.TYPE_FIGHT)),
 			str(descriptor.get("enemy", "")),
 			_string_name_from_variant(descriptor.get("encounter_id", &"")),
+			_string_name_from_variant(descriptor.get("combat_encounter_id", &"")),
+			str(descriptor.get("combat_encounter_profile_path", "")),
 			bool(descriptor.get("is_boss", false)),
 			grid_position,
 			grid_size
@@ -562,7 +564,15 @@ func _start_combat_node(node: DungeonNodeData, charge_travel_time: bool = true) 
 	var starts_boss_combat: bool = node.is_boss or node.node_type == DungeonNodeDataScript.TYPE_BOSS
 	if starts_boss_combat and SoundManager != null:
 		SoundManager.play_sfx(&"sfx.global.boss.boss_start_fight")
-	GameManager.start_combat(node.id, node.node_type, node.enemy_profile, starts_boss_combat, charge_travel_time)
+	GameManager.start_combat(
+		node.id,
+		node.node_type,
+		node.enemy_profile,
+		starts_boss_combat,
+		charge_travel_time,
+		node.combat_encounter_id,
+		node.combat_encounter_profile_path
+	)
 
 func _start_encounter_node(node: DungeonNodeData, charge_travel_time: bool = true) -> void:
 	if node == null:

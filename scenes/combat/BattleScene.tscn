@@ -49,3 +49,82 @@ offset_left = 381.0
 offset_top = 369.0
 offset_right = 731.0
 offset_bottom = 789.0
+
+[node name="PlayerSlots" type="Control" parent="." unique_id=1310777311]
+visible = false
+layout_mode = 3
+anchors_preset = 0
+offset_right = 1920.0
+offset_bottom = 1080.0
+mouse_filter = 2
+
+[node name="PlayerSlot1" type="Control" parent="PlayerSlots" unique_id=649244423]
+custom_minimum_size = Vector2(350, 420)
+anchors_preset = 0
+offset_left = 381.0
+offset_top = 369.0
+offset_right = 731.0
+offset_bottom = 789.0
+mouse_filter = 2
+
+[node name="PlayerSlot2" type="Control" parent="PlayerSlots" unique_id=91560257]
+custom_minimum_size = Vector2(350, 420)
+anchors_preset = 0
+offset_left = 230.0
+offset_top = 260.0
+offset_right = 580.0
+offset_bottom = 680.0
+mouse_filter = 2
+
+[node name="PlayerSlot3" type="Control" parent="PlayerSlots" unique_id=1577734793]
+custom_minimum_size = Vector2(350, 420)
+anchors_preset = 0
+offset_left = 545.0
+offset_top = 245.0
+offset_right = 895.0
+offset_bottom = 665.0
+mouse_filter = 2
+
+[node name="EnemySlots" type="Control" parent="." unique_id=374756090]
+visible = false
+layout_mode = 3
+anchors_preset = 0
+offset_right = 1920.0
+offset_bottom = 1080.0
+mouse_filter = 2
+
+[node name="EnemySlot1" type="Control" parent="EnemySlots" unique_id=2014457219]
+custom_minimum_size = Vector2(350, 420)
+anchors_preset = 0
+offset_left = 1230.0
+offset_top = 357.0
+offset_right = 1580.0
+offset_bottom = 777.0
+mouse_filter = 2
+
+[node name="EnemySlot2" type="Control" parent="EnemySlots" unique_id=1030965439]
+custom_minimum_size = Vector2(350, 420)
+anchors_preset = 0
+offset_left = 1390.0
+offset_top = 250.0
+offset_right = 1740.0
+offset_bottom = 670.0
+mouse_filter = 2
+
+[node name="EnemySlot3" type="Control" parent="EnemySlots" unique_id=1692003553]
+custom_minimum_size = Vector2(350, 420)
+anchors_preset = 0
+offset_left = 1080.0
+offset_top = 235.0
+offset_right = 1430.0
+offset_bottom = 655.0
+mouse_filter = 2
+
+[node name="EnemySlot4" type="Control" parent="EnemySlots" unique_id=640151834]
+custom_minimum_size = Vector2(350, 420)
+anchors_preset = 0
+offset_left = 1260.0
+offset_top = 170.0
+offset_right = 1610.0
+offset_bottom = 590.0
+mouse_filter = 2

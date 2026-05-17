@@ -12,13 +12,13 @@ This inventory lists authored gameplay, audio, UI, and visual `.tres` files unde
 | --- | ---: |
 | `assets/audio` | 1 |
 | `assets/ui` | 1 |
-| `core/dungeon` | 6 |
+| `core/dungeon` | 8 |
 | `core/difficulty` | 3 |
 | `core/rewards` | 1 |
 | `core/statuses` | 2 |
 | `scenes/combatants/characters` | 4 |
 | `scenes/combatants/enemies` | 4 |
-| Total | 22 |
+| Total | 24 |
 
 ## Resources
 
@@ -28,7 +28,9 @@ This inventory lists authored gameplay, audio, UI, and visual `.tres` files unde
 | `res://assets/ui/menagerie_theme.tres` | `Theme` | Project UI theme with Germania One defaults, compact combat text variations, Dumbledor title/header variations, and Gotfridus character-name variations. |
 | `res://core/dungeon/abilities/default_dungeon_ability_pool.tres` | `DungeonAbilityPool` | Default class-agnostic dungeon hotbar abilities. |
 | `res://core/dungeon/default_dungeon_floor_generation_config.tres` | `DungeonFloorGenerationConfig` | Default deterministic dungeon map generation tuning. |
+| `res://core/dungeon/encounters/default_dungeon_combat_encounter_pool.tres` | `DungeonCombatEncounterPool` | Scanned combat encounter registry for generated Fight/Boss nodes. |
 | `res://core/dungeon/encounters/default_dungeon_encounter_pool.tres` | `DungeonEncounterPool` | Scanned dungeon encounter registry and default encounter scene. |
+| `res://core/dungeon/encounters/combat/training_ghoul_fight.tres` | `DungeonCombatEncounterData` | Default seeded Fight/Boss combat encounter using one Training Ghoul enemy slot. |
 | `res://core/dungeon/encounters/events/cracked_obelisk.tres` | `DungeonEncounterData` | Default Cracked Obelisk encounter. |
 | `res://core/dungeon/encounters/events/forgotten_font.tres` | `DungeonEncounterData` | Default Forgotten Font encounter. |
 | `res://core/dungeon/encounters/events/mysterious_shrine.tres` | `DungeonEncounterData` | Default Mysterious Shrine encounter. |
@@ -62,6 +64,8 @@ This inventory lists authored gameplay, audio, UI, and visual `.tres` files unde
 | `DungeonAbilityPool` | `abilities`. |
 | `DungeonAbilityData` | `id`, `display_name`, `hotbar_label`, `description`, `icon`, `enabled`. |
 | `DungeonFloorGenerationConfig` | Grid size scaling, fight/encounter count scaling, branch/extra connection chances, path noise, room padding, placement attempts, and retry limits. |
+| `DungeonCombatEncounterPool` | `scan_roots`. |
+| `DungeonCombatEncounterData` | `id`, `display_name`, `description`, `valid_floor_layers`, `weight`, `enemy_slots`. Enemy slot dictionaries currently use `combatant_profile_path`, `position_id`, and optional `modifier_data`; `position_id` maps to an authored `EnemySlots/*` marker in `BattleScene.tscn`. |
 | `DungeonEncounterPool` | `scan_roots`, `default_scene`. |
 | `DungeonEncounterData` | `id`, `display_name`, `description`, `valid_floor_layers`, `weight`, `scene_override`, inline `choices`. |
 | Dungeon encounter choice dictionaries | `label`, optional `description`, optional `effects`. |

@@ -6,6 +6,7 @@ const DungeonFloorGeneratorScript := preload("res://core/dungeon/dungeon_floor_g
 const DungeonEncounterResolverScript := preload("res://core/dungeon/encounters/dungeon_encounter_resolver.gd")
 const DEFAULT_DUNGEON_GENERATION_CONFIG := preload("res://core/dungeon/default_dungeon_floor_generation_config.tres")
 const DEFAULT_DUNGEON_ENCOUNTER_POOL := preload("res://core/dungeon/encounters/default_dungeon_encounter_pool.tres")
+const DEFAULT_DUNGEON_COMBAT_ENCOUNTER_POOL := preload("res://core/dungeon/encounters/default_dungeon_combat_encounter_pool.tres")
 const DEFAULT_DUNGEON_ABILITY_POOL := preload("res://core/dungeon/abilities/default_dungeon_ability_pool.tres")
 
 signal run_time_changed(remaining_time_seconds: float, max_time_seconds: float)
@@ -62,7 +63,8 @@ func start_new_run(character: String, difficulty: String, dungeon_seed: String =
 		current_run_data.dungeon_floor_layer,
 		current_run_data.selected_difficulty,
 		DEFAULT_DUNGEON_GENERATION_CONFIG,
-		DEFAULT_DUNGEON_ENCOUNTER_POOL
+		DEFAULT_DUNGEON_ENCOUNTER_POOL,
+		DEFAULT_DUNGEON_COMBAT_ENCOUNTER_POOL
 	)
 	current_run_data.initialize_dungeon_map_state(RunDataScript.START_DUNGEON_NODE_ID)
 	run_setup_data.configure_selection(current_run_data.selected_character, current_run_data.selected_difficulty)
@@ -80,7 +82,9 @@ func start_combat(
 	node_type: String,
 	enemy_profile_path: String,
 	is_boss: bool,
-	charge_travel_time: bool = true
+	charge_travel_time: bool = true,
+	combat_encounter_id: StringName = &"",
+	combat_encounter_profile_path: String = ""
 ) -> void:
 	if current_run_data == null:
 		start_new_run(
@@ -90,7 +94,15 @@ func start_combat(
 			run_setup_data.dungeon_floor_layer
 		)
 
-	current_run_data.set_encounter(node_id, node_type, enemy_profile_path, is_boss, DEFAULT_ENEMY_PROFILE_PATH)
+	current_run_data.set_encounter(
+		node_id,
+		node_type,
+		enemy_profile_path,
+		is_boss,
+		DEFAULT_ENEMY_PROFILE_PATH,
+		combat_encounter_id,
+		combat_encounter_profile_path
+	)
 
 	if charge_travel_time and not advance_run_time(RunDataScript.NODE_TRAVEL_TIME_SECONDS):
 		return
@@ -134,6 +146,11 @@ func get_dungeon_encounter(encounter_id: StringName) -> Resource:
 
 func get_dungeon_encounter_scene(encounter_id: StringName) -> PackedScene:
 	return DungeonEncounterResolverScript.scene_for_encounter(DEFAULT_DUNGEON_ENCOUNTER_POOL, get_dungeon_encounter(encounter_id))
+
+func get_dungeon_combat_encounter(encounter_id: StringName) -> Resource:
+	if String(encounter_id).is_empty():
+		return null
+	return DEFAULT_DUNGEON_COMBAT_ENCOUNTER_POOL.call("get_encounter", encounter_id) as Resource
 
 func get_dungeon_abilities(slot_count: int = 3) -> Array:
 	if DEFAULT_DUNGEON_ABILITY_POOL == null:
@@ -299,6 +316,8 @@ func get_current_encounter() -> Dictionary:
 			"node_id": -1,
 			"node_type": "",
 			"enemy_profile_path": DEFAULT_ENEMY_PROFILE_PATH,
+			"combat_encounter_id": &"",
+			"combat_encounter_profile_path": "",
 			"is_boss": false,
 		}
 

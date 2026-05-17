@@ -18,6 +18,7 @@ The run flow describes how menu selection becomes dungeon state, combat, rewards
 | Waiting room | `res://scenes/ui/waiting_room/waiting_room.gd` | Selects character, difficulty, optional seed, starts a run, routes to dungeon. |
 | Dungeon generator | `res://core/dungeon/dungeon_floor_generator.gd` | Builds deterministic dungeon node descriptors from seed, layer, difficulty, and tuning config. |
 | Encounter pool | `res://core/dungeon/encounters/default_dungeon_encounter_pool.tres` | Stores weighted encounter events, valid floors, presentation scenes, choices, and run-level effects. |
+| Combat encounter pool | `res://core/dungeon/encounters/default_dungeon_combat_encounter_pool.tres` | Stores weighted Fight/Boss combat encounter profiles and enemy slot data. |
 | Dungeon controller | `res://scenes/dungeon/dungeon_controller.gd` | Generates and builds the grid map, advances travel playback, applies completed node/combat results, and starts routed encounters. |
 | Dungeon movement coordinator | `res://core/dungeon/dungeon_movement_coordinator.gd` | Advances all active pawn travel orders in synchronized node steps. |
 | Dungeon pawn view | `res://scenes/dungeon/dungeon_map_pawn_view.gd` | Visual-only marker for one run-owned dungeon pawn. |
@@ -37,9 +38,9 @@ The run flow describes how menu selection becomes dungeon state, combat, rewards
 9. Empty nodes resolve immediately on entry after the shared movement step has already charged `RunData.NODE_STEP_DUNGEON_TIME_SECONDS`.
 10. Haven entry emits Haven node-entry signals but does not auto-resolve until a future Haven behavior defines that completion state.
 11. Encounter nodes become visited before the encounter starts, lock the entering pawn as a participant, load their scene by descriptor `encounter_id`, wait for a supported `encounter_finished` completion result, then apply the selected choice effects to `RunData`, resolve the node, and unlock only pawns locked to that event node.
-12. Entering an unresolved fight or boss marks the node visited, locks the entering pawn as a participant, and calls `GameManager.start_combat(node_id, node_type, enemy_profile_path, is_boss, false)` so the old direct-click travel charge is not applied on top of the movement step.
+12. Entering an unresolved fight or boss marks the node visited, locks the entering pawn as a participant, and calls `GameManager.start_combat(node_id, node_type, enemy_profile_path, is_boss, false, combat_encounter_id, combat_encounter_profile_path)` so the old direct-click travel charge is not applied on top of the movement step.
 13. `GameManager` stores encounter metadata and routes to `combat/BattleScene`.
-14. `battle_scene.gd` loads the encounter profile from `GameManager.get_current_encounter()`, applies effective Warrior `CombatantState` stats and persistent HP through the existing player bridge, runs combat, and creates a `CombatResult`.
+14. `battle_scene.gd` loads the routed combat encounter profile from `GameManager.get_current_encounter()`, uses the first enemy slot for the current one-enemy scene bridge, applies effective Warrior `CombatantState` stats and persistent HP through the existing player bridge, runs combat, and creates a `CombatResult`.
 15. `GameManager.complete_combat(result)` stores the result and routes back to `dungeon`.
 16. `dungeon_controller.gd` consumes the pending result, updates `RunData`, resolves victorious fight/boss nodes, unlocks only pawns participating in that event node, emits HUD state, and either continues or routes to `run_summary`.
 17. `run_summary.gd` shows totals and returns to `waiting_room`.
@@ -55,11 +56,12 @@ The run flow describes how menu selection becomes dungeon state, combat, rewards
 ## Key contracts
 
 - `GameManager.current_run_data` is nullable; callers that need state should use `GameManager.start_new_run()` or helper methods that create a default run.
-- `GameManager.get_current_encounter()` always returns a dictionary with `node_id`, `node_type`, `enemy_profile_path`, and `is_boss`.
+- `GameManager.get_current_encounter()` always returns a dictionary with `node_id`, `node_type`, `enemy_profile_path`, `combat_encounter_id`, `combat_encounter_profile_path`, and `is_boss`.
 - `RunData.dungeon_seed` is the replay value for deterministic dungeon generation and gameplay RNG. Blank waiting-room seed input is resolved before storage.
 - `RunData.dungeon_floor_layer` is stored as `1` until multi-floor progression exists.
 - `RunData.dungeon_node_descriptors` stores the generated map for the active run so returning from combat does not re-roll or re-consume map generation RNG.
 - Encounter descriptors store `encounter_id`, selected from the encounter pool by the seeded generation RNG.
+- Fight/Boss descriptors store `combat_encounter_id`, `combat_encounter_profile_path`, and the first enemy slot's `enemy` profile path. The encounter profile is selected from the combat encounter pool by the same seeded generation RNG stream.
 - `RunData.player_party_state` owns the active player roster. Phase 1 creates one active Warrior member with `control_mode = LocalPlayer`.
 - `RunData.dungeon_map_pawns` owns active dungeon pawn state. Phase 2 creates one Warrior pawn and links `PlayerPartyMemberState.map_pawn_id`.
 - `DungeonMap.tscn` has a `PawnLayer` above `NodeLayer`; `DungeonMapPawnView` instances display pawn state but do not own movement or gameplay position.

@@ -36,10 +36,13 @@ signal pause_requested()
 var battle: BattleController = null
 var player: Combatant = null
 var enemy: Combatant = null
+var player_group: Variant = null
+var enemy_group: Variant = null
 var health_bar_config: Resource = null
 var class_resource_config: Resource = null
 var status_buttons: Array[Control] = []
 var status_entries: Array[Dictionary] = []
+var is_targeting_active: bool = false
 
 func _ready() -> void:
 	speed_button.pressed.connect(_on_speed_button_pressed)
@@ -59,13 +62,26 @@ func _ready() -> void:
 	_configure_static_hover_sources()
 	_clear_hover_info()
 
-func setup(new_battle: BattleController, new_player: Combatant, new_enemy: Combatant) -> void:
+func setup(
+	new_battle: BattleController,
+	new_player: Combatant,
+	new_enemy: Combatant,
+	new_player_group: Variant = null,
+	new_enemy_group: Variant = null
+) -> void:
 	battle = new_battle
 	player = new_player
 	enemy = new_enemy
+	player_group = new_player_group
+	enemy_group = new_enemy_group
 
 	action_bar.set_actions(player.actions)
 	_configure_resource_bars()
+	refresh()
+
+## Gates action-slot selection while the battle scene is waiting for target confirmation.
+func set_targeting_active(new_is_targeting_active: bool) -> void:
+	is_targeting_active = new_is_targeting_active
 	refresh()
 
 func refresh() -> void:
@@ -84,7 +100,7 @@ func refresh() -> void:
 	pause_button.text = ">" if battle.is_paused else "||"
 	pause_button.disabled = battle.battle_over
 
-	action_bar.set_can_choose(battle.waiting_for_player_input and not battle.battle_over)
+	action_bar.set_can_choose(battle.waiting_for_player_input and not battle.battle_over and not is_targeting_active)
 	_update_resource_bars()
 	_update_status_bar()
 
