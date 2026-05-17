@@ -82,7 +82,7 @@ Autoloads are the closest thing this project has to global service endpoints.
 
 | Key | Type | Meaning |
 | --- | --- | --- |
-| `mode` | `String` | Currently supports `complete`. Other modes are reserved. |
+| `mode` | `String` | Currently supports `complete`. Other modes are reserved; dungeon encounter scenes that emit unsupported modes remain active so locked pawns are not stranded without event UI. |
 | `choice_index` | `int` | Zero-based index of the selected inline choice dictionary. |
 
 ## SoundManager

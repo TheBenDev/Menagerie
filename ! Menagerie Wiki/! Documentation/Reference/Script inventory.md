@@ -96,7 +96,7 @@ This inventory lists runtime `.gd` scripts under `res://core` and `res://scenes`
 | `res://scenes/dungeon/dungeon_controller.gd` | None | Builds dungeon grid nodes, controls reveal state, refreshes dungeon hotbar HP/action slots, applies combat results, and starts routed encounters. |
 | `res://core/dungeon/abilities/dungeon_ability_data.gd` | `DungeonAbilityData` | Class-agnostic dungeon hotbar ability metadata. |
 | `res://core/dungeon/abilities/dungeon_ability_pool.gd` | `DungeonAbilityPool` | Ordered pool of dungeon map abilities for the hotbar. |
-| `res://core/dungeon/dungeon_map_pawn_state.gd` | `DungeonMapPawnState` | Run-owned dungeon map position, travel placeholders, and event-lock placeholders for one active party member. |
+| `res://core/dungeon/dungeon_map_pawn_state.gd` | `DungeonMapPawnState` | Run-owned dungeon map position, travel orders, and event-lock state for one active party member. |
 | `res://core/dungeon/dungeon_movement_coordinator.gd` | `DungeonMovementCoordinator` | Advances active dungeon pawn travel orders in synchronized node steps. |
 | `res://core/dungeon/dungeon_pathfinder.gd` | `DungeonPathfinder` | Finds allowed routes through descriptor connection graphs. |
 | `res://core/dungeon/dungeon_floor_generation_config.gd` | `DungeonFloorGenerationConfig` | Resource tuning profile for deterministic dungeon generation. |

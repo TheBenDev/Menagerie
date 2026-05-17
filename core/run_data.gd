@@ -4,6 +4,7 @@ extends RefCounted
 
 const DungeonMapPawnStateScript := preload("res://core/dungeon/dungeon_map_pawn_state.gd")
 const DungeonPathfinderScript := preload("res://core/dungeon/dungeon_pathfinder.gd")
+const PartyControlModeScript := preload("res://core/party/party_control_mode.gd")
 const PlayerPartyStateScript := preload("res://core/party/player_party_state.gd")
 
 const END_REASON_IN_PROGRESS := "in_progress"
@@ -31,6 +32,7 @@ const STAT_FIELD_BY_ID := {
 	STAT_INTELLIGENCE: "intelligence",
 	STAT_VITALITY: "vitality",
 }
+const TRAVEL_RESULT_AUTOPILOT_FOLLOW_RESULTS := "autopilot_follow_results"
 
 var selected_character: String = DEFAULT_CHARACTER
 var selected_difficulty: String = DEFAULT_DIFFICULTY
@@ -374,7 +376,7 @@ func move_dungeon_pawn_to_node(pawn_id: String, node_id: int) -> bool:
 
 	pawn.set_current_node_id(node_id)
 	current_node_index = max(current_node_index, node_id)
-	if get_selected_dungeon_map_pawn() == pawn:
+	if _is_selected_dungeon_pawn_id(str(pawn.pawn_id)):
 		current_dungeon_node_id = node_id
 	return true
 
@@ -385,35 +387,65 @@ func get_current_dungeon_node_id() -> int:
 
 	return current_dungeon_node_id
 
+## Records that a node was physically entered and syncs only the entering pawn when provided.
 func mark_dungeon_node_visited(node_id: int, pawn_id: String = "") -> void:
 	if node_id < 0:
 		return
 
-	_add_node_id(visited_dungeon_node_ids, node_id)
-	reveal_dungeon_node(node_id)
-	reveal_connected_dungeon_nodes(node_id)
-	current_node_index = max(current_node_index, node_id)
-	current_dungeon_node_id = node_id
-	_sync_current_pawn_node(node_id, pawn_id)
+	_mark_dungeon_node_visit_state(node_id)
+	var synced_pawn := _sync_current_pawn_node(node_id, pawn_id)
+	if not synced_pawn and pawn_id.is_empty():
+		current_dungeon_node_id = node_id
 
 func mark_dungeon_node_resolved(node_id: int) -> void:
 	_add_node_id(resolved_dungeon_node_ids, node_id)
 
+## Resolves a node event/effect and unlocks only pawns participating in that event node.
 func complete_dungeon_node(node_id: int, pawn_id: String = "") -> void:
-	mark_dungeon_node_visited(node_id, pawn_id)
+	if node_id < 0:
+		return
+
+	var completion_pawn_ids := _completion_pawn_ids_for_node(node_id, pawn_id)
+	if completion_pawn_ids.is_empty():
+		if pawn_id.is_empty():
+			mark_dungeon_node_visited(node_id)
+		else:
+			_mark_dungeon_node_visit_state(node_id)
+	else:
+		_mark_dungeon_node_visit_state(node_id)
+		for completion_pawn_id in completion_pawn_ids:
+			_sync_current_pawn_node(node_id, completion_pawn_id)
 	mark_dungeon_node_resolved(node_id)
 	unlock_dungeon_pawns_for_event_node(node_id)
+
+## Returns pawn IDs currently locked as participants in the event at the provided node.
+func get_event_locked_dungeon_pawn_ids(node_id: int) -> Array[String]:
+	var locked_pawn_ids: Array[String] = []
+	if node_id < 0:
+		return locked_pawn_ids
+
+	for raw_pawn_id in active_dungeon_pawn_ids:
+		var pawn_id := str(raw_pawn_id)
+		var pawn: Variant = get_dungeon_map_pawn(pawn_id)
+		if _is_pawn_locked_for_event_node(pawn, node_id):
+			_add_pawn_id(locked_pawn_ids, pawn_id)
+
+	for raw_pawn in dungeon_map_pawns.values():
+		var pawn: Variant = raw_pawn
+		if _is_pawn_locked_for_event_node(pawn, node_id):
+			_add_pawn_id(locked_pawn_ids, str(pawn.pawn_id))
+
+	return locked_pawn_ids
 
 ## Unlocks any pawn whose active event was resolved at the provided node.
 func unlock_dungeon_pawns_for_event_node(node_id: int) -> void:
 	if node_id < 0:
 		return
 
-	for raw_pawn in dungeon_map_pawns.values():
-		var pawn: Variant = raw_pawn
-		if pawn == null or int(pawn.active_event_node_id) != node_id:
+	for pawn_id in get_event_locked_dungeon_pawn_ids(node_id):
+		var pawn: Variant = get_dungeon_map_pawn(pawn_id)
+		if pawn == null:
 			continue
-
 		pawn.unlock_event()
 
 func reveal_dungeon_node(node_id: int) -> void:
@@ -497,40 +529,12 @@ func can_request_selected_dungeon_pawn_travel(destination_node_id: int) -> bool:
 
 	return not get_dungeon_pawn_travel_path(str(pawn.pawn_id), destination_node_id).is_empty()
 
-## Validates and stores a travel order or pending replacement for one pawn.
+## Validates a pawn travel order and fans accepted local-leader orders out to AutoPilot followers.
 func request_dungeon_pawn_travel(pawn_id: String, destination_node_id: int) -> Dictionary:
-	var pawn: Variant = get_dungeon_map_pawn(pawn_id)
-	if pawn == null:
-		return _travel_request_result(false, "missing_pawn", [], false)
-	if destination_node_id < 0:
-		return _travel_request_result(false, "invalid_destination", [], false)
-	if pawn.current_node_id == destination_node_id:
-		return _travel_request_result(false, "already_at_destination", [], false)
-	if bool(pawn.is_locked_by_event) or int(pawn.travel_state) == DungeonMapPawnStateScript.IN_EVENT:
-		return _travel_request_result(false, "pawn_locked_by_event", [], false)
-	if not bool(pawn.is_active()):
-		return _travel_request_result(false, "pawn_inactive", [], false)
-
-	var path: Array[int] = get_dungeon_pawn_travel_path(pawn_id, destination_node_id)
-	if path.is_empty():
-		return _travel_request_result(false, "unreachable_destination", [], false)
-
-	if int(pawn.travel_state) == DungeonMapPawnStateScript.TRAVELING:
-		if not ALLOW_DESTINATION_REPLACE_DURING_TRAVEL:
-			return _travel_request_result(false, "replacement_disabled", path, false)
-		if not pawn.request_destination_replacement(destination_node_id):
-			return _travel_request_result(false, "replacement_rejected", path, false)
-		return _travel_request_result(true, "", path, true)
-
-	if not pawn.set_travel_order(
-		destination_node_id,
-		path,
-		NODE_STEP_DUNGEON_TIME_SECONDS,
-		VISUAL_NODE_STEPS_PER_REAL_SECOND
-	):
-		return _travel_request_result(false, "travel_order_rejected", path, false)
-
-	return _travel_request_result(true, "", path, false)
+	var result := _request_single_dungeon_pawn_travel(pawn_id, destination_node_id)
+	if bool(result.get("accepted", false)):
+		result[TRAVEL_RESULT_AUTOPILOT_FOLLOW_RESULTS] = _request_autopilot_follow_orders(pawn_id, destination_node_id)
+	return result
 
 func get_dungeon_pawn_travel_path(pawn_id: String, destination_node_id: int) -> Array[int]:
 	var pawn: Variant = get_dungeon_map_pawn(pawn_id)
@@ -555,9 +559,10 @@ func get_allowed_dungeon_path_node_ids() -> Array[int]:
 	for node_id in resolved_dungeon_node_ids:
 		_add_node_id(allowed_node_ids, node_id)
 
-	var selected_pawn: Variant = get_selected_dungeon_map_pawn()
-	if selected_pawn != null:
-		_add_node_id(allowed_node_ids, int(selected_pawn.current_node_id))
+	for raw_pawn_id in active_dungeon_pawn_ids:
+		var pawn: Variant = get_dungeon_map_pawn(str(raw_pawn_id))
+		if pawn != null and bool(pawn.is_active()):
+			_add_node_id(allowed_node_ids, int(pawn.current_node_id))
 
 	return allowed_node_ids
 
@@ -603,16 +608,143 @@ func register_combat_result(result: Variant) -> void:
 	else:
 		regular_fights_completed += 1
 
-func _sync_current_pawn_node(node_id: int, pawn_id: String = "") -> void:
+func _request_single_dungeon_pawn_travel(pawn_id: String, destination_node_id: int) -> Dictionary:
+	var pawn: Variant = get_dungeon_map_pawn(pawn_id)
+	if pawn == null:
+		return _travel_request_result(false, "missing_pawn", [], false)
+	if destination_node_id < 0:
+		return _travel_request_result(false, "invalid_destination", [], false)
+	if pawn.current_node_id == destination_node_id:
+		return _travel_request_result(false, "already_at_destination", [], false)
+	if bool(pawn.is_locked_by_event) or int(pawn.travel_state) == DungeonMapPawnStateScript.IN_EVENT:
+		return _travel_request_result(false, "pawn_locked_by_event", [], false)
+	if not bool(pawn.is_active()):
+		return _travel_request_result(false, "pawn_inactive", [], false)
+
+	var path: Array[int] = get_dungeon_pawn_travel_path(pawn_id, destination_node_id)
+	if path.is_empty():
+		return _travel_request_result(false, "unreachable_destination", [], false)
+
+	if int(pawn.travel_state) == DungeonMapPawnStateScript.TRAVELING:
+		if not ALLOW_DESTINATION_REPLACE_DURING_TRAVEL:
+			return _travel_request_result(false, "replacement_disabled", path, false)
+		if not pawn.request_destination_replacement(destination_node_id):
+			return _travel_request_result(false, "replacement_rejected", path, false)
+		return _travel_request_result(true, "", path, true)
+
+	if not pawn.set_travel_order(
+		destination_node_id,
+		path,
+		NODE_STEP_DUNGEON_TIME_SECONDS,
+		VISUAL_NODE_STEPS_PER_REAL_SECOND
+	):
+		return _travel_request_result(false, "travel_order_rejected", path, false)
+
+	return _travel_request_result(true, "", path, false)
+
+## Requests matching same-destination travel for active AutoPilot pawns following the local leader.
+func _request_autopilot_follow_orders(leader_pawn_id: String, destination_node_id: int) -> Array[Dictionary]:
+	var follow_results: Array[Dictionary] = []
+	if not _is_local_leader_pawn_id(leader_pawn_id):
+		return follow_results
+	if player_party_state == null:
+		return follow_results
+
+	for member in player_party_state.get_active_members():
+		var party_member: Variant = member
+		if party_member == null or not bool(party_member.should_follow_leader()):
+			continue
+
+		var follower_pawn_id := str(party_member.map_pawn_id)
+		if follower_pawn_id.is_empty() or follower_pawn_id == leader_pawn_id:
+			continue
+
+		var follower_result := _request_single_dungeon_pawn_travel(follower_pawn_id, destination_node_id)
+		follow_results.append(_autopilot_follow_result(follower_pawn_id, follower_result))
+
+	return follow_results
+
+func _mark_dungeon_node_visit_state(node_id: int) -> void:
+	_add_node_id(visited_dungeon_node_ids, node_id)
+	reveal_dungeon_node(node_id)
+	reveal_connected_dungeon_nodes(node_id)
+	current_node_index = max(current_node_index, node_id)
+
+#; Completion can arrive from combat/encounter handoffs without an explicit pawn id.
+func _completion_pawn_ids_for_node(node_id: int, pawn_id: String = "") -> Array[String]:
+	var completion_pawn_ids: Array[String] = []
+	if not pawn_id.is_empty() and get_dungeon_map_pawn(pawn_id) != null:
+		_add_pawn_id(completion_pawn_ids, pawn_id)
+
+	for locked_pawn_id in get_event_locked_dungeon_pawn_ids(node_id):
+		_add_pawn_id(completion_pawn_ids, locked_pawn_id)
+
+	return completion_pawn_ids
+
+func _sync_current_pawn_node(node_id: int, pawn_id: String = "") -> bool:
 	var pawn: Variant = null
 	if not pawn_id.is_empty():
 		pawn = get_dungeon_map_pawn(pawn_id)
-	if pawn == null:
+		if pawn == null:
+			return false
+	else:
 		pawn = get_selected_dungeon_map_pawn()
 	if pawn == null:
-		return
+		return false
 
 	pawn.set_current_node_id(node_id)
+	if _is_selected_dungeon_pawn_id(str(pawn.pawn_id)):
+		current_dungeon_node_id = node_id
+	return true
+
+func _is_pawn_locked_for_event_node(pawn: Variant, node_id: int) -> bool:
+	return pawn != null \
+		and bool(pawn.is_locked_by_event) \
+		and int(pawn.active_event_node_id) == node_id
+
+func _is_selected_dungeon_pawn_id(pawn_id: String) -> bool:
+	if pawn_id.is_empty():
+		return false
+
+	var selected_pawn: Variant = get_selected_dungeon_map_pawn()
+	return selected_pawn != null and str(selected_pawn.pawn_id) == pawn_id
+
+func _is_local_leader_pawn_id(pawn_id: String) -> bool:
+	var member: Variant = _party_member_for_pawn_id(pawn_id)
+	if member == null or player_party_state == null:
+		return false
+	if str(member.party_member_id) != str(player_party_state.leader_member_id):
+		return false
+
+	return bool(member.is_unlocked) \
+		and bool(member.is_active) \
+		and int(member.control_mode) == PartyControlModeScript.LOCAL_PLAYER
+
+func _party_member_for_pawn_id(pawn_id: String) -> Variant:
+	if player_party_state == null or pawn_id.is_empty():
+		return null
+
+	for raw_member in player_party_state.members.values():
+		var member: Variant = raw_member
+		if member != null and str(member.map_pawn_id) == pawn_id:
+			return member
+
+	return null
+
+func _autopilot_follow_result(pawn_id: String, result: Dictionary) -> Dictionary:
+	return {
+		"pawn_id": pawn_id,
+		"accepted": bool(result.get("accepted", false)),
+		"reason": str(result.get("reason", "")),
+		"path": _duplicate_path_result(result.get("path", [])),
+		"queued_replacement": bool(result.get("queued_replacement", false)),
+	}
+
+func _duplicate_path_result(raw_path: Variant) -> Array:
+	if raw_path is Array:
+		return raw_path.duplicate()
+
+	return []
 
 func _descriptor_for_node_id(node_id: int) -> Dictionary:
 	for raw_descriptor in dungeon_node_descriptors:
@@ -651,6 +783,13 @@ func _add_node_id(target_ids: Array[int], node_id: int) -> bool:
 
 	target_ids.append(node_id)
 	target_ids.sort()
+	return true
+
+func _add_pawn_id(target_ids: Array[String], pawn_id: String) -> bool:
+	if pawn_id.is_empty() or target_ids.has(pawn_id):
+		return false
+
+	target_ids.append(pawn_id)
 	return true
 
 func _dungeon_pawn_id_for_member(party_member_id: String) -> String:

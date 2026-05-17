@@ -43,7 +43,8 @@ The UI layer is scene-driven: scene scripts call `GameManager`, reusable control
 3. The HP bar reads `GameManager.get_run_player_hp_snapshot()` so encounter damage and combat results carry back to the map, and its overlay label shows current/max HP on hover.
 4. The three action slots read from `GameManager.get_dungeon_abilities()`, which uses the class-agnostic default dungeon ability pool.
 5. `DungeonMap.tscn` places `PawnLayer` above `NodeLayer`; `DungeonController` fills it with `DungeonMapPawnView` markers that display active pawn positions from `RunData`.
-6. Node buttons request selected-pawn travel orders through `RunData`; the controller travel loop advances pawn state one node step at a time, applies arrival visit/reveal behavior, and marker positions refresh from that state.
+6. Node buttons request selected-pawn travel orders through `RunData`; accepted local-leader orders can also assign same-destination follow orders to active `AutoPilot` pawns.
+7. The controller travel loop advances active pawn travel state one node step at a time, applies arrival visit/reveal behavior, and marker positions refresh from that state.
 
 ## Shared controls
 

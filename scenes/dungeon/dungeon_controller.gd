@@ -602,10 +602,13 @@ func _on_encounter_finished(result: Dictionary, node_id: int) -> void:
 		return
 
 	var result_mode := str(result.get("mode", "complete"))
-	if result_mode == "complete":
-		GameManager.apply_dungeon_encounter_result(node.encounter_id, result)
+	if result_mode != "complete":
+		push_warning("Unsupported dungeon encounter result mode: %s. Keeping encounter active so event-locked pawns can still resolve it." % result_mode)
+		return
+
+	GameManager.apply_dungeon_encounter_result(node.encounter_id, result)
 	_clear_active_encounter_scene()
-	if result_mode != "complete" or _run_data().has_ended():
+	if _run_data().has_ended():
 		return
 
 	_complete_node_visit(node)

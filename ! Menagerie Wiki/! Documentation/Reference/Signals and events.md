@@ -66,7 +66,7 @@ Signals are the main event contract between combat, UI, audio, and run state.
 | `DungeonController` | `empty_node_entered(node_id: int)` | Emitted when an Empty node is entered before it auto-resolves. |
 | `DungeonController` | `haven_node_entered(node_id: int)` | Emitted when Haven is entered, including the initial occupied Haven state. |
 | `DungeonController` | `node_completed(node_id: int, node_type: String)` | Emitted when a node is newly resolved locally. |
-| Encounter scene | `encounter_finished(result: Dictionary)` | `DungeonController` applies a completed encounter choice result, clears the scene, then marks the node visited. |
+| Encounter scene | `encounter_finished(result: Dictionary)` | `DungeonController` applies supported completion results, clears the scene, resolves the node, and unlocks participating pawns. Unsupported modes keep the encounter active. |
 | `SoundManager` button hook | `BaseButton.pressed` | Plays `ui.button.click` for existing and newly-added buttons. |
 
 ## Dungeon node events
@@ -75,9 +75,13 @@ Signals are the main event contract between combat, UI, audio, and run state.
 | --- | --- |
 | `Haven` | Starts revealed/visited/occupied but unresolved, emits node-entry and Haven-entry signals, and remains unresolved until future Haven behavior defines completion. |
 | `Empty` | Marks visited, emits node-entry and Empty-entry signals, reveals connected neighbors, then resolves immediately. |
-| `Encounter` | Marks visited, emits a node event, reveals connected neighbors, loads the encounter scene by `encounter_id`, and resolves after `encounter_finished` completes. |
-| `Fight` | Marks visited, emits a node event, and routes through `GameManager.start_combat()`. Resolution waits for a victorious combat result. |
-| `Boss` | Marks visited, emits a node event, and routes through `GameManager.start_combat()`. Resolution waits for the boss combat result. |
+| `Encounter` | Marks visited, emits a node event, reveals connected neighbors, locks the entering pawn, loads the encounter scene by `encounter_id`, and resolves after a supported `encounter_finished` completion result. |
+| `Fight` | Marks visited, emits a node event, locks the entering pawn, and routes through `GameManager.start_combat()`. Resolution waits for a victorious combat result. |
+| `Boss` | Marks visited, emits a node event, locks the entering pawn, and routes through `GameManager.start_combat()`. Resolution waits for the boss combat result. |
+
+## Event locks
+
+Unresolved Fight, Boss, and Encounter nodes lock only the pawn that entered the node. Event completion resolves the node for pathing, unlocks pawns whose `active_event_node_id` matches that node, and leaves those pawns on the now-resolved node. Non-participating pawns are not locked or unlocked by that event.
 
 ## See also
 

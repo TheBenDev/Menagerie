@@ -59,8 +59,8 @@ This page summarizes the most important runtime APIs new developers usually need
 | `initialize_dungeon_map_state(start_node_id := 0)` | method | Creates active member pawns, marks Haven revealed/visited, and reveals descriptor-connected neighbors. Haven does not start resolved. |
 | `get_selected_dungeon_map_pawn()` | method | Returns the selected or leader pawn. |
 | `get_current_dungeon_node_id()` | method | Returns the selected pawn's current node, falling back to the legacy mirror. |
-| `complete_dungeon_node(node_id, pawn_id := "")` | method | Marks a node visited and resolved, moves the selected pawn, reveals connected neighbors, and unlocks pawns assigned to that event node. Used when a node effect/event has completed. |
-| `mark_dungeon_node_visited(node_id, pawn_id := "")` | method | Adds a visited node ID on entry, moves the selected pawn by default, reveals that node, and reveals descriptor-connected neighbors. |
+| `complete_dungeon_node(node_id, pawn_id := "")` | method | Marks a node visited/resolved, reveals connected neighbors, syncs explicit or event-locked participant pawns, and unlocks pawns assigned to that event node. Falls back to the selected pawn only when no participant lock exists. |
+| `mark_dungeon_node_visited(node_id, pawn_id := "")` | method | Adds a visited node ID on entry, reveals that node and descriptor-connected neighbors, and syncs the entering pawn when provided. |
 | `mark_dungeon_node_resolved(node_id)` | method | Adds a resolved node ID. |
 | `reveal_connected_dungeon_nodes(node_id)` | method | Reveals neighboring node IDs using descriptor connections, with linear fallback for older descriptors. |
 | `is_dungeon_node_visited(node_id)` | method | Checks whether a pawn has entered a node. |
@@ -71,12 +71,13 @@ This page summarizes the most important runtime APIs new developers usually need
 | `get_resolved_dungeon_node_ids()` | method | Returns a duplicate of resolved node IDs. |
 | `get_occupied_dungeon_node_ids()` | method | Derives occupied node IDs from current pawn positions. |
 | `get_last_visited_dungeon_node_id()` | method | Compatibility helper that returns the selected pawn/current node first, then the latest visited node. |
-| `request_selected_dungeon_pawn_travel(destination_node_id)` | method | Requests a path-based travel order for the selected pawn. |
-| `request_dungeon_pawn_travel(pawn_id, destination_node_id)` | method | Validates pathing and stores a travel order or pending replacement for one pawn. |
+| `request_selected_dungeon_pawn_travel(destination_node_id)` | method | Requests a path-based travel order for the selected pawn. Accepted local-leader orders can also create `AutoPilot` follow orders. |
+| `request_dungeon_pawn_travel(pawn_id, destination_node_id)` | method | Validates pathing and stores a travel order or pending replacement. If the pawn belongs to the local leader, active `AutoPilot` pawns attempt to follow the same destination. |
 | `can_request_selected_dungeon_pawn_travel(destination_node_id)` | method | Checks whether the selected pawn can path to a destination without mutating travel state. |
 | `get_dungeon_pawn_travel_path(pawn_id, destination_node_id)` | method | Returns the allowed path for a pawn using current descriptor connections and revealed/visited/resolved node IDs. |
-| `get_allowed_dungeon_path_node_ids()` | method | Returns the current pathable node set derived from revealed, visited, resolved, and current pawn position. |
+| `get_allowed_dungeon_path_node_ids()` | method | Returns the current pathable node set derived from revealed, visited, resolved, and active pawn current positions. |
 | `get_dungeon_connection_graph()` | method | Returns a descriptor-derived connection graph for pathfinding. |
+| `get_event_locked_dungeon_pawn_ids(node_id)` | method | Returns pawn IDs currently locked as participants in an unresolved event at that node. |
 | `unlock_dungeon_pawns_for_event_node(node_id)` | method | Clears event lock state for pawns whose active event node was resolved. |
 | `apply_encounter_choice(choice_data)` | method | Applies an inline encounter choice dictionary, currently damage and stat modifiers. |
 | `get_effective_stat(stat_id)` | method | Returns a stat after active run modifiers. |
@@ -98,6 +99,10 @@ This page summarizes the most important runtime APIs new developers usually need
 | `request_cancel_after_current_step()` | method | Marks the active order for cancellation after the current step. |
 | `has_active_travel_order()` | method | Checks whether this pawn has an active path order. |
 | `next_path_node_id()` | method | Returns the next node in the active path, or `-1` if none is available. |
+| `lock_for_event(node_id)` | method | Clears travel and marks this pawn as an active participant in the unresolved event at `node_id`. |
+| `unlock_event()` | method | Clears event-lock state after that event node resolves. |
+
+Accepted leader travel results may include `autopilot_follow_results`, an array of dictionaries with `pawn_id`, `accepted`, `reason`, `path`, and `queued_replacement` for each active `AutoPilot` follower that attempted to follow.
 
 ## DungeonMovementCoordinator
 
