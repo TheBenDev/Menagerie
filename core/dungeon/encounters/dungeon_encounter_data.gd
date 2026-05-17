@@ -2,6 +2,8 @@
 class_name DungeonEncounterData
 extends Resource
 
+const DungeonEncounterPoolHelperScript := preload("res://core/dungeon/encounters/dungeon_encounter_pool_helper.gd")
+
 @export var id: StringName = &""
 @export var display_name: String = "Encounter"
 @export_multiline var description: String = ""
@@ -11,10 +13,7 @@ extends Resource
 @export var choices: Array[Dictionary] = []
 
 func is_valid_for_floor(floor_layer: int) -> bool:
-	if valid_floor_layers.is_empty():
-		return true
-
-	return valid_floor_layers.has(max(floor_layer, 1))
+	return DungeonEncounterPoolHelperScript.is_valid_for_floor(self, floor_layer)
 
 func scene_or_default(default_scene: PackedScene) -> PackedScene:
 	if scene_override != null:

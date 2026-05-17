@@ -7,6 +7,7 @@ const STATUS_WEAKEN := "weaken"
 const STATUS_VULNERABLE := "vulnerable"
 const TEMPO_SCORE_WINDOW_SECONDS := 10.0
 const MIN_EFFECTIVE_TIME_COST := 0.001
+const ValueReaderScript := preload("res://core/utils/value_reader.gd")
 
 static func choose_action(
 	enemy: Combatant,
@@ -83,7 +84,7 @@ static func _choose_random_or_scored(
 	opponents: Array[Combatant],
 	difficulty_profile: Resource
 ) -> EnemyMoveData:
-	var ai_randomness := _difficulty_float(difficulty_profile, "ai_randomness", 1.0)
+	var ai_randomness := ValueReaderScript.resource_float(difficulty_profile, "ai_randomness", 1.0)
 	if randf() < ai_randomness:
 		return _choose_weighted_random(moves, enemy, opponents, difficulty_profile)
 
@@ -158,8 +159,8 @@ static func _score_move(
 	if not targets.is_empty():
 		target = targets[0]
 	var actual_power := _estimate_action_power(move, enemy, targets)
-	var timing_awareness := _difficulty_float(difficulty_profile, "ai_timing_awareness", 0.0)
-	var score_strength := _difficulty_float(difficulty_profile, "ai_score_strength", 0.0)
+	var timing_awareness := ValueReaderScript.resource_float(difficulty_profile, "ai_timing_awareness", 0.0)
+	var score_strength := ValueReaderScript.resource_float(difficulty_profile, "ai_score_strength", 0.0)
 	var power_score := actual_power
 	var tempo_score := _tempo_score(move, enemy, actual_power)
 	var base_score := lerpf(power_score, tempo_score, timing_awareness)
@@ -226,7 +227,7 @@ static func _kill_bonus(target: Combatant, actual_power: float, difficulty_profi
 	if actual_power < float(target.hp):
 		return 0.0
 
-	return 20.0 * _difficulty_float(difficulty_profile, "ai_finisher_priority", 0.0)
+	return 20.0 * ValueReaderScript.resource_float(difficulty_profile, "ai_finisher_priority", 0.0)
 
 static func _role_bonus(
 	move: EnemyMoveData,
@@ -236,7 +237,7 @@ static func _role_bonus(
 ) -> float:
 	match move.ai_role:
 		EnemyMoveData.ROLE_FINISHER:
-			return 8.0 * _difficulty_float(difficulty_profile, "ai_finisher_priority", 0.0)
+			return 8.0 * ValueReaderScript.resource_float(difficulty_profile, "ai_finisher_priority", 0.0)
 		EnemyMoveData.ROLE_DEBUFF:
 			return _debuff_score(move, target, difficulty_profile)
 		EnemyMoveData.ROLE_DEFENSE:
@@ -248,7 +249,7 @@ static func _debuff_score(move: EnemyMoveData, target: Combatant, difficulty_pro
 	if target == null or move.status_id.is_empty():
 		return 0.0
 
-	var awareness := _difficulty_float(difficulty_profile, "ai_debuff_awareness", 0.0)
+	var awareness := ValueReaderScript.resource_float(difficulty_profile, "ai_debuff_awareness", 0.0)
 	if _target_has_status(target, move.status_id):
 		return -12.0 * awareness
 
@@ -264,10 +265,10 @@ static func _defense_score(enemy: Combatant, difficulty_profile: Resource) -> fl
 		return 0.0
 
 	var missing_hp_percent := 1.0 - (float(enemy.hp) / float(enemy.max_hp))
-	return missing_hp_percent * 12.0 * _difficulty_float(difficulty_profile, "ai_survival_awareness", 0.0)
+	return missing_hp_percent * 12.0 * ValueReaderScript.resource_float(difficulty_profile, "ai_survival_awareness", 0.0)
 
 static func _survival_time_penalty(move: EnemyMoveData, enemy: Combatant, difficulty_profile: Resource) -> float:
-	var survival_awareness := _difficulty_float(difficulty_profile, "ai_survival_awareness", 0.0)
+	var survival_awareness := ValueReaderScript.resource_float(difficulty_profile, "ai_survival_awareness", 0.0)
 	var danger := _enemy_danger_percent(enemy)
 	return _effective_time_cost(move, enemy) * danger * survival_awareness
 
@@ -306,16 +307,6 @@ static func _random_alive_target(combatants: Array[Combatant]) -> Array[Combatan
 	var selected_targets: Array[Combatant] = []
 	selected_targets.append(valid_targets.pick_random())
 	return selected_targets
-
-static func _difficulty_float(difficulty_profile: Resource, field_name: String, default_value: float) -> float:
-	if difficulty_profile == null:
-		return default_value
-
-	var value: Variant = difficulty_profile.get(field_name)
-	if value is int or value is float:
-		return float(value)
-
-	return default_value
 
 static func _target_has_status(target: Combatant, status_id: String) -> bool:
 	if target == null or status_id.is_empty() or not target.has_method("has_status"):

@@ -6,6 +6,7 @@ const DungeonMapPawnStateScript := preload("res://core/dungeon/dungeon_map_pawn_
 const DungeonPathfinderScript := preload("res://core/dungeon/dungeon_pathfinder.gd")
 const PartyControlModeScript := preload("res://core/party/party_control_mode.gd")
 const PlayerPartyStateScript := preload("res://core/party/player_party_state.gd")
+const PlayerRunStateServiceScript := preload("res://core/party/player_run_state_service.gd")
 
 const END_REASON_IN_PROGRESS := "in_progress"
 const END_REASON_VICTORY := "victory"
@@ -16,12 +17,10 @@ const DEFAULT_DIFFICULTY := "normal"
 const DEFAULT_RUN_TIME_SECONDS := 1000.0
 const START_DUNGEON_NODE_ID := 0
 const LOCAL_OWNER_PLAYER_ID := "local"
-const NODE_STEP_DUNGEON_TIME_SECONDS := 1.0
+const NODE_TRAVEL_TIME := 1.0
 const VISUAL_NODE_STEPS_PER_REAL_SECOND := 4.0
 const ALLOW_DESTINATION_REPLACE_DURING_TRAVEL := true
 const ALLOW_CANCEL_AFTER_CURRENT_STEP := true
-const NODE_TRAVEL_TIME_SECONDS := 10.0
-const EMPTY_NODE_TIME_SECONDS := 1.0
 const STAT_STRENGTH := "STR"
 const STAT_DEXTERITY := "DEX"
 const STAT_INTELLIGENCE := "INT"
@@ -163,12 +162,7 @@ func reset_encounter(default_enemy_profile_path: String) -> void:
 	current_encounter_is_boss = false
 
 func initialize_player_state(profile: Resource, profile_path: String = "") -> void:
-	player_base_stats = {
-		STAT_STRENGTH: _profile_stat(profile, "strength", 5),
-		STAT_DEXTERITY: _profile_stat(profile, "dexterity", 5),
-		STAT_INTELLIGENCE: _profile_stat(profile, "intelligence", 5),
-		STAT_VITALITY: _profile_stat(profile, "vitality", 5),
-	}
+	player_base_stats = PlayerRunStateServiceScript.base_profile_stats(profile)
 	player_party_state = PlayerPartyStateScript.new()
 	player_party_state.configure_single_member(selected_character, profile_path, profile)
 	_sync_player_state_modifiers()
@@ -645,7 +639,7 @@ func _request_single_dungeon_pawn_travel(pawn_id: String, destination_node_id: i
 	if not pawn.set_travel_order(
 		destination_node_id,
 		path,
-		NODE_STEP_DUNGEON_TIME_SECONDS,
+		NODE_TRAVEL_TIME,
 		VISUAL_NODE_STEPS_PER_REAL_SECOND
 	):
 		return _travel_request_result(false, "travel_order_rejected", path, false)
@@ -878,16 +872,6 @@ func _sync_player_state_hp_from_legacy() -> void:
 	combatant_state.set_runtime_modifiers(run_stat_modifiers)
 	combatant_state.set_max_hp(player_max_hp, false)
 	combatant_state.set_current_hp(player_current_hp)
-
-func _profile_stat(profile: Resource, field_name: String, default_value: int) -> int:
-	if profile == null:
-		return default_value
-
-	var value: Variant = profile.get(field_name)
-	if value is int or value is float:
-		return int(value)
-
-	return default_value
 
 func _canonical_stat_id(stat_id: String) -> String:
 	var normalized := stat_id.strip_edges().to_upper()

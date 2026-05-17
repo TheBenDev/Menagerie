@@ -10,7 +10,7 @@ Autoloads are the closest thing this project has to global service endpoints.
 
 | Autoload | Source | Purpose |
 | --- | --- | --- |
-| `GameManager` | `res://core/game_manager.gd` | Run setup, scene routing, rewards, timers, and explicit music routing. |
+| `GameManager` | `res://core/game_manager.gd` | Run setup, scene routing facade, combat routing, timers, and run-state signals. |
 | `SoundManager` | `res://core/audio/sound_manager.gd` | Audio cue catalog, SFX/UI playback, music, buses, and audio debug data. |
 | `_mcp_game_helper` | `res://addons/godot_ai/runtime/game_helper.gd` | Godot AI MCP runtime helper. Do not document as project gameplay API. |
 
@@ -30,7 +30,7 @@ Autoloads are the closest thing this project has to global service endpoints.
 | --- | --- | --- |
 | `start_new_run(character, difficulty, dungeon_seed := "", dungeon_floor_layer := 1)` | `Variant` | Creates a fresh `RunData`, applies selection, initializes the single-Warrior `PlayerPartyState`, resolves/stores a dungeon seed, applies it to global gameplay RNG, generates the dungeon map with seeded encounter and combat encounter references, initializes Warrior's dungeon pawn and Haven reveal state, emits run HUD state, and starts run music. |
 | `clear_run()` | `void` | Clears `current_run_data`. |
-| `start_combat(node_id, node_type, enemy_profile_path, is_boss, charge_travel_time := true, combat_encounter_id := &"", combat_encounter_profile_path := "")` | `void` | Stores combat encounter data and routes to `combat/BattleScene`; movement arrival passes `false` because the node step already charged time. |
+| `start_combat(node_id, node_type, enemy_profile_path, is_boss, charge_travel_time := true, combat_encounter_id := &"", combat_encounter_profile_path := "")` | `void` | Stores combat encounter data and routes to `combat/BattleScene`; movement arrival passes `false` because the node travel step already charged time. |
 | `complete_combat(result)` | `void` | Stores a pending combat result and routes back to `dungeon`. |
 | `consume_last_combat_result()` | `Variant` | Returns and clears the pending result. |
 | `has_pending_combat_result()` | `bool` | Checks whether dungeon should apply a completed combat result. |
@@ -40,14 +40,13 @@ Autoloads are the closest thing this project has to global service endpoints.
 | `get_dungeon_combat_encounter(encounter_id)` | `Resource` | Resolves an authored Fight/Boss combat encounter from the default combat encounter pool. |
 | `get_dungeon_abilities(slot_count := 3)` | `Array` | Returns class-agnostic dungeon hotbar abilities from the default dungeon ability pool. |
 | `apply_dungeon_encounter_result(encounter_id, result)` | `Dictionary` | Applies a completed encounter scene result to run HP/stat state. |
-| `apply_run_player_state_to_combatant(combatant)` | `void` | Copies effective Warrior `CombatantState` stats onto the node-based player combatant bridge before combat starts. |
-| `get_run_player_hp_snapshot()` | `Dictionary` | Returns persistent Warrior HP as `{current, max}` from the synchronized Phase 1 compatibility fields. |
-| `get_effective_player_stats()` | `Dictionary` | Returns selected character stats after run modifiers, backed by Warrior's `CombatantState` during a run. |
-| `grant_run_rewards(reward_result)` | `void` | Adds memory and gold from a reward dictionary or result-like object. |
+| `apply_run_player_state_to_combatant(combatant)` | `void` | Delegates to `PlayerRunStateService` to copy effective Warrior stats onto the node-based player combatant bridge before combat starts. |
+| `get_run_player_hp_snapshot()` | `Dictionary` | Delegates to `PlayerRunStateService` to return persistent Warrior HP as `{current, max}`. |
+| `get_effective_player_stats()` | `Dictionary` | Delegates to `PlayerRunStateService` to return selected character stats after run modifiers. |
 | `end_current_run(reason)` | `void` | Ends the run, emits state/signals, and defers routing to summary. |
 | `emit_run_state()` | `void` | Emits timer and currency signals for current or empty state. |
 | `export_current_run_memories()` | `int` | Exports earned memories into `pending_class_memory_awards` once. |
-| `calculate_rewards_for_profile(profile, is_boss)` | `Dictionary` | Calculates memory/gold from reward profile, difficulty, and boss multiplier. |
+| `calculate_rewards_for_profile(profile, is_boss)` | `Dictionary` | Calculates memory/gold through `RewardService` from reward profile, difficulty, and boss multiplier. |
 | `get_selected_difficulty_profile()` | `Resource` | Loads the selected difficulty resource. |
 | `get_selected_character_profile()` | `CombatantProfile` | Loads the selected character profile. |
 | `get_selected_character_profile_path()` | `String` | Gets selected character resource path. |

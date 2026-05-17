@@ -2,6 +2,7 @@
 extends CanvasLayer
 
 const NumberFontHelper := preload("res://scenes/ui/common/number_font.gd")
+const ValueReaderScript := preload("res://core/utils/value_reader.gd")
 
 @onready var player_button: TextureButton = $HUDRoot/TopLeftPanel/PlayerButton
 @onready var timer_bar: TimeProgressBar = $HUDRoot/TopMargin/BarMargin/BarRow/TimerStack/TimerProgress
@@ -98,10 +99,10 @@ func _set_stat_values(profile: CombatantProfile) -> void:
 		vitality_value.text = str(int(effective_stats.get(RunData.STAT_VITALITY, 0)))
 		return
 
-	strength_value.text = _profile_stat(profile, "strength")
-	dexterity_value.text = _profile_stat(profile, "dexterity")
-	intelligence_value.text = _profile_stat(profile, "intelligence")
-	vitality_value.text = _profile_stat(profile, "vitality")
+	strength_value.text = _profile_stat_text(profile, "strength")
+	dexterity_value.text = _profile_stat_text(profile, "dexterity")
+	intelligence_value.text = _profile_stat_text(profile, "intelligence")
+	vitality_value.text = _profile_stat_text(profile, "vitality")
 
 func _set_hp_values(current_hp: int, max_hp: int) -> void:
 	if current_hp <= 0 and max_hp <= 0:
@@ -110,21 +111,11 @@ func _set_hp_values(current_hp: int, max_hp: int) -> void:
 
 	hp_value.text = "%s/%s" % [max(current_hp, 0), max(max_hp, 1)]
 
-func _profile_stat(profile: CombatantProfile, field_name: String) -> String:
+func _profile_stat_text(profile: CombatantProfile, field_name: String) -> String:
 	if profile == null:
 		return "-"
 
-	match field_name:
-		"strength":
-			return str(profile.strength)
-		"dexterity":
-			return str(profile.dexterity)
-		"intelligence":
-			return str(profile.intelligence)
-		"vitality":
-			return str(profile.vitality)
-		_:
-			return "-"
+	return str(ValueReaderScript.resource_int(profile, field_name, 0))
 
 func _format_time(value: float) -> String:
 	var total_seconds: int = max(int(ceil(value)), 0)

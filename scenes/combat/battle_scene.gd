@@ -5,6 +5,7 @@ const CombatResultScript := preload("res://core/combat/combat_result.gd")
 const BattleHudScript := preload("res://scenes/combat/ui/battle_hud.gd")
 const CombatAudioBridgeScript := preload("res://core/audio/combat_audio_bridge.gd")
 const CombatantDisplayScript := preload("res://scenes/combat/ui/combatant_display.gd")
+const ValueReaderScript := preload("res://core/utils/value_reader.gd")
 
 const DEFAULT_PLAYER_SLOT_ID := &"PlayerSlot1"
 const DEFAULT_ENEMY_SLOT_ID := &"EnemySlot1"
@@ -317,7 +318,7 @@ func _combat_encounter_profile_for(encounter: Dictionary) -> Resource:
 		if profile != null:
 			return profile
 
-	var encounter_id: StringName = _string_name_from_variant(encounter.get("combat_encounter_id", &""))
+	var encounter_id: StringName = ValueReaderScript.string_name_from_variant(encounter.get("combat_encounter_id", &""))
 	if _has_game_manager() and not String(encounter_id).is_empty():
 		return GameManager.get_dungeon_combat_encounter(encounter_id)
 
@@ -357,7 +358,7 @@ func _enemy_slot_id_for_encounter(combat_encounter_profile: Resource) -> StringN
 		if not (slot is Dictionary):
 			continue
 		var slot_data: Dictionary = slot
-		var position_id := _string_name_from_variant(slot_data.get("position_id", &""))
+		var position_id := ValueReaderScript.string_name_from_variant(slot_data.get("position_id", &""))
 		if not String(position_id).is_empty():
 			return position_id
 
@@ -391,14 +392,6 @@ func _slot_marker(slot_parent: Control, slot_id: StringName) -> Control:
 		return null
 
 	return slot_parent.get_node_or_null(NodePath(String(slot_id))) as Control
-
-func _string_name_from_variant(value: Variant) -> StringName:
-	if value is StringName:
-		return value
-	if value is String:
-		return StringName(value)
-
-	return &""
 
 func _apply_run_player_state() -> void:
 	if not _has_game_manager():

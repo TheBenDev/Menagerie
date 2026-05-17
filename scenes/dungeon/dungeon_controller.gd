@@ -14,6 +14,7 @@ const DungeonMovementCoordinatorScript := preload("res://core/dungeon/dungeon_mo
 const DungeonNodeViewScript := preload("res://scenes/dungeon/dungeon_node_view.gd")
 const NumberFontHelper := preload("res://scenes/ui/common/number_font.gd")
 const ResourceBarScript := preload("res://scenes/ui/common/resource_bar.gd")
+const ValueReaderScript := preload("res://core/utils/value_reader.gd")
 
 const GRID_CELL_SIZE := 72.0
 const START_NODE_ID := 0
@@ -85,8 +86,8 @@ func _create_path_data(descriptors: Array) -> void:
 			int(descriptor.get("id", -1)),
 			str(descriptor.get("type", DungeonNodeDataScript.TYPE_FIGHT)),
 			str(descriptor.get("enemy", "")),
-			_string_name_from_variant(descriptor.get("encounter_id", &"")),
-			_string_name_from_variant(descriptor.get("combat_encounter_id", &"")),
+			ValueReaderScript.string_name_from_variant(descriptor.get("encounter_id", &"")),
+			ValueReaderScript.string_name_from_variant(descriptor.get("combat_encounter_id", &"")),
 			str(descriptor.get("combat_encounter_profile_path", "")),
 			bool(descriptor.get("is_boss", false)),
 			grid_position,
@@ -290,14 +291,6 @@ func _can_select_node(node: Variant) -> bool:
 
 	return run_data.can_request_selected_dungeon_pawn_travel(node.id)
 
-func _has_visited_neighbor(node: Variant) -> bool:
-	for connected_id in node.connected_node_ids:
-		var connected_node = nodes_by_id.get(connected_id)
-		if connected_node != null and connected_node.visited:
-			return true
-
-	return false
-
 # Copies the active run seed to the system clipboard.
 func _on_copy_seed_button_pressed() -> void:
 	DisplayServer.clipboard_set(str(_run_data().dungeon_seed))
@@ -419,7 +412,7 @@ func _process_travel_orders() -> void:
 
 	is_processing_travel_orders = true
 	while DungeonMovementCoordinatorScript.has_active_travel_orders(_run_data()):
-		if not GameManager.advance_run_time(RunData.NODE_STEP_DUNGEON_TIME_SECONDS):
+		if not GameManager.advance_run_time(RunData.NODE_TRAVEL_TIME):
 			break
 
 		var step_result: Dictionary = DungeonMovementCoordinatorScript.advance_one_step(_run_data(), _unresolved_event_node_ids())
@@ -438,17 +431,6 @@ func _process_travel_orders() -> void:
 			await get_tree().create_timer(delay_seconds).timeout
 
 	is_processing_travel_orders = false
-
-func _enter_unresolved_node(node: DungeonNodeData) -> void:
-	var run_data: Variant = _run_data()
-	var pawn: Variant = run_data.get_selected_dungeon_map_pawn()
-	if pawn == null:
-		return
-
-	var route_started: bool = _handle_pawn_arrival_at_node(str(pawn.pawn_id), node)
-	if not route_started:
-		_apply_progress_state()
-		_refresh_view()
 
 ## Processes every pawn that moved during the last synchronized travel step.
 func _handle_travel_step_arrivals(step_result: Dictionary) -> bool:
@@ -527,16 +509,6 @@ func _emit_initial_haven_entry() -> void:
 func _emit_node_entered(node: DungeonNodeData) -> void:
 	node_event_emitted.emit(DungeonNodeEventHelperScript.build_node_event(node))
 
-func _move_to_resolved_node(node: DungeonNodeData) -> void:
-	if node == null:
-		return
-
-	var run_data: Variant = _run_data()
-	run_data.mark_dungeon_node_visited(node.id)
-	GameManager.emit_run_state()
-	_apply_progress_state()
-	_refresh_view()
-
 func _unresolved_event_node_ids() -> Array[int]:
 	var event_node_ids: Array[int] = []
 	var run_data: Variant = _run_data()
@@ -577,7 +549,7 @@ func _start_combat_node(node: DungeonNodeData, charge_travel_time: bool = true) 
 func _start_encounter_node(node: DungeonNodeData, charge_travel_time: bool = true) -> void:
 	if node == null:
 		return
-	if charge_travel_time and not GameManager.advance_run_time(RunData.NODE_TRAVEL_TIME_SECONDS):
+	if charge_travel_time and not GameManager.advance_run_time(RunData.NODE_TRAVEL_TIME):
 		return
 
 	var encounter_data: Resource = GameManager.get_dungeon_encounter(node.encounter_id)
@@ -700,11 +672,3 @@ func _default_grid_size_for_type(node_type: String) -> Vector2i:
 		return Vector2i.ONE
 
 	return Vector2i(3, 3)
-
-func _string_name_from_variant(value: Variant) -> StringName:
-	if value is StringName:
-		return value
-	if value is String:
-		return StringName(value)
-
-	return &""

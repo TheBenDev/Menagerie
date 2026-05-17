@@ -5,6 +5,7 @@ extends Control
 const BattleActionBarScript := preload("res://scenes/combat/ui/action_bar.gd")
 const NumberFontHelper := preload("res://scenes/ui/common/number_font.gd")
 const ResourceBarScript := preload("res://scenes/ui/common/resource_bar.gd")
+const StatusEntrySorterScript := preload("res://core/statuses/status_entry_sorter.gd")
 const StatusIconViewScene := preload("res://scenes/combat/ui/StatusIconView.tscn")
 
 @export var preview_status_atlas: bool = false
@@ -357,7 +358,7 @@ func _active_player_status_entries() -> Array[Dictionary]:
 			"data": status_data,
 		})
 
-	entries.sort_custom(_sort_status_entries)
+	StatusEntrySorterScript.sort_entries(entries)
 	return entries
 
 func _preview_status_entries() -> Array[Dictionary]:
@@ -390,11 +391,6 @@ func _ensure_status_button_count(count: int) -> void:
 		status_icons.add_child(button)
 		status_buttons.append(button)
 		_bind_hover_source(button)
-
-func _sort_status_entries(a: Dictionary, b: Dictionary) -> bool:
-	var a_name: String = str(a.get("display_name", ""))
-	var b_name: String = str(b.get("display_name", ""))
-	return a_name.naturalnocasecmp_to(b_name) < 0
 
 func _configure_static_hover_sources() -> void:
 	_bind_hover_source(speed_button)

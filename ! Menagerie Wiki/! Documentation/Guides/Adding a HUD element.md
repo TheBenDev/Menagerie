@@ -13,7 +13,6 @@ Use this guide to add or extend HUD UI without breaking the signal-driven refres
 | `GlobalHUD` | Run timer, currencies, selected character stats, persistent run-level data. |
 | `BattleHUD` | Current battle state, action choice, timeline, hotbar, and time controls. |
 | `CombatantDisplay` | Per-combatant battle visual, health, statuses, and identity. |
-| `ActionQueuePanel` | Pending/resolved action queue display. |
 | `TimelineView` | Visual combat timeline ruler and action markers. |
 
 ## Add data first

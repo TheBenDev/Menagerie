@@ -2,6 +2,8 @@
 class_name DungeonPathfinder
 extends RefCounted
 
+const ValueReaderScript := preload("res://core/utils/value_reader.gd")
+
 ## Builds a symmetric node connection graph from dungeon node descriptors.
 static func connection_graph_from_descriptors(descriptors: Array, use_linear_fallback: bool = true) -> Dictionary:
 	var graph: Dictionary = {}
@@ -59,7 +61,7 @@ static func find_path(
 	connection_graph: Dictionary
 ) -> Array[int]:
 	var path: Array[int] = []
-	var allowed_lookup: Dictionary = _int_lookup(allowed_node_ids)
+	var allowed_lookup: Dictionary = ValueReaderScript.int_lookup(allowed_node_ids)
 	if not allowed_lookup.has(start_node_id) or not allowed_lookup.has(destination_node_id):
 		return path
 	if not connection_graph.has(start_node_id) or not connection_graph.has(destination_node_id):
@@ -113,13 +115,6 @@ static func _connect_node_ids(graph: Dictionary, first_id: int, second_id: int) 
 	_add_unique_int(second_neighbors, first_id)
 	graph[first_id] = first_neighbors
 	graph[second_id] = second_neighbors
-
-static func _int_lookup(values: Array) -> Dictionary:
-	var lookup: Dictionary = {}
-	for value in values:
-		lookup[int(value)] = true
-
-	return lookup
 
 static func _sorted_ints(values: Variant) -> Array[int]:
 	var sorted_values: Array[int] = []

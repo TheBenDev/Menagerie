@@ -24,3 +24,6 @@ Warrior, Rogue, Wizard and the talent tree can level each up.
 Map should be divided into sections and each section should have its own generation rules. like straight corridors vs complex corners etc, to give variety but also more predictability in the path in some cases.
 
 Player movement
+
+
+Final boss fight, goddess can revive party but if they die again it's permanent

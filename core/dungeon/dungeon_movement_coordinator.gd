@@ -2,6 +2,8 @@
 class_name DungeonMovementCoordinator
 extends RefCounted
 
+const ValueReaderScript := preload("res://core/utils/value_reader.gd")
+
 const RESULT_MOVED_PAWN_IDS := "moved_pawn_ids"
 const RESULT_PAUSE_REQUESTED := "pause_requested"
 const RESULT_PAUSE_REASONS := "pause_reasons"
@@ -36,7 +38,7 @@ static func advance_one_step(run_data: Variant, interrupt_node_ids: Array = []) 
 		result[RESULT_PAUSE_REASONS].append("no_active_travel_orders")
 		return result
 
-	var interrupt_lookup: Dictionary = _int_lookup(interrupt_node_ids)
+	var interrupt_lookup: Dictionary = ValueReaderScript.int_lookup(interrupt_node_ids)
 	for pawn in moving_pawns:
 		var map_pawn: Variant = pawn
 		var pawn_id: String = str(map_pawn.pawn_id)
@@ -89,7 +91,7 @@ static func _handle_post_step_state(
 		if pawn.set_travel_order(
 			replacement_destination_id,
 			replacement_path,
-			RunData.NODE_STEP_DUNGEON_TIME_SECONDS,
+			RunData.NODE_TRAVEL_TIME,
 			RunData.VISUAL_NODE_STEPS_PER_REAL_SECOND
 		):
 			_append_result_id(result, RESULT_REPLACED_PAWN_IDS, pawn_id)
@@ -139,10 +141,3 @@ static func _append_pause_reason(result: Dictionary, reason: String) -> void:
 	if not reasons.has(reason):
 		reasons.append(reason)
 	result[RESULT_PAUSE_REASONS] = reasons
-
-static func _int_lookup(values: Array) -> Dictionary:
-	var lookup: Dictionary = {}
-	for value in values:
-		lookup[int(value)] = true
-
-	return lookup

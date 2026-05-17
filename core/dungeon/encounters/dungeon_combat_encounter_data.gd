@@ -2,6 +2,8 @@
 class_name DungeonCombatEncounterData
 extends Resource
 
+const DungeonEncounterPoolHelperScript := preload("res://core/dungeon/encounters/dungeon_encounter_pool_helper.gd")
+
 const SLOT_COMBATANT_PROFILE_PATH := "combatant_profile_path"
 const SLOT_POSITION_ID := "position_id"
 const SLOT_MODIFIER_DATA := "modifier_data"
@@ -14,10 +16,7 @@ const SLOT_MODIFIER_DATA := "modifier_data"
 @export var enemy_slots: Array[Dictionary] = []
 
 func is_valid_for_floor(floor_layer: int) -> bool:
-	if valid_floor_layers.is_empty():
-		return true
-
-	return valid_floor_layers.has(max(floor_layer, 1))
+	return DungeonEncounterPoolHelperScript.is_valid_for_floor(self, floor_layer)
 
 ## Returns the first enemy profile path for the current one-enemy battle scene bridge.
 func primary_enemy_profile_path() -> String:

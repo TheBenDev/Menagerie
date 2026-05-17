@@ -12,7 +12,7 @@ This page summarizes the most important runtime APIs new developers usually need
 | --- | --- | --- |
 | `current_run_data` | `RunData` or `null` | Active run state. May be null outside a run. |
 | `start_new_run(character, difficulty, dungeon_seed := "", dungeon_floor_layer := 1)` | method | Creates and stores fresh `RunData`; blank seed resolves to an auto-generated replay seed. |
-| `start_combat(node_id, node_type, enemy_profile_path, is_boss, charge_travel_time := true, combat_encounter_id := &"", combat_encounter_profile_path := "")` | method | Stores routed combat encounter metadata and routes to battle. Direct legacy calls can charge old travel time; movement-arrival calls pass `false` because the node step already charged time. |
+| `start_combat(node_id, node_type, enemy_profile_path, is_boss, charge_travel_time := true, combat_encounter_id := &"", combat_encounter_profile_path := "")` | method | Stores routed combat encounter metadata and routes to battle. Direct route calls can charge node travel time; movement-arrival calls pass `false` because the node step already charged time. |
 | `complete_combat(result)` | method | Stores pending result, routes to dungeon. |
 | `advance_run_time(seconds)` | method | Decrements remaining run time and handles timeout. |
 | `get_dungeon_encounter(encounter_id)` | method | Resolves an authored dungeon encounter resource by ID. |
@@ -91,7 +91,7 @@ This page summarizes the most important runtime APIs new developers usually need
 | `control_mode` | `int` | Mirrors the owning party member's `PartyControlMode`. |
 | `current_node_id` | `int` | Authoritative dungeon map position for this pawn. |
 | `travel_origin_node_id`, `destination_node_id`, `travel_path`, `travel_path_index`, `pending_destination_node_id` | mixed | Travel-order state used by path-based dungeon movement. |
-| `step_game_cost_seconds`, `visual_steps_per_second` | `float` | Per-order tuning values that keep game-time cost separate from visual playback speed. |
+| `step_game_cost_seconds`, `visual_steps_per_second` | `float` | Per-order tuning values that keep `RunData.NODE_TRAVEL_TIME` separate from visual playback speed. |
 | `cancel_requested` | `bool` | Defers cancellation until the movement coordinator finishes the current node step. |
 | `travel_state` | `int` | One of `Idle`, `Traveling`, `InEvent`, or `Inactive`. |
 | `is_locked_by_event`, `active_event_node_id` | mixed | Event-lock state used when an unresolved Fight, Boss, or Encounter arrival starts an active event. |
@@ -127,7 +127,6 @@ Accepted leader travel results may include `autopilot_follow_results`, an array 
 | Surface | Type | Notes |
 | --- | --- | --- |
 | `DungeonNodeEventHelper.build_node_event(node)` | static method | Builds the shared dictionary payload for dungeon node visit events. |
-| `DungeonNodeEventHelper.process_node_event(node, game_manager, sound_manager, charge_travel_time := true)` | static method | Handles currently-routed legacy node dispatch and reports whether completion is deferred. Movement arrival should avoid the extra travel charge. |
 | `DungeonPathfinder.connection_graph_from_descriptors(descriptors, use_linear_fallback := true)` | static method | Builds a symmetric connection graph from dungeon descriptors, with linear fallback for older descriptor sets. |
 | `DungeonPathfinder.find_path(start_node_id, destination_node_id, allowed_node_ids, connection_graph)` | static method | Returns an ordered allowed route from start to destination, or an empty array when the destination is hidden/disallowed/unreachable. |
 | `DungeonFloorGenerator.generate_floor(seed, layer, difficulty, config, encounter_pool, combat_encounter_pool)` | static method | Seeds global RNG from `seed`, then returns deterministic flat descriptor arrays with optional `connections`, choice encounter IDs, and combat encounter IDs. |
@@ -136,11 +135,25 @@ Accepted leader travel results may include `autopilot_follow_results`, an array 
 | `DungeonEncounterResolver.encounter_for_id(pool, encounter_id)` | static method | Resolves encounter data from a pool. |
 | `DungeonEncounterResolver.scene_for_encounter(encounter_data)` | static method | Returns the encounter presentation scene. |
 | `DungeonEncounterResolver.choice_for_index(encounter_data, choice_index)` | static method | Resolves an inline choice dictionary by emitted choice index. |
+| `DungeonEncounterPoolHelper.available_for_floor(encounters, floor_layer)` | static method | Shared filter used by encounter and combat encounter pools. |
+| `DungeonEncounterPoolHelper.pick_weighted(encounters)` | static method | Shared weighted-pick helper for already-filtered encounter resources. |
 | `DungeonCombatEncounterPool.pick_for_floor(floor_layer)` | method | Uses seeded RNG to choose a weighted Fight/Boss combat encounter valid for the floor. |
 | `DungeonCombatEncounterPool.profile_path_for_id(encounter_id)` | method | Returns the resource path for a loaded combat encounter ID. |
 | `DungeonCombatEncounterData.enemy_slots` | exported array | Enemy slot dictionaries use `combatant_profile_path` and `position_id`; `BattleScene` currently consumes the first slot for the active enemy profile and display placement. |
 | `DungeonCombatEncounterData.primary_enemy_profile_path()` | method | Returns the first enemy slot's combatant profile path for the current one-enemy battle scene bridge. |
 | `KeybindsHelper.process_map_navigation_event(event, is_panning)` | static method | Converts wheel and middle-mouse events into zoom/pan action dictionaries. |
+
+## Shared services
+
+| Surface | Type | Notes |
+| --- | --- | --- |
+| `RewardService.calculate_combat_rewards(profile, difficulty_profile, is_boss)` | static method | Calculates non-negative memory/gold rewards from a combatant reward profile and selected difficulty. |
+| `RewardService.normalize_reward_result(reward_result)` | static method | Converts reward-shaped dictionaries or objects into `{memories_awarded, gold_awarded}`. |
+| `PlayerRunStateService.effective_player_stats(run_data, fallback_profile)` | static method | Returns current run stats, or profile base stats when no run exists. |
+| `PlayerRunStateService.hp_snapshot(run_data)` | static method | Returns persistent player HP as `{current, max}` with an empty-state fallback. |
+| `SceneRouteService.scene_path_for(scene_ref)` | static method | Normalizes route references to `res://scenes/... .tscn` paths. |
+| `SceneRouteService.music_id_for_scene_path(scene_path)` | static method | Resolves scene paths to authored music track IDs. |
+| `ValueReader.resource_float(resource, field_name, default_value)` | static method | Reads numeric Resource fields without duplicating null/type checks. |
 
 ## SoundManager
 

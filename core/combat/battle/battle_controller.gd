@@ -4,6 +4,7 @@ extends Node
 
 const CombatantGroupScript := preload("res://core/combat/combatant_group.gd")
 const EnemyBrainScript := preload("res://core/combat/ai/enemy_brain.gd")
+const ValueReaderScript := preload("res://core/utils/value_reader.gd")
 const DEFAULT_DIFFICULTY_PROFILE := preload("res://core/difficulty/normal.tres")
 const PLAYER_GROUP_ID := "player"
 const ENEMY_GROUP_ID := "enemy"
@@ -297,24 +298,14 @@ func _apply_enemy_difficulty_profile(enemy_combatant: Combatant, active_difficul
 		return
 
 	var base_enemy_hp: int = max(enemy_combatant.vitality, 1) * 10
-	var health_multiplier := _difficulty_float(active_difficulty, "enemy_health_multiplier", 1.0)
+	var health_multiplier := ValueReaderScript.resource_float(active_difficulty, "enemy_health_multiplier", 1.0)
 	enemy_combatant.max_hp = max(int(round(float(base_enemy_hp) * health_multiplier)), 1)
 	enemy_combatant.hp = enemy_combatant.max_hp
 	enemy_combatant.block = 0
-	enemy_combatant.outgoing_damage_multiplier = _difficulty_float(active_difficulty, "enemy_damage_multiplier", 1.0)
-	enemy_combatant.action_time_multiplier = _difficulty_float(active_difficulty, "enemy_time_cost_multiplier", 1.0)
+	enemy_combatant.outgoing_damage_multiplier = ValueReaderScript.resource_float(active_difficulty, "enemy_damage_multiplier", 1.0)
+	enemy_combatant.action_time_multiplier = ValueReaderScript.resource_float(active_difficulty, "enemy_time_cost_multiplier", 1.0)
 	enemy_combatant.hp_changed.emit(enemy_combatant)
 	enemy_combatant.block_changed.emit(enemy_combatant)
-
-func _difficulty_float(active_difficulty: Resource, field_name: String, default_value: float) -> float:
-	if active_difficulty == null:
-		return default_value
-
-	var value: Variant = active_difficulty.get(field_name)
-	if value is int or value is float:
-		return float(value)
-
-	return default_value
 
 func _targets_for_player_action(action: CombatActionData, explicit_targets: Array[Combatant]) -> Array[Combatant]:
 	var targets := _living_targets_from(explicit_targets)

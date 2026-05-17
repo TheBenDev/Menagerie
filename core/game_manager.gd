@@ -1,9 +1,12 @@
-## Autoload that owns run setup, scene transitions, rewards, run timers, and explicit music routing.
+## Autoload that coordinates run setup, scene transitions, combat routing, run timers, and scene music.
 extends Node
 
 const RunDataScript := preload("res://core/run_data.gd")
 const DungeonFloorGeneratorScript := preload("res://core/dungeon/dungeon_floor_generator.gd")
 const DungeonEncounterResolverScript := preload("res://core/dungeon/encounters/dungeon_encounter_resolver.gd")
+const PlayerRunStateServiceScript := preload("res://core/party/player_run_state_service.gd")
+const RewardServiceScript := preload("res://core/rewards/reward_service.gd")
+const SceneRouteServiceScript := preload("res://core/scene_route_service.gd")
 const DEFAULT_DUNGEON_GENERATION_CONFIG := preload("res://core/dungeon/default_dungeon_floor_generation_config.tres")
 const DEFAULT_DUNGEON_ENCOUNTER_POOL := preload("res://core/dungeon/encounters/default_dungeon_encounter_pool.tres")
 const DEFAULT_DUNGEON_COMBAT_ENCOUNTER_POOL := preload("res://core/dungeon/encounters/default_dungeon_combat_encounter_pool.tres")
@@ -12,23 +15,6 @@ const DEFAULT_DUNGEON_ABILITY_POOL := preload("res://core/dungeon/abilities/defa
 signal run_time_changed(remaining_time_seconds: float, max_time_seconds: float)
 signal run_currencies_changed(memories: int, gold: int)
 signal run_ended(reason: String)
-
-const SCENE_ROOT_PATH := "res://scenes"
-const SCENE_EXTENSION := ".tscn"
-const SCENE_ROUTE_PATHS := {
-	"main_menu": "ui/main_menu/MainMenu",
-	"waiting_room": "ui/waiting_room/WaitingRoom",
-	"run_summary": "ui/run_summary/RunSummary",
-	"dungeon": "dungeon/DungeonMap",
-}
-const SCENE_MUSIC_IDS := {
-	"res://scenes/ui/main_menu/MainMenu.tscn": &"music.main_menu",
-	"res://scenes/ui/waiting_room/WaitingRoom.tscn": &"music.waiting_room",
-	"res://scenes/dungeon/DungeonMap.tscn": &"music.dungeon",
-	"res://scenes/combat/BattleScene.tscn": &"music.combat",
-	"res://scenes/ui/run_summary/RunSummary.tscn": &"music.main_menu",
-}
-const RUN_MUSIC_ID := &"music.dungeon"
 
 const DEFAULT_ENEMY_PROFILE_PATH := "res://scenes/combatants/enemies/training_ghoul/training_ghoul_profile.tres"
 const CHARACTER_PROFILE_PATHS := {
@@ -104,7 +90,7 @@ func start_combat(
 		combat_encounter_profile_path
 	)
 
-	if charge_travel_time and not advance_run_time(RunDataScript.NODE_TRAVEL_TIME_SECONDS):
+	if charge_travel_time and not advance_run_time(RunDataScript.NODE_TRAVEL_TIME):
 		return
 
 	go_to_scene("combat/BattleScene")
@@ -187,43 +173,13 @@ func apply_dungeon_encounter_result(encounter_id: StringName, result: Dictionary
 	return outcome
 
 func apply_run_player_state_to_combatant(combatant: Variant) -> void:
-	if current_run_data == null or combatant == null:
-		return
-
-	current_run_data.apply_player_stats_to_combatant(combatant)
+	PlayerRunStateServiceScript.apply_run_state_to_combatant(current_run_data, combatant)
 
 func get_run_player_hp_snapshot() -> Dictionary:
-	if current_run_data == null:
-		return {
-			"current": 0,
-			"max": 0,
-		}
-
-	return {
-		"current": current_run_data.player_current_hp,
-		"max": current_run_data.player_max_hp,
-	}
+	return PlayerRunStateServiceScript.hp_snapshot(current_run_data)
 
 func get_effective_player_stats() -> Dictionary:
-	if current_run_data == null:
-		var profile := get_selected_character_profile()
-		return {
-			RunDataScript.STAT_STRENGTH: _profile_int(profile, "strength", 0),
-			RunDataScript.STAT_DEXTERITY: _profile_int(profile, "dexterity", 0),
-			RunDataScript.STAT_INTELLIGENCE: _profile_int(profile, "intelligence", 0),
-			RunDataScript.STAT_VITALITY: _profile_int(profile, "vitality", 0),
-		}
-
-	return current_run_data.get_effective_stats()
-
-func grant_run_rewards(reward_result: Variant) -> void:
-	if current_run_data == null or reward_result == null:
-		return
-
-	var memories_awarded: int = _variant_int(reward_result, "memories_awarded", 0)
-	var gold_awarded: int = _variant_int(reward_result, "gold_awarded", 0)
-	current_run_data.grant_rewards(memories_awarded, gold_awarded)
-	emit_run_state()
+	return PlayerRunStateServiceScript.effective_player_stats(current_run_data, get_selected_character_profile())
 
 func end_current_run(reason: String) -> void:
 	if current_run_data == null or _is_run_ended():
@@ -250,26 +206,7 @@ func export_current_run_memories() -> int:
 	return current_run_data.export_memories_to(pending_class_memory_awards)
 
 func calculate_rewards_for_profile(profile: CombatantProfile, is_boss: bool) -> Dictionary:
-	var rewards := {
-		"memories_awarded": 0,
-		"gold_awarded": 0,
-	}
-	if profile == null:
-		return rewards
-
-	var reward_profile := profile.reward_profile
-	if reward_profile == null:
-		return rewards
-
-	var difficulty_multiplier := _difficulty_float(get_selected_difficulty_profile(), "reward_multiplier", 1.0)
-	var encounter_multiplier := 1.0
-	if is_boss:
-		encounter_multiplier = _reward_float(reward_profile, "boss_multiplier", 4.0)
-
-	var reward_multiplier := difficulty_multiplier * encounter_multiplier
-	rewards["memories_awarded"] = max(int(round(_reward_float(reward_profile, "base_memories", 0.0) * reward_multiplier)), 0)
-	rewards["gold_awarded"] = max(int(round(_reward_float(reward_profile, "base_gold", 0.0) * reward_multiplier)), 0)
-	return rewards
+	return RewardServiceScript.calculate_combat_rewards(profile, get_selected_difficulty_profile(), is_boss)
 
 func get_selected_difficulty_profile() -> Resource:
 	var profile_path := get_selected_difficulty_profile_path()
@@ -342,23 +279,11 @@ func play_run_music(restart: bool = false) -> void:
 	if sound_manager == null:
 		return
 
-	sound_manager.call("play_music", RUN_MUSIC_ID, -1.0, restart)
+	sound_manager.call("play_music", SceneRouteServiceScript.RUN_MUSIC_ID, -1.0, restart)
 	sound_manager.call("set_music_state", &"", 0.0)
 
 func scene_path_for(scene_ref: String) -> String:
-	var normalized_ref := scene_ref.strip_edges().replace("\\", "/")
-	if normalized_ref.is_empty():
-		return ""
-
-	if normalized_ref.begins_with("res://"):
-		return _with_scene_extension(normalized_ref)
-
-	normalized_ref = normalized_ref.trim_prefix("/")
-	if normalized_ref.begins_with("scenes/"):
-		normalized_ref = normalized_ref.substr("scenes/".length())
-	normalized_ref = _scene_route_path_for(normalized_ref)
-
-	return _with_scene_extension(SCENE_ROOT_PATH.path_join(normalized_ref))
+	return SceneRouteServiceScript.scene_path_for(scene_ref)
 
 func _play_music_for_current_scene() -> void:
 	var current_scene := get_tree().current_scene
@@ -372,7 +297,7 @@ func _play_music_for_scene_path(scene_path: String) -> void:
 	if sound_manager == null:
 		return
 
-	var music_id := _music_id_for_scene_path(scene_path)
+	var music_id := SceneRouteServiceScript.music_id_for_scene_path(scene_path)
 	if String(music_id).is_empty():
 		return
 
@@ -381,25 +306,6 @@ func _play_music_for_scene_path(scene_path: String) -> void:
 		sound_manager.call("set_music_state", &"combat_base", 0.0)
 	else:
 		sound_manager.call("set_music_state", &"", 0.0)
-
-func _music_id_for_scene_path(scene_path: String) -> StringName:
-	var normalized_scene_path := scene_path_for(scene_path)
-	return StringName(SCENE_MUSIC_IDS.get(normalized_scene_path, &""))
-
-func _scene_route_path_for(scene_ref: String) -> String:
-	var route_key := scene_ref
-	if route_key.ends_with(SCENE_EXTENSION):
-		route_key = route_key.substr(0, route_key.length() - SCENE_EXTENSION.length())
-
-	return str(SCENE_ROUTE_PATHS.get(route_key, scene_ref))
-
-func _with_scene_extension(scene_path: String) -> String:
-	if scene_path.ends_with(SCENE_EXTENSION):
-		return scene_path
-	if scene_path.get_extension().is_empty():
-		return scene_path + SCENE_EXTENSION
-
-	return scene_path
 
 func _sound_manager() -> Node:
 	if not is_inside_tree():
@@ -419,44 +325,3 @@ func _apply_run_seed(run_seed: String) -> void:
 
 func _is_run_ended() -> bool:
 	return current_run_data != null and current_run_data.has_ended()
-
-func _variant_int(source: Variant, field_name: String, default_value: int) -> int:
-	if source is Dictionary:
-		return int(source.get(field_name, default_value))
-
-	if source != null:
-		var value: Variant = source.get(field_name)
-		if value is int or value is float:
-			return int(value)
-
-	return default_value
-
-func _profile_int(profile: Resource, field_name: String, default_value: int) -> int:
-	if profile == null:
-		return default_value
-
-	var value: Variant = profile.get(field_name)
-	if value is int or value is float:
-		return int(value)
-
-	return default_value
-
-func _difficulty_float(active_difficulty: Resource, field_name: String, default_value: float) -> float:
-	if active_difficulty == null:
-		return default_value
-
-	var value: Variant = active_difficulty.get(field_name)
-	if value is int or value is float:
-		return float(value)
-
-	return default_value
-
-func _reward_float(reward_profile: Resource, field_name: String, default_value: float) -> float:
-	if reward_profile == null:
-		return default_value
-
-	var value: Variant = reward_profile.get(field_name)
-	if value is int or value is float:
-		return float(value)
-
-	return default_value

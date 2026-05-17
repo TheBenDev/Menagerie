@@ -12,6 +12,7 @@ const STAT_FIELD_BY_ID := {
 	STAT_INTELLIGENCE: "intelligence",
 	STAT_VITALITY: "vitality",
 }
+const ValueReaderScript := preload("res://core/utils/value_reader.gd")
 
 var combatant_id: String = ""
 var profile_path: String = ""
@@ -42,10 +43,10 @@ func configure_from_profile(new_combatant_id: String, new_profile_path: String, 
 	profile_path = new_profile_path.strip_edges()
 	display_name = _profile_string(profile, "display_name", display_name)
 	stats = {
-		STAT_STRENGTH: _profile_stat(profile, "strength", 5),
-		STAT_DEXTERITY: _profile_stat(profile, "dexterity", 5),
-		STAT_INTELLIGENCE: _profile_stat(profile, "intelligence", 5),
-		STAT_VITALITY: _profile_stat(profile, "vitality", 5),
+		STAT_STRENGTH: ValueReaderScript.resource_int(profile, "strength", 5),
+		STAT_DEXTERITY: ValueReaderScript.resource_int(profile, "dexterity", 5),
+		STAT_INTELLIGENCE: ValueReaderScript.resource_int(profile, "intelligence", 5),
+		STAT_VITALITY: ValueReaderScript.resource_int(profile, "vitality", 5),
 	}
 	statuses.clear()
 	runtime_modifiers.clear()
@@ -126,16 +127,6 @@ func _reset_default_stats() -> void:
 		STAT_INTELLIGENCE: 5,
 		STAT_VITALITY: 5,
 	}
-
-func _profile_stat(profile: Resource, field_name: String, default_value: int) -> int:
-	if profile == null:
-		return default_value
-
-	var value: Variant = profile.get(field_name)
-	if value is int or value is float:
-		return int(value)
-
-	return default_value
 
 func _profile_string(profile: Resource, field_name: String, default_value: String) -> String:
 	if profile == null:
