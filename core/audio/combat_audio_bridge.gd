@@ -4,8 +4,8 @@ extends Node
 var battle: BattleController = null
 var player: Combatant = null
 var enemy: Combatant = null
-var player_group: Variant = null
-var enemy_group: Variant = null
+var player_group: CombatantGroup = null
+var enemy_group: CombatantGroup = null
 var is_boss: bool = false
 
 var _last_hp_by_combatant: Dictionary = {}
@@ -16,8 +16,8 @@ func setup(
 	new_player: Combatant,
 	new_enemy: Combatant,
 	new_is_boss: bool,
-	new_player_group: Variant = null,
-	new_enemy_group: Variant = null
+	new_player_group: CombatantGroup = null,
+	new_enemy_group: CombatantGroup = null
 ) -> void:
 	battle = new_battle
 	player = new_player
@@ -59,7 +59,7 @@ func _connect_combatant_signals(combatant: Combatant) -> void:
 	if not combatant.died.is_connected(_on_died):
 		combatant.died.connect(_on_died)
 
-func _connect_group_combatant_signals(group: Variant, fallback_combatant: Combatant) -> void:
+func _connect_group_combatant_signals(group: CombatantGroup, fallback_combatant: Combatant) -> void:
 	var connected_any := false
 	if group != null:
 		for combatant in group.combatants:
@@ -76,7 +76,7 @@ func _capture_combatant_snapshot(combatant: Combatant) -> void:
 	_last_hp_by_combatant[combatant.get_instance_id()] = combatant.hp
 	_last_block_by_combatant[combatant.get_instance_id()] = combatant.block
 
-func _capture_group_snapshots(group: Variant, fallback_combatant: Combatant) -> void:
+func _capture_group_snapshots(group: CombatantGroup, fallback_combatant: Combatant) -> void:
 	var captured_any := false
 	if group != null:
 		for combatant in group.combatants:
@@ -156,7 +156,7 @@ func _has_music_pressure_sources() -> bool:
 	return _has_group_or_fallback_combatant(player_group, player) \
 		and _has_group_or_fallback_combatant(enemy_group, enemy)
 
-func _has_group_or_fallback_combatant(group: Variant, fallback_combatant: Combatant) -> bool:
+func _has_group_or_fallback_combatant(group: CombatantGroup, fallback_combatant: Combatant) -> bool:
 	if group != null:
 		for combatant in group.combatants:
 			if combatant != null:
@@ -164,7 +164,7 @@ func _has_group_or_fallback_combatant(group: Variant, fallback_combatant: Combat
 
 	return fallback_combatant != null
 
-func _group_hp_pressure(group: Variant, fallback_combatant: Combatant) -> float:
+func _group_hp_pressure(group: CombatantGroup, fallback_combatant: Combatant) -> float:
 	var pressure := 0.0
 	var saw_combatant := false
 	if group != null:

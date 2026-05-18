@@ -2,12 +2,14 @@
 extends Node
 
 const CombatResultScript := preload("res://core/combat/combat_result.gd")
+const CombatPayloadValidatorScript := preload("res://core/combat/combat_payload_validator.gd")
 const RewardServiceScript := preload("res://core/rewards/reward_service.gd")
 
 var _current_combat_payload: Dictionary = {}
 var _pending_combat_result: Variant = null
 var _current_run_data: Variant = null
 var _has_active_combat: bool = false
+var _cached_reward_profiles: Array[Resource] = []
 
 func start_combat_from_dungeon(run_data: Variant, node_id: int, encounter_payload: Dictionary) -> void:
 	if run_data == null:
@@ -17,10 +19,11 @@ func start_combat_from_dungeon(run_data: Variant, node_id: int, encounter_payloa
 	var payload := encounter_payload.duplicate(true)
 	payload["node_id"] = node_id
 	validate_combat_payload(payload)
-	if payload.is_empty() or not _is_valid_combat_payload(payload):
+	if payload.is_empty() or not CombatPayloadValidatorScript.is_valid_combat_payload(payload):
 		return
 
 	_current_combat_payload = payload
+	_cached_reward_profiles = _reward_profiles_for_instances(payload.get("enemy_instances", []))
 	_pending_combat_result = null
 	_current_run_data = run_data
 	_has_active_combat = true
@@ -29,8 +32,9 @@ func get_current_combat_payload() -> Dictionary:
 	return _current_combat_payload.duplicate(true)
 
 func validate_combat_payload(payload: Dictionary) -> void:
-	if not _is_valid_combat_payload(payload):
-		push_error("Invalid combat payload: %s." % payload)
+	var payload_error := CombatPayloadValidatorScript.combat_payload_error(payload)
+	if not payload_error.is_empty():
+		push_error("Invalid combat payload (%s): %s." % [payload_error, payload])
 
 func complete_combat(result: Variant) -> void:
 	if result == null:
@@ -126,10 +130,9 @@ func _dungeon_manager() -> Variant:
 
 func _combat_reward_package_for_result(result: Variant) -> Dictionary:
 	var enemy_instances: Array = _current_combat_payload.get("enemy_instances", [])
-	var profiles: Array[Resource] = _reward_profiles_for_instances(enemy_instances)
 	return RewardServiceScript.calculate_combat_reward_package(
 		enemy_instances,
-		profiles,
+		_cached_reward_profiles,
 		bool(result.is_boss),
 		StringName(str(result.node_id))
 	)
@@ -149,28 +152,3 @@ func _reward_profiles_for_instances(enemy_instances: Array) -> Array[Resource]:
 			continue
 		profiles.append(profile)
 	return profiles
-
-func _is_valid_combat_payload(payload: Dictionary) -> bool:
-	if int(payload.get("node_id", -1)) < 0:
-		return false
-	if String(payload.get("combat_encounter_id", "")).strip_edges().is_empty():
-		return false
-
-	var enemy_instances: Variant = payload.get("enemy_instances", [])
-	if not (enemy_instances is Array) or enemy_instances.is_empty():
-		return false
-
-	for raw_instance in enemy_instances:
-		if not (raw_instance is Dictionary):
-			return false
-		var instance: Dictionary = raw_instance
-		if String(instance.get("instance_id", "")).strip_edges().is_empty():
-			return false
-		if String(instance.get("profile_path", "")).strip_edges().is_empty():
-			return false
-		if String(instance.get("slot_id", "")).strip_edges().is_empty():
-			return false
-		if not instance.has("level") or not instance.has("stat_seed"):
-			return false
-
-	return true

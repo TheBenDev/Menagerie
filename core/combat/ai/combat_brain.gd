@@ -81,18 +81,14 @@ static func _is_actor_hp_in_range(actor: Combatant, action: CombatActionData) ->
 	return hp_percent >= _action_float(action, "min_hp_percent", 0.0) and hp_percent <= _action_float(action, "max_hp_percent", 1.0)
 
 static func _choose_move(
-	behavior_mode: String,
+	_behavior_mode: String,
 	moves: Array,
 	actor: Combatant,
 	opponents: Array[Combatant],
 	allies: Array[Combatant],
 	difficulty_profile: Resource
 ) -> CombatActionData:
-	match behavior_mode:
-		BEHAVIOR_RANDOM_WEIGHTED:
-			return _choose_random_or_scored(moves, actor, opponents, allies, difficulty_profile)
-		_:
-			return _choose_random_or_scored(moves, actor, opponents, allies, difficulty_profile)
+	return _choose_random_or_scored(moves, actor, opponents, allies, difficulty_profile)
 
 static func _choose_random_or_scored(
 	moves: Array,
@@ -314,9 +310,6 @@ static func _targets_for_move(
 		_:
 			return CombatTargetingScript.targets_for_action(action, actor, opponents, allies)
 
-static func _target_rule_for(action: CombatActionData) -> String:
-	return CombatTargetingScript.target_rule_for(action)
-
 static func _random_alive_target(combatants: Array[Combatant]) -> Array[Combatant]:
 	var valid_targets: Array[Combatant] = []
 	for combatant in combatants:
@@ -343,7 +336,7 @@ static func _ai_role_for(action: CombatActionData) -> String:
 	var role := _action_string(action, "ai_role", "")
 	if not role.is_empty():
 		return role
-	if _target_rule_for(action) == CombatTargetingScript.TARGET_SELF and _has_effect(action, CombatEffectLibrary.EFFECT_BLOCK):
+	if CombatTargetingScript.target_rule_for(action) == CombatTargetingScript.TARGET_SELF and _has_effect(action, CombatEffectLibrary.EFFECT_BLOCK):
 		return ROLE_DEFENSE
 
 	return ROLE_DAMAGE

@@ -11,6 +11,12 @@ const RESULT_REACHED_DESTINATION_IDS := "reached_destination_pawn_ids"
 const RESULT_INTERRUPTED_PAWN_IDS := "interrupted_pawn_ids"
 const RESULT_CANCELLED_PAWN_IDS := "cancelled_pawn_ids"
 const RESULT_REPLACED_PAWN_IDS := "replaced_pawn_ids"
+const REQUIRED_MOVEMENT_RULE_METHODS := [
+	"move_pawn_to_node",
+	"get_pawn_travel_path",
+	"travel_step_game_seconds",
+	"visual_node_steps_per_real_second",
+]
 
 ## Returns true when at least one active pawn has a travel order ready to advance.
 static func has_active_travel_orders(run_data: Variant) -> bool:
@@ -34,6 +40,12 @@ static func advance_one_step(run_data: Variant, interrupt_node_ids: Array = [], 
 	if movement_rules == null:
 		result[RESULT_PAUSE_REQUESTED] = true
 		result[RESULT_PAUSE_REASONS].append("missing_movement_rules")
+		return result
+	var missing_methods := _missing_movement_rule_methods(movement_rules)
+	if not missing_methods.is_empty():
+		result[RESULT_PAUSE_REQUESTED] = true
+		result[RESULT_PAUSE_REASONS].append("invalid_movement_rules")
+		push_error("Dungeon movement rules are missing required methods: %s." % ", ".join(missing_methods))
 		return result
 
 	var moving_pawns: Array = _active_moving_pawns(run_data)
@@ -123,6 +135,18 @@ static func _active_moving_pawns(run_data: Variant) -> Array:
 			moving_pawns.append(pawn)
 
 	return moving_pawns
+
+static func _missing_movement_rule_methods(movement_rules: Variant) -> Array[String]:
+	var missing_methods: Array[String] = []
+	if not (movement_rules is Object):
+		missing_methods.append("Object")
+		return missing_methods
+
+	for method_name: String in REQUIRED_MOVEMENT_RULE_METHODS:
+		if not movement_rules.has_method(method_name):
+			missing_methods.append(method_name)
+
+	return missing_methods
 
 static func _empty_result() -> Dictionary:
 	return {

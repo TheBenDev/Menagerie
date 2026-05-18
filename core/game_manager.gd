@@ -2,6 +2,7 @@
 extends Node
 
 const RunDataScript := preload("res://core/run_data.gd")
+const CombatPayloadValidatorScript := preload("res://core/combat/combat_payload_validator.gd")
 const RewardServiceScript := preload("res://core/rewards/reward_service.gd")
 const SceneRouteServiceScript := preload("res://core/scene_route_service.gd")
 const DEFAULT_DUNGEON_GENERATION_CONFIG := preload("res://core/dungeon/default_dungeon_floor_generation_config.tres")
@@ -59,13 +60,7 @@ func start_combat(
 	enemy_instances: Array[Dictionary] = []
 ) -> void:
 	if current_run_data == null:
-		start_new_run(
-			selected_setup_character,
-			get_selected_difficulty_id(),
-			setup_dungeon_seed,
-			setup_dungeon_floor_layer
-		)
-	if current_run_data == null:
+		push_error("Combat cannot start without an active run.")
 		return
 	if not _validate_combat_payload(node_id, combat_encounter_id, enemy_instances):
 		return
@@ -314,33 +309,14 @@ func _is_run_ended() -> bool:
 	return current_run_data != null and current_run_data.has_ended()
 
 func _validate_combat_payload(node_id: int, combat_encounter_id: StringName, enemy_instances: Array[Dictionary]) -> bool:
-	if node_id < 0:
-		push_error("Combat cannot start for an invalid dungeon node id: %s." % node_id)
-		return false
-	if String(combat_encounter_id).strip_edges().is_empty():
-		push_error("Combat cannot start without a combat encounter id.")
-		return false
-	if enemy_instances.is_empty():
-		push_error("Combat cannot start without generated enemy instances.")
-		return false
-
-	for enemy_instance in enemy_instances:
-		if not _is_valid_enemy_instance(enemy_instance):
-			push_error("Combat cannot start with malformed enemy instance data: %s." % enemy_instance)
-			return false
-
-	return true
-
-func _is_valid_enemy_instance(enemy_instance: Dictionary) -> bool:
-	if String(enemy_instance.get("instance_id", "")).strip_edges().is_empty():
-		return false
-	if String(enemy_instance.get("profile_path", "")).strip_edges().is_empty():
-		return false
-	if String(enemy_instance.get("slot_id", "")).strip_edges().is_empty():
-		return false
-	if not enemy_instance.has("level"):
-		return false
-	if not enemy_instance.has("stat_seed"):
+	var payload := {
+		"node_id": node_id,
+		"combat_encounter_id": combat_encounter_id,
+		"enemy_instances": enemy_instances,
+	}
+	var payload_error := CombatPayloadValidatorScript.combat_payload_error(payload)
+	if not payload_error.is_empty():
+		push_error("Combat cannot start with invalid payload (%s): %s." % [payload_error, payload])
 		return false
 
 	return true

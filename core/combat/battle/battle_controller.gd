@@ -21,8 +21,8 @@ signal action_queue_changed()
 
 var player: Combatant = null
 var enemy: Combatant = null
-var player_group: Variant = null
-var enemy_group: Variant = null
+var player_group: CombatantGroup = null
+var enemy_group: CombatantGroup = null
 @export var difficulty_profile: DifficultyProfile = null
 var ai_controlled_combatants: Array[Combatant] = []
 
@@ -45,8 +45,8 @@ var _next_resolution_order: int = 1
 
 ## Configures battle sides while preserving `player` and `enemy` as primary convenience references.
 func configure_combatant_groups(player_combatants: Array, enemy_combatants: Array) -> void:
-	player_group = CombatantGroupScript.new(PLAYER_GROUP_ID, player_combatants)
-	enemy_group = CombatantGroupScript.new(ENEMY_GROUP_ID, enemy_combatants)
+	player_group = CombatantGroupScript.new(PLAYER_GROUP_ID, player_combatants) as CombatantGroup
+	enemy_group = CombatantGroupScript.new(ENEMY_GROUP_ID, enemy_combatants) as CombatantGroup
 	_sync_convenience_refs_from_groups()
 
 func set_ai_controlled_combatants(combatants: Array) -> void:
@@ -113,9 +113,9 @@ func start_battle() -> void:
 
 func _ensure_combatant_groups() -> void:
 	if player_group == null:
-		player_group = CombatantGroupScript.new(PLAYER_GROUP_ID)
+		player_group = CombatantGroupScript.new(PLAYER_GROUP_ID) as CombatantGroup
 	if enemy_group == null:
-		enemy_group = CombatantGroupScript.new(ENEMY_GROUP_ID)
+		enemy_group = CombatantGroupScript.new(ENEMY_GROUP_ID) as CombatantGroup
 
 	if player_group.is_empty() and player != null:
 		player_group.add_combatant(player)
@@ -139,7 +139,7 @@ func _sync_convenience_refs_from_groups() -> void:
 		if primary_enemy != null:
 			enemy = primary_enemy
 
-func _connect_group_death_signals(group: Variant) -> void:
+func _connect_group_death_signals(group: CombatantGroup) -> void:
 	if group == null:
 		return
 
@@ -147,7 +147,7 @@ func _connect_group_death_signals(group: Variant) -> void:
 		if combatant != null and not combatant.died.is_connected(_on_combatant_died):
 			combatant.died.connect(_on_combatant_died)
 
-func _reset_group_runtime_state(group: Variant) -> void:
+func _reset_group_runtime_state(group: CombatantGroup) -> void:
 	if group == null:
 		return
 
@@ -155,7 +155,7 @@ func _reset_group_runtime_state(group: Variant) -> void:
 		if combatant != null:
 			combatant.reset_runtime_state()
 
-func _tick_group_time(group: Variant, delta_seconds: float) -> void:
+func _tick_group_time(group: CombatantGroup, delta_seconds: float) -> void:
 	if group == null:
 		return
 
@@ -279,7 +279,7 @@ func _choose_ready_ai_actions() -> void:
 			continue
 		_ai_choose_action(active_player, player_group, enemy_group)
 
-func _ai_choose_action(actor: Combatant, ally_group: Variant, opponent_group: Variant) -> void:
+func _ai_choose_action(actor: Combatant, ally_group: CombatantGroup, opponent_group: CombatantGroup) -> void:
 	if actor == null or actor.hp <= 0:
 		return
 

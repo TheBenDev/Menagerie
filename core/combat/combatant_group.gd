@@ -64,7 +64,7 @@ func get_dead_combatants() -> Array[Combatant]:
 func has_living_combatants() -> bool:
 	return not get_living_combatants().is_empty()
 
-func contains_combatant(combatant_id: String) -> bool:
+func has_combatant_with_id(combatant_id: String) -> bool:
 	var normalized_id := combatant_id.strip_edges()
 	if normalized_id.is_empty():
 		return false

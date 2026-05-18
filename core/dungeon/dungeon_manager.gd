@@ -8,6 +8,7 @@ const DungeonMovementCoordinatorScript := preload("res://core/dungeon/dungeon_mo
 const DungeonNodeDataScript := preload("res://core/dungeon/dungeon_node_data.gd")
 const DungeonPathfinderScript := preload("res://core/dungeon/dungeon_pathfinder.gd")
 const PartyControlModeScript := preload("res://core/party/party_control_mode.gd")
+const CombatPayloadValidatorScript := preload("res://core/combat/combat_payload_validator.gd")
 const DEFAULT_DUNGEON_GENERATION_CONFIG := preload("res://core/dungeon/default_dungeon_floor_generation_config.tres")
 const DEFAULT_DUNGEON_ENCOUNTER_POOL := preload("res://core/dungeon/encounters/default_dungeon_encounter_pool.tres")
 const DEFAULT_DUNGEON_COMBAT_ENCOUNTER_POOL := preload("res://core/dungeon/encounters/default_dungeon_combat_encounter_pool.tres")
@@ -29,7 +30,8 @@ func initialize_dungeon_for_run(run_data: Variant) -> void:
 		push_error("DungeonManager cannot initialize a dungeon without DifficultyService.")
 		return
 
-	run_data.dungeon_node_descriptors = DungeonFloorGeneratorScript.generate_floor_from_global_rng(
+	run_data.dungeon_node_descriptors = DungeonFloorGeneratorScript.generate_floor(
+		run_data.dungeon_seed,
 		run_data.dungeon_floor_layer,
 		String(difficulty_id),
 		DEFAULT_DUNGEON_GENERATION_CONFIG,
@@ -39,6 +41,11 @@ func initialize_dungeon_for_run(run_data: Variant) -> void:
 	if not validate_descriptors(run_data.dungeon_node_descriptors):
 		return
 
+	configure_map_metadata(
+		run_data,
+		run_data.dungeon_node_descriptors.size(),
+		_boss_descriptor_id(run_data.dungeon_node_descriptors)
+	)
 	initialize_map_state_for_run(run_data, RunData.START_DUNGEON_NODE_ID)
 
 func initialize_map_state_for_run(run_data: Variant, start_node_id: int = RunData.START_DUNGEON_NODE_ID) -> void:
@@ -210,6 +217,16 @@ func configure_map_metadata(run_data: Variant, total_nodes: int, boss_node_id: i
 	run_data.total_nodes = max(total_nodes, 0)
 	run_data.boss_node_index = max(boss_node_id, 0)
 
+func _boss_descriptor_id(descriptors: Array) -> int:
+	for raw_descriptor in descriptors:
+		if not (raw_descriptor is Dictionary):
+			continue
+		var descriptor: Dictionary = raw_descriptor
+		if bool(descriptor.get("is_boss", false)) or str(descriptor.get("type", "")) == DungeonNodeDataScript.TYPE_BOSS:
+			return int(descriptor.get("id", descriptors.size() - 1))
+
+	return max(descriptors.size() - 1, 0)
+
 func current_node_id(run_data: Variant) -> int:
 	var pawn: Variant = get_selected_pawn(run_data)
 	if pawn != null and int(pawn.current_node_id) >= 0:
@@ -312,8 +329,9 @@ func start_combat_node(run_data: Variant, node: Variant, charge_travel_time: boo
 		return
 
 	var payload := _combat_payload_for_node(node)
-	if not _is_valid_combat_payload(payload):
-		push_error("Dungeon combat node %s has invalid combat payload: %s." % [node.id, payload])
+	var payload_error := CombatPayloadValidatorScript.combat_payload_error(payload)
+	if not payload_error.is_empty():
+		push_error("Dungeon combat node %s has invalid combat payload (%s): %s." % [node.id, payload_error, payload])
 		return
 
 	GameManager.start_combat(
@@ -365,31 +383,6 @@ func _is_combat_node(node: Variant) -> bool:
 		str(node.node_type) == DungeonNodeDataScript.TYPE_FIGHT
 		or str(node.node_type) == DungeonNodeDataScript.TYPE_BOSS
 	)
-
-func _is_valid_combat_payload(payload: Dictionary) -> bool:
-	if int(payload.get("node_id", -1)) < 0:
-		return false
-	if String(payload.get("combat_encounter_id", "")).strip_edges().is_empty():
-		return false
-
-	var enemy_instances: Variant = payload.get("enemy_instances", [])
-	if not (enemy_instances is Array) or enemy_instances.is_empty():
-		return false
-
-	for raw_instance in enemy_instances:
-		if not (raw_instance is Dictionary):
-			return false
-		var instance: Dictionary = raw_instance
-		if String(instance.get("instance_id", "")).strip_edges().is_empty():
-			return false
-		if String(instance.get("profile_path", "")).strip_edges().is_empty():
-			return false
-		if String(instance.get("slot_id", "")).strip_edges().is_empty():
-			return false
-		if not instance.has("level") or not instance.has("stat_seed"):
-			return false
-
-	return true
 
 func _mark_node_visit_state(run_data: Variant, node_id: int) -> void:
 	_add_node_id(run_data.visited_dungeon_node_ids, node_id)

@@ -11,6 +11,7 @@ const CombatantDisplayScript := preload("res://scenes/combat/ui/combatant_displa
 const CombatantScript := preload("res://scenes/combatants/combatant.gd")
 const EnemyCombatantScript := preload("res://scenes/combatants/enemies/enemy_combatant.gd")
 const WarriorCombatantScript := preload("res://scenes/combatants/characters/warrior/warrior_combatant.gd")
+const CombatPayloadValidatorScript := preload("res://core/combat/combat_payload_validator.gd")
 const ValueReaderScript := preload("res://core/utils/value_reader.gd")
 const DEFAULT_PLAYER_PROFILE := preload("res://scenes/combatants/characters/warrior/warrior_profile.tres")
 
@@ -429,8 +430,9 @@ func _enemy_instances_for_encounter(encounter: Dictionary) -> Array[Dictionary]:
 	var instances := _enemy_instances_from_variant(encounter.get("enemy_instances", []))
 	if not instances.is_empty():
 		for instance in instances:
-			if not _is_valid_enemy_instance(instance):
-				push_error("BattleScene received malformed enemy instance: %s." % instance)
+			var instance_error := CombatPayloadValidatorScript.enemy_instance_error(instance)
+			if not instance_error.is_empty():
+				push_error("BattleScene received malformed enemy instance (%s): %s." % [instance_error, instance])
 				return []
 		return instances
 
@@ -456,20 +458,6 @@ func _profile_for_enemy_instance(instance_data: Dictionary) -> CombatantProfile:
 			return loaded_profile
 
 	return null
-
-func _is_valid_enemy_instance(instance_data: Dictionary) -> bool:
-	if String(instance_data.get("instance_id", "")).strip_edges().is_empty():
-		return false
-	if String(instance_data.get("profile_path", "")).strip_edges().is_empty():
-		return false
-	if String(instance_data.get("slot_id", "")).strip_edges().is_empty():
-		return false
-	if not instance_data.has("level"):
-		return false
-	if not instance_data.has("stat_seed"):
-		return false
-
-	return true
 
 ## Copies an authored slot marker rectangle onto a display node.
 func _apply_display_slot(display: Control, slot_parent: Control, slot_id: StringName, fallback_slot_id: StringName) -> void:

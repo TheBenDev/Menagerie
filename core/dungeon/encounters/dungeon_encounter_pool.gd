@@ -19,9 +19,9 @@ func available_for_floor(floor_layer: int) -> Array[Resource]:
 	_ensure_loaded()
 	return DungeonEncounterPoolHelperScript.available_for_floor(_encounter_cache, floor_layer)
 
-func pick_for_floor(floor_layer: int) -> Resource:
+func pick_for_floor(floor_layer: int, rng: RandomNumberGenerator) -> Resource:
 	var available := available_for_floor(floor_layer)
-	return DungeonEncounterPoolHelperScript.pick_weighted(available)
+	return DungeonEncounterPoolHelperScript.pick_weighted(available, rng)
 
 func scene_for_encounter(encounter_data: Resource) -> PackedScene:
 	if encounter_data == null:

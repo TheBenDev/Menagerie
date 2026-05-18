@@ -71,7 +71,7 @@ func get_active_members() -> Array:
 	var active_members: Array = []
 	for member_id: String in active_member_ids:
 		var member: Variant = get_member(member_id)
-		if member != null and member.is_active:
+		if member != null and not member.is_inactive():
 			active_members.append(member)
 
 	return active_members

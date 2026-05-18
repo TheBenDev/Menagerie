@@ -13,8 +13,8 @@ static func available_for_floor(encounters: Array[Resource], floor_layer: int) -
 
 	return available
 
-static func pick_weighted(encounters: Array[Resource]) -> Resource:
-	if encounters.is_empty():
+static func pick_weighted(encounters: Array[Resource], rng: RandomNumberGenerator) -> Resource:
+	if encounters.is_empty() or rng == null:
 		return null
 
 	var total_weight := 0.0
@@ -23,7 +23,7 @@ static func pick_weighted(encounters: Array[Resource]) -> Resource:
 	if total_weight <= 0.0:
 		return null
 
-	var roll := randf() * total_weight
+	var roll := rng.randf() * total_weight
 	var running_weight := 0.0
 	for encounter in encounters:
 		running_weight += max(float(encounter.get("weight")), 0.0)

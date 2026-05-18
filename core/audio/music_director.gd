@@ -37,10 +37,10 @@ func on_route_changed(route_id: StringName) -> void:
 		_set_music_state(&"", 0.0)
 
 func on_run_started() -> void:
-	on_dungeon_entered()
+	on_dungeon_entered({"restart": true})
 
-func on_dungeon_entered(_context: Dictionary = {}) -> void:
-	_play_music(MUSIC_DUNGEON, -1.0, true)
+func on_dungeon_entered(context: Dictionary = {}) -> void:
+	_play_music(MUSIC_DUNGEON, -1.0, bool(context.get("restart", false)))
 	_set_music_state(&"", 0.0)
 
 func on_combat_started(context: Dictionary = {}) -> void:
@@ -49,7 +49,7 @@ func on_combat_started(context: Dictionary = {}) -> void:
 	_set_music_state(MUSIC_STATE_COMBAT_TENSE if is_boss else MUSIC_STATE_COMBAT_BASE, 0.25 if is_boss else 0.0)
 
 func on_combat_ended(_result: Variant = null) -> void:
-	on_dungeon_entered()
+	on_dungeon_entered({"restart": false})
 
 func set_combat_music_pressure(intensity: float) -> void:
 	var clamped_intensity: float = clamp(intensity, 0.0, 1.0)

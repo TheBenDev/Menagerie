@@ -4,6 +4,7 @@ extends RefCounted
 
 const DungeonNodeDataScript := preload("res://core/dungeon/dungeon_node_data.gd")
 const DungeonFloorGenerationConfigScript := preload("res://core/dungeon/dungeon_floor_generation_config.gd")
+const CombatPayloadValidatorScript := preload("res://core/combat/combat_payload_validator.gd")
 const DEFAULT_DUNGEON_ENCOUNTER_POOL := preload("res://core/dungeon/encounters/default_dungeon_encounter_pool.tres")
 const DEFAULT_DUNGEON_COMBAT_ENCOUNTER_POOL := preload("res://core/dungeon/encounters/default_dungeon_combat_encounter_pool.tres")
 
@@ -29,16 +30,11 @@ static func generate_floor(
 	encounter_pool: Resource = null,
 	combat_encounter_pool: Resource = null
 ) -> Array:
-	seed(base_seed.hash())
-	return generate_floor_from_global_rng(floor_layer, difficulty_id, config, encounter_pool, combat_encounter_pool)
-
-static func generate_floor_from_global_rng(
-	floor_layer: int,
-	difficulty_id: String,
-	config: Resource = null,
-	encounter_pool: Resource = null,
-	combat_encounter_pool: Resource = null
-) -> Array:
+	var rng := RandomNumberGenerator.new()
+	var resolved_seed := int(base_seed.hash())
+	if resolved_seed == 0:
+		resolved_seed = 1
+	rng.seed = resolved_seed
 	var active_config: Resource = config
 	if active_config == null:
 		active_config = DungeonFloorGenerationConfigScript.new()
@@ -55,6 +51,7 @@ static func generate_floor_from_global_rng(
 		resolved_difficulty = "normal"
 
 	var settings := _build_settings(resolved_layer, resolved_difficulty, active_config, active_encounter_pool, active_combat_encounter_pool)
+	settings["rng"] = rng
 	for retry_index in range(max(settings.max_generation_retries, 1)):
 		var descriptors := _try_generate_floor(settings)
 		if not descriptors.is_empty() and validate_descriptors(descriptors, settings.grid_size):
@@ -152,16 +149,19 @@ static func validate_descriptors(descriptors: Array, grid_size: Vector2i = Vecto
 	return reachable.has(boss_id) and reachable.size() == nodes_by_id.size()
 
 static func _try_generate_floor(settings: Dictionary) -> Array:
+	var rng := settings.get("rng", null) as RandomNumberGenerator
+	if rng == null:
+		return []
 	var grid_size: Vector2i = settings.grid_size
 	var major_nodes: Array = []
 	var large_occupied := {}
 
-	var haven_position := Vector2i(0, randi_range(0, max(grid_size.y - LARGE_SIZE.y, 0)))
+	var haven_position := Vector2i(0, rng.randi_range(0, max(grid_size.y - LARGE_SIZE.y, 0)))
 	var haven := _make_major("haven", DungeonNodeDataScript.TYPE_HAVEN, haven_position, false)
 	major_nodes.append(haven)
 	_reserve_large_node(haven, large_occupied)
 
-	var boss_position := Vector2i(grid_size.x - LARGE_SIZE.x, randi_range(0, max(grid_size.y - LARGE_SIZE.y, 0)))
+	var boss_position := Vector2i(grid_size.x - LARGE_SIZE.x, rng.randi_range(0, max(grid_size.y - LARGE_SIZE.y, 0)))
 	var boss := _make_major("boss", DungeonNodeDataScript.TYPE_BOSS, boss_position, true)
 	if not _can_place_major(boss_position, LARGE_SIZE, grid_size, large_occupied, int(settings.room_padding)):
 		return []
@@ -205,7 +205,7 @@ static func _try_generate_floor(settings: Dictionary) -> Array:
 	progress_nodes.append_array(encounters)
 	_sort_major_nodes_by_position(progress_nodes)
 	for progress_node in progress_nodes:
-		if progress_nodes.size() > 1 and randf() < float(settings.branch_chance):
+		if progress_nodes.size() > 1 and rng.randf() < float(settings.branch_chance):
 			branch_nodes.append(progress_node)
 		else:
 			route_nodes.append(progress_node)
@@ -220,23 +220,23 @@ static func _try_generate_floor(settings: Dictionary) -> Array:
 
 	var blocked_cells := _large_node_cells(major_nodes)
 	for index in range(main_route.size() - 1):
-		if not _connect_nodes_with_path(main_route[index], main_route[index + 1], grid_size, blocked_cells, connector_nodes, edges, float(settings.path_noise)):
+		if not _connect_nodes_with_path(main_route[index], main_route[index + 1], grid_size, blocked_cells, connector_nodes, edges, float(settings.path_noise), rng):
 			return []
 
 	for branch_node in branch_nodes:
 		var nearest_main: Variant = _nearest_major(branch_node, main_route)
 		if nearest_main == null:
 			return []
-		if not _connect_nodes_with_path(nearest_main, branch_node, grid_size, blocked_cells, connector_nodes, edges, float(settings.path_noise)):
+		if not _connect_nodes_with_path(nearest_main, branch_node, grid_size, blocked_cells, connector_nodes, edges, float(settings.path_noise), rng):
 			return []
-		if randf() < float(settings.extra_connection_chance):
+		if rng.randf() < float(settings.extra_connection_chance):
 			var second_main: Variant = _nearest_major(branch_node, main_route, nearest_main.uid)
 			if second_main != null:
-				_connect_nodes_with_path(second_main, branch_node, grid_size, blocked_cells, connector_nodes, edges, float(settings.path_noise))
+				_connect_nodes_with_path(second_main, branch_node, grid_size, blocked_cells, connector_nodes, edges, float(settings.path_noise), rng)
 
 	for index in range(main_route.size() - 2):
-		if randf() < float(settings.extra_connection_chance):
-			_connect_nodes_with_path(main_route[index], main_route[index + 2], grid_size, blocked_cells, connector_nodes, edges, float(settings.path_noise))
+		if rng.randf() < float(settings.extra_connection_chance):
+			_connect_nodes_with_path(main_route[index], main_route[index + 2], grid_size, blocked_cells, connector_nodes, edges, float(settings.path_noise), rng)
 
 	var all_nodes := []
 	all_nodes.append_array(major_nodes)
@@ -318,7 +318,7 @@ static func _place_major_nodes(
 	for x in range(LARGE_SIZE.x + 1, grid_size.x - LARGE_SIZE.x - LARGE_SIZE.x):
 		for y in range(0, grid_size.y - LARGE_SIZE.y + 1):
 			candidates.append(Vector2i(x, y))
-	_shuffle(candidates)
+	_shuffle(candidates, settings.get("rng", null) as RandomNumberGenerator)
 
 	var attempts := 0
 	var candidate_index := 0
@@ -342,7 +342,7 @@ static func _assign_encounter_ids(encounter_nodes: Array, settings: Dictionary) 
 		return false
 
 	for encounter_node in encounter_nodes:
-		var encounter_data := encounter_pool.call("pick_for_floor", int(settings.floor_layer)) as Resource
+		var encounter_data := encounter_pool.call("pick_for_floor", int(settings.floor_layer), settings.get("rng", null)) as Resource
 		if encounter_data == null or String(encounter_data.get("id")).is_empty():
 			return false
 		encounter_node["encounter_id"] = String(encounter_data.get("id"))
@@ -378,7 +378,7 @@ static func _pick_combat_encounter(settings: Dictionary) -> Resource:
 	if not combat_encounter_pool.has_method("pick_for_floor"):
 		return null
 
-	return combat_encounter_pool.call("pick_for_floor", int(settings.floor_layer)) as Resource
+	return combat_encounter_pool.call("pick_for_floor", int(settings.floor_layer), settings.get("rng", null)) as Resource
 
 static func _combat_encounter_profile_path(encounter_data: Resource, settings: Dictionary) -> String:
 	if encounter_data == null:
@@ -394,6 +394,9 @@ static func _combat_encounter_profile_path(encounter_data: Resource, settings: D
 
 static func _build_enemy_instances(encounter_data: Resource, settings: Dictionary, is_boss: bool) -> Array[Dictionary]:
 	var enemy_instances: Array[Dictionary] = []
+	var rng := settings.get("rng", null) as RandomNumberGenerator
+	if rng == null:
+		return enemy_instances
 	var enemy_slots := _enemy_slots(encounter_data)
 	if enemy_slots.is_empty():
 		return enemy_instances
@@ -402,7 +405,7 @@ static func _build_enemy_instances(encounter_data: Resource, settings: Dictionar
 	var max_count := _encounter_count_value(encounter_data, "max_enemy_count", min_count)
 	min_count = clamp(min_count, 1, enemy_slots.size())
 	max_count = clamp(max(max_count, min_count), min_count, enemy_slots.size())
-	var enemy_count := randi_range(min_count, max_count)
+	var enemy_count := rng.randi_range(min_count, max_count)
 	var enemy_level_range: Vector2i = settings.get("enemy_level_range", Vector2i(0, 5))
 	for index in range(enemy_count):
 		var slot_data: Dictionary = enemy_slots[index]
@@ -410,13 +413,13 @@ static func _build_enemy_instances(encounter_data: Resource, settings: Dictionar
 		if profile_path.is_empty():
 			continue
 
-		var enemy_level := enemy_level_range.y if is_boss else randi_range(enemy_level_range.x, enemy_level_range.y)
+		var enemy_level := enemy_level_range.y if is_boss else rng.randi_range(enemy_level_range.x, enemy_level_range.y)
 		enemy_instances.append({
 			ENEMY_INSTANCE_ID: "enemy_%s" % (index + 1),
 			ENEMY_INSTANCE_PROFILE_PATH: profile_path,
 			ENEMY_INSTANCE_SLOT_ID: StringName(str(slot_data.get(DungeonCombatEncounterData.SLOT_POSITION_ID, "EnemySlot%s" % (index + 1)))),
 			ENEMY_INSTANCE_LEVEL: enemy_level,
-			ENEMY_INSTANCE_STAT_SEED: int(randi()),
+			ENEMY_INSTANCE_STAT_SEED: int(rng.randi()),
 		})
 
 	return enemy_instances
@@ -453,14 +456,15 @@ static func _connect_nodes_with_path(
 	blocked_cells: Dictionary,
 	connector_nodes: Dictionary,
 	edges: Dictionary,
-	path_noise: float
+	path_noise: float,
+	rng: RandomNumberGenerator
 ) -> bool:
 	var start := _edge_connector_cell(from_node, to_node, grid_size, blocked_cells)
 	var target := _edge_connector_cell(to_node, from_node, grid_size, blocked_cells)
 	if start == Vector2i(-1, -1) or target == Vector2i(-1, -1):
 		return false
 
-	var path := _find_path(start, target, grid_size, blocked_cells, path_noise)
+	var path := _find_path(start, target, grid_size, blocked_cells, path_noise, rng)
 	if path.is_empty():
 		return false
 
@@ -482,36 +486,40 @@ static func _connect_nodes_with_path(
 	_add_edge(edges, previous_uid, to_node.uid)
 	return true
 
-static func _find_path(start: Vector2i, target: Vector2i, grid_size: Vector2i, blocked_cells: Dictionary, path_noise: float) -> Array:
+static func _find_path(start: Vector2i, target: Vector2i, grid_size: Vector2i, blocked_cells: Dictionary, path_noise: float, rng: RandomNumberGenerator) -> Array:
 	if start == target:
 		return [start]
+	if rng == null:
+		return []
 
-	var open := [start]
+	var open := []
 	var came_from := {}
 	var g_score := {start: 0.0}
 	var f_score := {start: float(_manhattan(start, target))}
 	var closed := {}
+	_heap_push(open, start, float(f_score[start]))
 	while not open.is_empty():
-		var current := _pop_lowest_score(open, f_score)
+		var current := _heap_pop(open)
+		if closed.has(current):
+			continue
 		if current == target:
 			return _reconstruct_path(came_from, current)
 		closed[current] = true
 
 		var directions := [Vector2i.RIGHT, Vector2i.LEFT, Vector2i.DOWN, Vector2i.UP]
-		_shuffle(directions)
+		_shuffle(directions, rng)
 		for direction in directions:
 			var neighbor: Vector2i = current + direction
 			if not _is_in_bounds(neighbor, grid_size) or (blocked_cells.has(neighbor) and neighbor != target) or closed.has(neighbor):
 				continue
-			var random_cost := randf() * path_noise
+			var random_cost := rng.randf() * path_noise
 			var directness_cost := float(_manhattan(neighbor, target)) * 0.10
 			var tentative_g := float(g_score[current]) + 1.0 + random_cost + directness_cost
 			if not g_score.has(neighbor) or tentative_g < float(g_score[neighbor]):
 				came_from[neighbor] = current
 				g_score[neighbor] = tentative_g
 				f_score[neighbor] = tentative_g + float(_manhattan(neighbor, target))
-				if not open.has(neighbor):
-					open.append(neighbor)
+				_heap_push(open, neighbor, float(f_score[neighbor]))
 
 	return []
 
@@ -746,16 +754,60 @@ static func _add_edge(edges: Dictionary, first_uid: String, second_uid: String) 
 static func _connector_uid(cell: Vector2i) -> String:
 	return "empty_%s_%s" % [cell.x, cell.y]
 
-static func _pop_lowest_score(open: Array, f_score: Dictionary) -> Vector2i:
-	var best_index := 0
-	for index in range(1, open.size()):
-		var position: Vector2i = open[index]
-		var best_position: Vector2i = open[best_index]
-		var score := float(f_score.get(position, 999999.0))
-		var best_score := float(f_score.get(best_position, 999999.0))
-		if score < best_score or (is_equal_approx(score, best_score) and (position.x < best_position.x or (position.x == best_position.x and position.y < best_position.y))):
-			best_index = index
-	return open.pop_at(best_index)
+static func _heap_push(heap: Array, position: Vector2i, score: float) -> void:
+	heap.append({
+		"position": position,
+		"score": score,
+	})
+	var index := heap.size() - 1
+	while index > 0:
+		var parent_index := int((index - 1) / 2)
+		if not _heap_entry_less(heap[index], heap[parent_index]):
+			break
+		var parent = heap[parent_index]
+		heap[parent_index] = heap[index]
+		heap[index] = parent
+		index = parent_index
+
+static func _heap_pop(heap: Array) -> Vector2i:
+	if heap.is_empty():
+		return Vector2i.ZERO
+
+	var best_entry: Dictionary = heap[0]
+	var last_entry = heap.pop_back()
+	if not heap.is_empty():
+		heap[0] = last_entry
+		_heap_sift_down(heap, 0)
+
+	return best_entry.get("position", Vector2i.ZERO)
+
+static func _heap_sift_down(heap: Array, start_index: int) -> void:
+	var index := start_index
+	while true:
+		var left_index := index * 2 + 1
+		var right_index := left_index + 1
+		var best_index := index
+		if left_index < heap.size() and _heap_entry_less(heap[left_index], heap[best_index]):
+			best_index = left_index
+		if right_index < heap.size() and _heap_entry_less(heap[right_index], heap[best_index]):
+			best_index = right_index
+		if best_index == index:
+			return
+		var current = heap[index]
+		heap[index] = heap[best_index]
+		heap[best_index] = current
+		index = best_index
+
+static func _heap_entry_less(first: Dictionary, second: Dictionary) -> bool:
+	var first_score := float(first.get("score", INF))
+	var second_score := float(second.get("score", INF))
+	if not is_equal_approx(first_score, second_score):
+		return first_score < second_score
+
+	var first_position: Vector2i = first.get("position", Vector2i.ZERO)
+	var second_position: Vector2i = second.get("position", Vector2i.ZERO)
+	return first_position.x < second_position.x \
+		or (first_position.x == second_position.x and first_position.y < second_position.y)
 
 static func _reconstruct_path(came_from: Dictionary, current: Vector2i) -> Array:
 	var path := [current]
@@ -777,9 +829,11 @@ static func _reachable_ids(graph: Dictionary, start_id: int) -> Dictionary:
 				queue.append(connected_id)
 	return reachable
 
-static func _shuffle(values: Array) -> void:
+static func _shuffle(values: Array, rng: RandomNumberGenerator) -> void:
+	if rng == null:
+		return
 	for index in range(values.size() - 1, 0, -1):
-		var swap_index := randi_range(0, index)
+		var swap_index := rng.randi_range(0, index)
 		var value = values[index]
 		values[index] = values[swap_index]
 		values[swap_index] = value
@@ -822,15 +876,7 @@ static func _has_valid_combat_descriptor_payload(descriptor: Dictionary) -> bool
 		if not (raw_enemy_instance is Dictionary):
 			return false
 		var enemy_instance: Dictionary = raw_enemy_instance
-		if String(enemy_instance.get(ENEMY_INSTANCE_ID, "")).strip_edges().is_empty():
-			return false
-		if String(enemy_instance.get(ENEMY_INSTANCE_PROFILE_PATH, "")).strip_edges().is_empty():
-			return false
-		if String(enemy_instance.get(ENEMY_INSTANCE_SLOT_ID, "")).strip_edges().is_empty():
-			return false
-		if not enemy_instance.has(ENEMY_INSTANCE_LEVEL):
-			return false
-		if not enemy_instance.has(ENEMY_INSTANCE_STAT_SEED):
+		if not CombatPayloadValidatorScript.is_valid_enemy_instance(enemy_instance):
 			return false
 
 	return true
