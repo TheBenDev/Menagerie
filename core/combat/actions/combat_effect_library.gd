@@ -8,6 +8,8 @@ const EFFECT_APPLY_STATUS := &"status.apply"
 const EFFECT_RAGE_GAIN := &"resource.rage.gain"
 const EFFECT_STRENGTH_ADD := &"stat.strength.add"
 
+const StatId := preload("res://core/combat/stat_id.gd")
+
 const STATUS_ROOT_PATH := "res://core/statuses"
 const STATUS_NAMESPACE_PREFIX := "status."
 
@@ -137,7 +139,7 @@ static func _estimate_damage_power(effect_data: Dictionary, source: Combatant, t
 static func _calculate_damage(effect_data: Dictionary, source: Combatant) -> int:
 	var stat_value := 0
 	if source != null:
-		stat_value = source.get_stat_value(_data_string(effect_data, "scaling_stat", "STR"))
+		stat_value = source.get_stat_value(StatId.from_value(_data_string(effect_data, "scaling_stat", StatId.STR)))
 
 	var base_damage: int = _data_int(effect_data, "base_damage", _data_int(effect_data, "base_amount", 0))
 	var scaling_multiplier: float = _data_float(effect_data, "scaling_multiplier", 0.0)

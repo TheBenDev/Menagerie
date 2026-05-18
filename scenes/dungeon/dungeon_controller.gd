@@ -436,6 +436,7 @@ func _process_travel_orders() -> void:
 ## Processes every pawn that moved during the last synchronized travel step.
 func _handle_travel_step_arrivals(step_result: Dictionary) -> bool:
 	var moved_pawn_ids: Array = step_result.get(DungeonMovementCoordinatorScript.RESULT_MOVED_PAWN_IDS, [])
+	var route_requests: Array[Dictionary] = []
 	for raw_pawn_id in moved_pawn_ids:
 		var pawn_id := str(raw_pawn_id)
 		var pawn: Variant = _run_data().get_dungeon_map_pawn(pawn_id)
@@ -443,20 +444,35 @@ func _handle_travel_step_arrivals(step_result: Dictionary) -> bool:
 			continue
 
 		var node: DungeonNodeData = nodes_by_id.get(int(pawn.current_node_id)) as DungeonNodeData
-		if _handle_pawn_arrival_at_node(pawn_id, node):
-			return true
+		var route_request := _process_pawn_arrival_at_node(pawn_id, node)
+		if not route_request.is_empty():
+			route_requests.append(route_request)
 
-	return false
+	if route_requests.is_empty():
+		return false
+
+	if route_requests.size() > 1:
+		push_warning("Multiple routed dungeon events reached in one step. Current single-local-player routing starts only the first; multiplayer combat instances will handle this later.")
+	_start_arrival_route(route_requests[0])
+	return true
 
 ## Applies visit/reveal state and node-type behavior when one pawn enters a node.
 func _handle_pawn_arrival_at_node(pawn_id: String, node: DungeonNodeData) -> bool:
-	if node == null:
+	var route_request := _process_pawn_arrival_at_node(pawn_id, node)
+	if route_request.is_empty():
 		return false
+
+	_start_arrival_route(route_request)
+	return true
+
+func _process_pawn_arrival_at_node(pawn_id: String, node: DungeonNodeData) -> Dictionary:
+	if node == null:
+		return {}
 
 	var run_data: Variant = _run_data()
 	var pawn: Variant = run_data.get_dungeon_map_pawn(pawn_id)
 	if pawn == null:
-		return false
+		return {}
 
 	run_data.mark_dungeon_node_visited(node.id, pawn_id)
 	_emit_node_entered(node)
@@ -473,21 +489,33 @@ func _handle_pawn_arrival_at_node(pawn_id: String, node: DungeonNodeData) -> boo
 				pawn.lock_for_event(node.id)
 				_apply_progress_state()
 				_refresh_view()
-				_start_combat_node(node, false)
-				return true
+				return _route_request("combat", node)
 			GameManager.emit_run_state()
 		DungeonNodeDataScript.TYPE_ENCOUNTER:
 			if not run_data.is_dungeon_node_resolved(node.id):
 				pawn.lock_for_event(node.id)
 				_apply_progress_state()
 				_refresh_view()
-				_start_encounter_node(node, false)
-				return true
+				return _route_request("encounter", node)
 			GameManager.emit_run_state()
 		_:
 			GameManager.emit_run_state()
 
-	return false
+	return {}
+
+func _start_arrival_route(route_request: Dictionary) -> void:
+	var node: DungeonNodeData = route_request.get("node", null) as DungeonNodeData
+	match str(route_request.get("type", "")):
+		"combat":
+			_start_combat_node(node, false)
+		"encounter":
+			_start_encounter_node(node, false)
+
+func _route_request(route_type: String, node: DungeonNodeData) -> Dictionary:
+	return {
+		"type": route_type,
+		"node": node,
+	}
 
 func _emit_initial_haven_entry() -> void:
 	if has_emitted_initial_haven_entry:

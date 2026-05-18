@@ -19,7 +19,7 @@ const DEFAULT_PLAYER_SLOT_ID := &"PlayerSlot1"
 const DEFAULT_ENEMY_SLOT_ID := &"EnemySlot1"
 const PLAYER_SLOT_IDS := [&"PlayerSlot1", &"PlayerSlot2", &"PlayerSlot3"]
 const ENEMY_SLOT_IDS := [&"EnemySlot1", &"EnemySlot2", &"EnemySlot3", &"EnemySlot4"]
-const PLAYER_AI_COPY_COUNT := 2
+const TEMPORARY_PLAYER_AI_COPY_COUNT := 2
 
 @onready var battle: BattleController = $BattleController
 @onready var combatants_root: Node = $Combatants
@@ -32,7 +32,7 @@ var actions_used: int = 0
 var combat_result_reported: bool = false
 var last_accounted_combat_time: float = 0.0
 var audio_bridge: Node = null
-var run_player_hp_before_combat: int = 0
+var participant_hp_before_by_id: Dictionary = {}
 var pending_player_action: CombatActionData = null
 var targeting_valid_targets: Array[Combatant] = []
 var player_leader: Combatant = null
@@ -42,8 +42,10 @@ var ai_player_combatants: Array[Combatant] = []
 var enemy_instance_data: Array[Dictionary] = []
 var enemy_reward_profiles: Array[Resource] = []
 var combatant_display_entries: Array[Dictionary] = []
+var _game_manager = null
 
 func _ready() -> void:
+	_game_manager = get_node_or_null("/root/GameManager")
 	_configure_encounter_from_game_manager()
 	_setup_player_combatants()
 	_setup_enemy_combatants()
@@ -69,8 +71,7 @@ func _ready() -> void:
 	_connect_run_signals()
 
 	battle.start_battle()
-	if run_player_hp_before_combat <= 0:
-		run_player_hp_before_combat = player_leader.max_hp if player_leader != null else 0
+	_capture_starting_participant_state()
 	_setup_audio_bridge()
 	_refresh_hud()
 
@@ -82,9 +83,7 @@ func _input(event: InputEvent) -> void:
 		return
 
 	if event is InputEventKey and event.pressed and not event.echo:
-		var index := _action_index_for_key(event.keycode)
-		if index >= 0:
-			hud.call("choose_action_index", index)
+		hud.call("choose_hotbar_keycode", event.keycode)
 
 func _setup_player_combatants() -> void:
 	player_combatants.clear()
@@ -94,12 +93,16 @@ func _setup_player_combatants() -> void:
 	player_leader.profile = _selected_player_profile()
 	player_leader.apply_profile()
 	_apply_run_player_state()
+	if player_leader.combatant_id.is_empty():
+		player_leader.combatant_id = "combatant.player_leader"
 	player_combatants.append(player_leader)
 
-	for index in range(PLAYER_AI_COPY_COUNT):
+	#; Temporary group-combat test allies until real party members join combat.
+	for index in range(TEMPORARY_PLAYER_AI_COPY_COUNT):
 		var ally := _new_player_combatant("PlayerAlly%s" % (index + 1))
 		ally.profile = player_leader.profile
 		ally.apply_profile()
+		ally.combatant_id = "temporary.player_ally.%s" % (index + 1)
 		ally.display_name = "%s Ally %s" % [_player_profile_display_name(player_leader.profile), index + 1]
 		player_combatants.append(ally)
 		ai_player_combatants.append(ally)
@@ -113,6 +116,7 @@ func _setup_enemy_combatants() -> void:
 	for index in enemy_instance_data.size():
 		var instance_data: Dictionary = enemy_instance_data[index]
 		var active_enemy := _new_enemy_combatant("Enemy%s" % (index + 1))
+		active_enemy.combatant_id = str(instance_data.get("instance_id", "enemy_%s" % (index + 1)))
 		var enemy_profile := _profile_for_enemy_instance(instance_data)
 		if enemy_profile != null:
 			active_enemy.profile = enemy_profile
@@ -150,8 +154,8 @@ func _new_enemy_combatant(node_name: String) -> Combatant:
 
 func _player_combatant_script() -> Script:
 	var selected_character_id := ""
-	if _has_game_manager():
-		selected_character_id = GameManager.get_selected_character_id()
+	if _game_manager != null:
+		selected_character_id = _game_manager.get_selected_character_id()
 
 	match selected_character_id:
 		"Warrior", "":
@@ -160,8 +164,8 @@ func _player_combatant_script() -> Script:
 			return CombatantScript
 
 func _selected_player_profile() -> CombatantProfile:
-	if _has_game_manager():
-		var profile := GameManager.get_selected_character_profile()
+	if _game_manager != null:
+		var profile := _game_manager.get_selected_character_profile()
 		if profile != null:
 			return profile
 
@@ -251,17 +255,17 @@ func _connect_combat_result_signals() -> void:
 		battle.enemy_group_defeated.connect(_on_enemy_group_defeated)
 
 func _connect_run_signals() -> void:
-	if not _has_game_manager():
+	if _game_manager == null:
 		return
 
-	if not GameManager.run_ended.is_connected(_on_run_ended):
-		GameManager.run_ended.connect(_on_run_ended)
+	if not _game_manager.run_ended.is_connected(_on_run_ended):
+		_game_manager.run_ended.connect(_on_run_ended)
 
 func _setup_audio_bridge() -> void:
 	audio_bridge = CombatAudioBridgeScript.new()
 	audio_bridge.name = "CombatAudioBridge"
 	add_child(audio_bridge)
-	var encounter := GameManager.get_current_encounter() if _has_game_manager() else {}
+	var encounter := _game_manager.get_current_encounter() if _game_manager != null else {}
 	audio_bridge.call("setup", battle, player_leader, _primary_enemy(), bool(encounter.get("is_boss", false)), battle.player_group, battle.enemy_group)
 
 ## Starts explicit player targeting or immediately queues auto-targeted actions.
@@ -300,10 +304,10 @@ func _on_battle_time_changed(current_time: float) -> void:
 	var elapsed_seconds: float = max(current_time - last_accounted_combat_time, 0.0)
 	last_accounted_combat_time = max(last_accounted_combat_time, current_time)
 
-	if elapsed_seconds <= 0.0 or combat_result_reported or not _has_game_manager():
+	if elapsed_seconds <= 0.0 or combat_result_reported or _game_manager == null:
 		return
 
-	if not GameManager.advance_run_time(elapsed_seconds):
+	if not _game_manager.advance_run_time(elapsed_seconds):
 		combat_result_reported = true
 
 func _refresh_hud(_arg_a: Variant = null, _arg_b: Variant = null) -> void:
@@ -412,20 +416,14 @@ func _clear_targeting_display_states() -> void:
 		if display != null and display.has_method("clear_targeting_state"):
 			display.call("clear_targeting_state")
 
-func _action_index_for_key(keycode: int) -> int:
-	if keycode >= KEY_1 and keycode <= KEY_9:
-		return int(keycode - KEY_1)
-
-	return -1
-
 func _configure_encounter_from_game_manager() -> void:
-	if not _has_game_manager():
+	if _game_manager == null:
 		return
 
-	var encounter := GameManager.get_current_encounter()
+	var encounter := _game_manager.get_current_encounter()
 	var combat_encounter_profile := _combat_encounter_profile_for(encounter)
 	enemy_instance_data = _enemy_instances_for_encounter(encounter, combat_encounter_profile)
-	battle.difficulty_profile = GameManager.get_selected_difficulty_profile()
+	battle.difficulty_profile = _game_manager.get_selected_difficulty_profile()
 
 func _combat_encounter_profile_for(encounter: Dictionary) -> Resource:
 	var profile_path := str(encounter.get("combat_encounter_profile_path", "")).strip_edges()
@@ -435,8 +433,8 @@ func _combat_encounter_profile_for(encounter: Dictionary) -> Resource:
 			return profile
 
 	var encounter_id: StringName = ValueReaderScript.string_name_from_variant(encounter.get("combat_encounter_id", &""))
-	if _has_game_manager() and not String(encounter_id).is_empty():
-		return GameManager.get_dungeon_combat_encounter(encounter_id)
+	if _game_manager != null and not String(encounter_id).is_empty():
+		return _game_manager.get_dungeon_combat_encounter(encounter_id)
 
 	return null
 
@@ -445,14 +443,14 @@ func _enemy_instances_for_encounter(encounter: Dictionary, combat_encounter_prof
 	if not instances.is_empty():
 		return instances
 
-	var enemy_slots := _enemy_slots_for_profile(combat_encounter_profile)
-	if not enemy_slots.is_empty():
+	var encounter_enemy_slots := _enemy_slots_for_profile(combat_encounter_profile)
+	if not encounter_enemy_slots.is_empty():
 		var min_count := _encounter_count_value(combat_encounter_profile, "min_enemy_count", 1)
 		var max_count := _encounter_count_value(combat_encounter_profile, "max_enemy_count", min_count)
-		min_count = clamp(min_count, 1, enemy_slots.size())
-		max_count = clamp(max(max_count, min_count), min_count, enemy_slots.size())
+		min_count = clamp(min_count, 1, encounter_enemy_slots.size())
+		max_count = clamp(max(max_count, min_count), min_count, encounter_enemy_slots.size())
 		for index in randi_range(min_count, max_count):
-			var slot_data: Dictionary = enemy_slots[index]
+			var slot_data: Dictionary = encounter_enemy_slots[index]
 			instances.append({
 				"instance_id": "enemy_%s" % (index + 1),
 				"combatant_profile_path": str(slot_data.get("combatant_profile_path", "")),
@@ -506,8 +504,8 @@ func _encounter_count_value(combat_encounter_profile: Resource, field_name: Stri
 
 func _fallback_enemy_instance() -> Dictionary:
 	var fallback_path := ""
-	if _has_game_manager():
-		fallback_path = str(GameManager.get_current_encounter().get("enemy_profile_path", ""))
+	if _game_manager != null:
+		fallback_path = str(_game_manager.get_current_encounter().get("enemy_profile_path", ""))
 	if fallback_path.strip_edges().is_empty():
 		fallback_path = str(DEFAULT_ENEMY_PROFILE.resource_path)
 	return _enemy_instance(fallback_path, DEFAULT_ENEMY_SLOT_ID, 0, fallback_path.hash())
@@ -554,13 +552,14 @@ func _slot_marker(slot_parent: Control, slot_id: StringName) -> Control:
 	return slot_parent.get_node_or_null(NodePath(String(slot_id))) as Control
 
 func _apply_run_player_state() -> void:
-	if player_leader == null or not _has_game_manager():
+	if player_leader == null or _game_manager == null:
 		return
 
-	GameManager.apply_run_player_state_to_combatant(player_leader)
-	var hp_snapshot: Dictionary = GameManager.get_run_player_hp_snapshot()
-	run_player_hp_before_combat = int(hp_snapshot.get("current", player_leader.max_hp))
-	battle.player_starting_hp_override = run_player_hp_before_combat
+	if _game_manager.current_run_data != null and _game_manager.current_run_data.has_method("get_selected_player_combatant_id"):
+		player_leader.combatant_id = str(_game_manager.current_run_data.get_selected_player_combatant_id())
+	_game_manager.apply_run_player_state_to_combatant(player_leader)
+	var hp_snapshot: Dictionary = _game_manager.get_run_player_hp_snapshot()
+	battle.player_starting_hp_override = int(hp_snapshot.get("current", player_leader.max_hp))
 	battle.player_starting_max_hp_override = int(hp_snapshot.get("max", player_leader.max_hp))
 
 func _on_enemy_group_defeated() -> void:
@@ -574,24 +573,13 @@ func _on_run_ended(reason: String) -> void:
 		return
 
 	_cancel_targeting(false)
-	var encounter := GameManager.get_current_encounter() if _has_game_manager() else {}
 	combat_result_reported = true
-	var result: Variant = CombatResultScript.new()
-	result.victory = false
-	result.node_id = int(encounter.get("node_id", -1))
-	result.is_boss = bool(encounter.get("is_boss", false))
-	result.enemy_defeated = battle.is_enemy_group_defeated()
-	result.player_defeated = battle.is_player_group_defeated()
-	result.damage_dealt = _group_missing_hp(battle.enemy_group, _primary_enemy())
-	result.damage_taken = max(run_player_hp_before_combat - _player_leader_hp(), 0)
-	result.actions_used = actions_used
-	result.time_elapsed = battle.current_time
-	_populate_player_hp_result(result, false)
+	var result: Variant = _build_combat_result(false)
 	result.end_reason = reason
 
-	if _has_game_manager() and GameManager.current_run_data != null:
-		GameManager.current_run_data.register_combat_result(result)
-		GameManager.emit_run_state()
+	if _game_manager != null and _game_manager.current_run_data != null:
+		_game_manager.current_run_data.register_combat_result(result)
+		_game_manager.emit_run_state()
 
 func _finish_combat(victory: bool) -> void:
 	if combat_result_reported:
@@ -599,63 +587,116 @@ func _finish_combat(victory: bool) -> void:
 
 	_cancel_targeting(false)
 	combat_result_reported = true
-	var encounter := GameManager.get_current_encounter() if _has_game_manager() else {}
-	var result: Variant = CombatResultScript.new()
-	result.victory = victory
-	result.node_id = int(encounter.get("node_id", -1))
-	result.is_boss = bool(encounter.get("is_boss", false))
-	result.enemy_defeated = battle.is_enemy_group_defeated()
-	result.player_defeated = battle.is_player_group_defeated()
-	result.damage_dealt = _group_missing_hp(battle.enemy_group, _primary_enemy())
-	result.damage_taken = max(run_player_hp_before_combat - _player_leader_hp(), 0)
-	result.actions_used = actions_used
-	result.time_elapsed = battle.current_time
-	_populate_player_hp_result(result, victory)
+	var result: Variant = _build_combat_result(victory)
 	result.end_reason = "" if victory else RunData.END_REASON_DEFEAT
 
-	if not _has_game_manager():
+	if _game_manager == null:
 		return
 
 	if victory:
-		var rewards: Dictionary = GameManager.calculate_rewards_for_profiles(enemy_reward_profiles, result.is_boss)
+		var rewards: Dictionary = _game_manager.calculate_rewards_for_profiles(enemy_reward_profiles, result.is_boss)
 		result.memories_awarded = int(rewards.get("memories_awarded", 0))
 		result.gold_awarded = int(rewards.get("gold_awarded", 0))
 
 	await get_tree().create_timer(1.0).timeout
-	GameManager.complete_combat(result)
+	_game_manager.complete_combat(result)
 
-func _populate_player_hp_result(result: Variant, victory: bool) -> void:
-	if result == null:
+func _build_combat_result(victory: bool) -> Variant:
+	var encounter := _game_manager.get_current_encounter() if _game_manager != null else {}
+	var result: Variant = CombatResultScript.new()
+	result.victory = victory
+	result.node_id = int(encounter.get("node_id", -1))
+	result.is_boss = bool(encounter.get("is_boss", false))
+	result.winning_side_id = CombatResultScript.SIDE_ID_PLAYER if victory else CombatResultScript.SIDE_ID_ENEMY
+	result.defeated_side_ids = _defeated_side_ids()
+	result.participant_results = _participant_results(victory)
+	result.damage_dealt = _group_hp_delta(battle.enemy_group)
+	result.damage_taken = _group_hp_delta(battle.player_group)
+	result.actions_used = actions_used
+	result.time_elapsed = battle.current_time
+	return result
+
+func _capture_starting_participant_state() -> void:
+	participant_hp_before_by_id.clear()
+	_capture_group_starting_state(battle.player_group)
+	_capture_group_starting_state(battle.enemy_group)
+
+func _capture_group_starting_state(group: Variant) -> void:
+	if group == null:
 		return
 
-	result.player_hp_before = run_player_hp_before_combat
-	result.player_hp_after = 1 if victory and _player_leader_hp() <= 0 else _player_leader_hp()
-	result.player_max_hp = _player_leader_max_hp()
+	for combatant in group.combatants:
+		var active_combatant := combatant as Combatant
+		if active_combatant != null:
+			participant_hp_before_by_id[_combatant_result_id(active_combatant)] = active_combatant.hp
 
-func _player_leader_hp() -> int:
-	return player_leader.hp if player_leader != null else 0
+func _participant_results(victory: bool) -> Array[Dictionary]:
+	var results: Array[Dictionary] = []
+	results.append_array(_group_participant_results(battle.player_group, CombatResultScript.SIDE_ID_PLAYER, victory))
+	results.append_array(_group_participant_results(battle.enemy_group, CombatResultScript.SIDE_ID_ENEMY, victory))
+	return results
 
-func _player_leader_max_hp() -> int:
-	return player_leader.max_hp if player_leader != null else 0
+func _group_participant_results(group: Variant, side_id: String, victory: bool) -> Array[Dictionary]:
+	var results: Array[Dictionary] = []
+	if group == null:
+		return results
 
-func _group_missing_hp(group: Variant, fallback_combatant: Combatant) -> int:
-	var total_missing_hp := 0
+	for combatant in group.combatants:
+		var active_combatant := combatant as Combatant
+		if active_combatant != null:
+			results.append(_participant_result(active_combatant, side_id, victory))
+	return results
+
+func _participant_result(combatant: Combatant, side_id: String, victory: bool) -> Dictionary:
+	var combatant_id := _combatant_result_id(combatant)
+	var hp_after := combatant.hp
+	if victory and side_id == CombatResultScript.SIDE_ID_PLAYER and hp_after <= 0:
+		hp_after = 1
+
+	return {
+		CombatResultScript.PARTICIPANT_COMBATANT_ID: combatant_id,
+		CombatResultScript.PARTICIPANT_SIDE_ID: side_id,
+		CombatResultScript.PARTICIPANT_NODE_NAME: str(combatant.name),
+		CombatResultScript.PARTICIPANT_PROFILE_PATH: combatant.profile.resource_path if combatant.profile != null else "",
+		CombatResultScript.PARTICIPANT_HP_BEFORE: int(participant_hp_before_by_id.get(combatant_id, combatant.max_hp)),
+		CombatResultScript.PARTICIPANT_HP_AFTER: hp_after,
+		CombatResultScript.PARTICIPANT_MAX_HP: combatant.max_hp,
+		CombatResultScript.PARTICIPANT_DEFEATED: hp_after <= 0,
+	}
+
+func _defeated_side_ids() -> Array[String]:
+	var defeated_side_ids: Array[String] = []
+	if battle.is_player_group_defeated():
+		defeated_side_ids.append(CombatResultScript.SIDE_ID_PLAYER)
+	if battle.is_enemy_group_defeated():
+		defeated_side_ids.append(CombatResultScript.SIDE_ID_ENEMY)
+	return defeated_side_ids
+
+func _group_hp_delta(group: Variant) -> int:
+	var total_delta := 0
 	if group != null:
 		for combatant in group.combatants:
-			if combatant != null:
-				total_missing_hp += max(combatant.max_hp - combatant.hp, 0)
-		return total_missing_hp
+			var active_combatant := combatant as Combatant
+			if active_combatant == null:
+				continue
+			var combatant_id := _combatant_result_id(active_combatant)
+			var hp_before := int(participant_hp_before_by_id.get(combatant_id, active_combatant.max_hp))
+			total_delta += max(hp_before - active_combatant.hp, 0)
 
-	if fallback_combatant == null:
-		return 0
+	return total_delta
 
-	return max(fallback_combatant.max_hp - fallback_combatant.hp, 0)
+func _combatant_result_id(combatant: Combatant) -> String:
+	if combatant == null:
+		return ""
+	if not combatant.combatant_id.strip_edges().is_empty():
+		return combatant.combatant_id
+	if not str(combatant.name).is_empty():
+		return str(combatant.name)
+
+	return str(combatant.get_instance_id())
 
 func _primary_enemy() -> Combatant:
 	if not enemy_combatants.is_empty():
 		return enemy_combatants[0]
 
 	return null
-
-func _has_game_manager() -> bool:
-	return get_node_or_null("/root/GameManager") != null

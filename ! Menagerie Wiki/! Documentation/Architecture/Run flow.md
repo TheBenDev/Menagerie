@@ -34,13 +34,13 @@ The run flow describes how menu selection becomes dungeon state, combat, rewards
 5. Haven starts revealed, visited, occupied by Warrior's run-owned dungeon pawn, and marked by a visual pawn token on the map. Haven's connected neighbors start revealed, but Haven does not start resolved.
 6. Clicking a reachable revealed node requests path-based travel for the selected pawn through `RunData.request_selected_dungeon_pawn_travel()`. If that pawn belongs to the active local leader, active `AutoPilot` party pawns receive matching same-destination follow orders when they can path there.
 7. `DungeonController` runs a travel loop that asks `DungeonMovementCoordinator` to advance all active travel orders one node step, charges `RunData.NODE_TRAVEL_TIME` once per shared step, refreshes pawn markers, and waits `1 / RunData.VISUAL_NODE_STEPS_PER_REAL_SECOND` between steps.
-8. Arrival processing marks each entered node visited, reveals descriptor-connected neighbors, emits `node_event_emitted(event)`, emits node-specific entry signals where available, and then processes node behavior.
+8. Arrival processing examines every pawn that moved in the shared step, marks each entered node visited, reveals descriptor-connected neighbors, emits `node_event_emitted(event)`, emits node-specific entry signals where available, and then starts the one routed event supported by the current single-local-player scene flow.
 9. Empty nodes resolve immediately on entry after the shared movement step has already charged `RunData.NODE_TRAVEL_TIME`.
 10. Haven entry emits Haven node-entry signals but does not auto-resolve until a future Haven behavior defines that completion state.
 11. Encounter nodes become visited before the encounter starts, lock the entering pawn as a participant, load their scene by descriptor `encounter_id`, wait for a supported `encounter_finished` completion result, then apply the selected choice effects to `RunData`, resolve the node, and unlock only pawns locked to that event node.
 12. Entering an unresolved fight or boss marks the node visited, locks the entering pawn as a participant, and calls `GameManager.start_combat(node_id, node_type, enemy_profile_path, is_boss, false, combat_encounter_id, combat_encounter_profile_path, enemy_instances)` so the old direct-click travel charge is not applied on top of the movement step.
 13. `GameManager` stores encounter metadata and routes to `combat/BattleScene`.
-14. `battle_scene.gd` loads routed combat data from `GameManager.get_current_encounter()`, creates combatants from generated enemy instances, adds combat-only AI Warrior copies, applies effective Warrior `CombatantState` stats and persistent HP through the existing player bridge, runs combat, and creates a `CombatResult`.
+14. `battle_scene.gd` loads routed combat data from `GameManager.get_current_encounter()`, creates combatants from generated enemy instances, adds combat-only AI Warrior copies, applies effective Warrior `CombatantState` stats and persistent HP through the existing player bridge, runs combat, and creates a participant-shaped `CombatResult`.
 15. `GameManager.complete_combat(result)` stores the result and routes back to `dungeon`.
 16. `dungeon_controller.gd` consumes the pending result, updates `RunData`, resolves victorious fight/boss nodes, unlocks only pawns participating in that event node, emits HUD state, and either continues or routes to `run_summary`.
 17. `run_summary.gd` shows totals and returns to `waiting_room`.
@@ -65,8 +65,8 @@ The run flow describes how menu selection becomes dungeon state, combat, rewards
 - `RunData.player_party_state` owns the active player roster. Phase 1 creates one active Warrior member with `control_mode = LocalPlayer`.
 - `RunData.dungeon_map_pawns` owns active dungeon pawn state. Phase 2 creates one Warrior pawn and links `PlayerPartyMemberState.map_pawn_id`.
 - `DungeonMap.tscn` has a `PawnLayer` above `NodeLayer`; `DungeonMapPawnView` instances display pawn state but do not own movement or gameplay position.
-- Warrior's `CombatantState` is the intended persistent run model for player stats and HP.
-- `RunData.player_current_hp`, `player_max_hp`, and `player_base_stats` are compatibility mirrors synchronized with Warrior's `CombatantState` for existing HUD, encounter, and combat call sites.
+- Warrior's `CombatantState` is the persistent run source of truth for player stats and HP.
+- `CombatResult.participant_results` carries combatant IDs, side IDs, and HP snapshots back from the combat scene; `RunData` applies matching player-side snapshots to `CombatantState`.
 - `RunData.run_stat_modifiers` stores permanent and run-time-limited stat buffs and is mirrored into Warrior's `CombatantState`. `GameManager.advance_run_time()` ticks temporary modifiers.
 - `RunData.pending_combat_result` is a handoff between `BattleScene` and `DungeonController`.
 - `RunData.revealed_dungeon_node_ids`, `visited_dungeon_node_ids`, and `resolved_dungeon_node_ids` are the run-owned dungeon node state collections. `visited` means a pawn has entered a node; `resolved` means that node's current event or effect is complete.
@@ -74,6 +74,7 @@ The run flow describes how menu selection becomes dungeon state, combat, rewards
 - `RunData.request_selected_dungeon_pawn_travel()` creates a path-based travel order for the selected pawn or queues a pending destination replacement while the pawn is already traveling. Accepted local-leader orders also ask active `AutoPilot` pawns to follow the same destination if reachable.
 - `DungeonMovementCoordinator` advances active pawn travel orders together. If one pawn reaches a destination, event node, cancellation point, or invalid replacement path, movement pauses after that shared step.
 - `AutoPilot` follow behavior is intentionally minimal: followers use their own path from their current node, queue destination replacements with the leader when possible, and otherwise remain idle/waiting. No scouting or independent decision-making exists yet.
+- Multiplayer routing is not implemented yet. Future multiplayer should keep one shared run clock, allow same-node combat joining, and represent different-node simultaneous events through combat/event instances instead of the current single `current_encounter` scene handoff.
 - Unresolved Fight, Boss, and Encounter arrivals lock only the entering pawn with `active_event_node_id`; adjacent or other idle pawns are not participants.
 - `RunData.complete_dungeon_node()` resolves the node globally but prefers explicit pawn IDs or pawns currently locked to that event node for position synchronization and unlocking. It falls back to the selected pawn only when no event participant lock exists.
 - Unsupported/non-complete encounter result modes are treated as authoring errors: the encounter scene stays active, the node remains unresolved, and event-locked pawns remain locked until a supported completion result is emitted.

@@ -28,9 +28,9 @@ The UI layer is scene-driven: scene scripts call `GameManager`, reusable control
 ## Battle HUD flow
 
 1. `BattleScene` is the combat scene root and owns the battle controller, combatants, background, combatant displays, and HUD.
-2. `BattleScene` positions the current player, combat-only AI player copies, and generated enemy displays from authored `PlayerSlots` and `EnemySlots` markers before calling `CombatantDisplay.setup()`.
-3. `BattleScene` configures player/enemy `CombatantGroup` values, including combat-only AI allies and generated enemies, then calls `hud.setup(battle, player_leader, primary_enemy, player_group, enemy_group)` for the primary bridge combatants.
-4. `BattleActionBar` receives `player.actions` and updates the bottom hotbar buttons.
+2. `BattleScene` positions the current player, temporary combat-only AI player copies, and generated enemy displays from authored `PlayerSlots` and `EnemySlots` markers before calling `CombatantDisplay.setup()`.
+3. `BattleScene` configures player/enemy `CombatantGroup` values, including temporary combat-only AI allies and generated enemies, then calls `hud.setup(battle, player_leader, primary_enemy, player_group, enemy_group)` for the primary bridge combatants.
+4. `BattleActionBar` receives `player.actions`, resolves keyboard hotkeys through its `hotkey_bindings` slot map, and updates the bottom hotbar buttons and key badges.
 5. `BattleHUD` reads the player's active statuses and shows status icons in the transparent status bar above the hotbar.
 6. `TimelineView` receives marker dictionaries derived from `battle.action_queue`.
 7. Hover information from action resources, status resources, and `HoverInfoButton` nodes is exposed as hover metadata and rendered by the fixed info panel beside the hotbar.

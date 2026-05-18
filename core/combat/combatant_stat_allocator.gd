@@ -2,17 +2,8 @@
 class_name CombatantStatAllocator
 extends RefCounted
 
-const STAT_STRENGTH := "STR"
-const STAT_DEXTERITY := "DEX"
-const STAT_INTELLIGENCE := "INT"
-const STAT_VITALITY := "VIT"
-const STAT_IDS := [
-	STAT_STRENGTH,
-	STAT_DEXTERITY,
-	STAT_INTELLIGENCE,
-	STAT_VITALITY,
-]
 const DEFAULT_WEIGHT := 1.0
+const StatId := preload("res://core/combat/stat_id.gd")
 const ValueReaderScript := preload("res://core/utils/value_reader.gd")
 
 static func allocate_enemy_stats(profile: Resource, difficulty_profile: Resource, enemy_level: int, stat_seed: int) -> Dictionary:
@@ -35,13 +26,13 @@ static func stat_weights_for_profile(profile: Resource) -> Dictionary:
 
 	var normalized_weights: Dictionary = {}
 	var total_weight: float = 0.0
-	for stat_id in STAT_IDS:
+	for stat_id in StatId.ALL:
 		var weight: float = maxf(_weight_value(weights, stat_id, DEFAULT_WEIGHT), 0.0)
 		normalized_weights[stat_id] = weight
 		total_weight += weight
 
 	if total_weight <= 0.0:
-		for stat_id in STAT_IDS:
+		for stat_id in StatId.ALL:
 			normalized_weights[stat_id] = DEFAULT_WEIGHT
 
 	return normalized_weights
@@ -50,18 +41,17 @@ static func apply_stats_to_combatant(combatant: Combatant, stats: Dictionary) ->
 	if combatant == null:
 		return
 
-	combatant.strength = max(int(stats.get(STAT_STRENGTH, combatant.strength)), 0)
-	combatant.dexterity = max(int(stats.get(STAT_DEXTERITY, combatant.dexterity)), 0)
-	combatant.intelligence = max(int(stats.get(STAT_INTELLIGENCE, combatant.intelligence)), 0)
-	combatant.vitality = max(int(stats.get(STAT_VITALITY, combatant.vitality)), 0)
+	for stat_id in StatId.ALL:
+		var field_name := str(StatId.PROFILE_FIELD_BY_ID.get(stat_id, ""))
+		if field_name.is_empty():
+			continue
+		var current_value := int(combatant.get(field_name))
+		combatant.set(field_name, max(int(stats.get(stat_id, current_value)), 0))
 
 static func _roll_weighted_stats(budget: int, weights: Dictionary, stat_seed: int) -> Dictionary:
-	var stats: Dictionary = {
-		STAT_STRENGTH: 0,
-		STAT_DEXTERITY: 0,
-		STAT_INTELLIGENCE: 0,
-		STAT_VITALITY: 0,
-	}
+	var stats: Dictionary = {}
+	for stat_id in StatId.ALL:
+		stats[stat_id] = 0
 	if budget <= 0:
 		return stats
 
@@ -79,20 +69,20 @@ static func _roll_weighted_stats(budget: int, weights: Dictionary, stat_seed: in
 
 static func _roll_stat_id(weights: Dictionary, total_weight: float, rng: RandomNumberGenerator) -> String:
 	if total_weight <= 0.0:
-		return STAT_IDS[rng.randi_range(0, STAT_IDS.size() - 1)]
+		return StatId.ALL[rng.randi_range(0, StatId.ALL.size() - 1)]
 
 	var roll := rng.randf() * total_weight
 	var running_weight := 0.0
-	for stat_id in STAT_IDS:
+	for stat_id in StatId.ALL:
 		running_weight += max(float(weights.get(stat_id, DEFAULT_WEIGHT)), 0.0)
 		if roll <= running_weight:
 			return stat_id
 
-	return STAT_VITALITY
+	return StatId.VIT
 
 static func _total_weight(weights: Dictionary) -> float:
 	var total_weight := 0.0
-	for stat_id in STAT_IDS:
+	for stat_id in StatId.ALL:
 		total_weight += max(float(weights.get(stat_id, DEFAULT_WEIGHT)), 0.0)
 	return total_weight
 
@@ -100,8 +90,8 @@ static func _weight_value(weights: Dictionary, stat_id: String, default_value: f
 	if weights.has(stat_id):
 		return float(weights[stat_id])
 
-	var lower_key := stat_id.to_lower()
-	if weights.has(lower_key):
-		return float(weights[lower_key])
+	var field_name := str(StatId.PROFILE_FIELD_BY_ID.get(stat_id, ""))
+	if weights.has(field_name):
+		return float(weights[field_name])
 
 	return default_value

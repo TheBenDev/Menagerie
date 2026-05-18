@@ -4,6 +4,8 @@ extends RefCounted
 
 const DungeonMapPawnStateScript := preload("res://core/dungeon/dungeon_map_pawn_state.gd")
 const DungeonPathfinderScript := preload("res://core/dungeon/dungeon_pathfinder.gd")
+const CombatResultScript := preload("res://core/combat/combat_result.gd")
+const StatId := preload("res://core/combat/stat_id.gd")
 const PartyControlModeScript := preload("res://core/party/party_control_mode.gd")
 const PlayerPartyStateScript := preload("res://core/party/player_party_state.gd")
 const PlayerRunStateServiceScript := preload("res://core/party/player_run_state_service.gd")
@@ -21,16 +23,6 @@ const NODE_TRAVEL_TIME := 1.0
 const VISUAL_NODE_STEPS_PER_REAL_SECOND := 4.0
 const ALLOW_DESTINATION_REPLACE_DURING_TRAVEL := true
 const ALLOW_CANCEL_AFTER_CURRENT_STEP := true
-const STAT_STRENGTH := "STR"
-const STAT_DEXTERITY := "DEX"
-const STAT_INTELLIGENCE := "INT"
-const STAT_VITALITY := "VIT"
-const STAT_FIELD_BY_ID := {
-	STAT_STRENGTH: "strength",
-	STAT_DEXTERITY: "dexterity",
-	STAT_INTELLIGENCE: "intelligence",
-	STAT_VITALITY: "vitality",
-}
 const TRAVEL_RESULT_AUTOPILOT_FOLLOW_RESULTS := "autopilot_follow_results"
 
 var selected_character: String = DEFAULT_CHARACTER
@@ -49,9 +41,6 @@ var gold: int = 0
 var memories: int = 0
 var run_end_reason: String = END_REASON_IN_PROGRESS
 var memories_exported: bool = false
-var player_base_stats: Dictionary = {}
-var player_current_hp: int = 0
-var player_max_hp: int = 0
 var player_party_state = null
 var run_stat_modifiers: Array[Dictionary] = []
 
@@ -104,9 +93,6 @@ func start_run(
 	memories = 0
 	run_end_reason = END_REASON_IN_PROGRESS
 	memories_exported = false
-	player_base_stats.clear()
-	player_current_hp = 0
-	player_max_hp = 0
 	player_party_state = null
 	run_stat_modifiers.clear()
 	pending_combat_result = null
@@ -164,33 +150,29 @@ func reset_encounter(default_enemy_profile_path: String) -> void:
 	current_encounter_is_boss = false
 
 func initialize_player_state(profile: Resource, profile_path: String = "") -> void:
-	player_base_stats = PlayerRunStateServiceScript.base_profile_stats(profile)
 	player_party_state = PlayerPartyStateScript.new()
 	player_party_state.configure_single_member(selected_character, profile_path, profile)
 	_sync_player_state_modifiers()
-	_sync_player_legacy_fields_from_state()
 
 func get_effective_stats() -> Dictionary:
-	return {
-		STAT_STRENGTH: get_effective_stat(STAT_STRENGTH),
-		STAT_DEXTERITY: get_effective_stat(STAT_DEXTERITY),
-		STAT_INTELLIGENCE: get_effective_stat(STAT_INTELLIGENCE),
-		STAT_VITALITY: get_effective_stat(STAT_VITALITY),
-	}
-
-func get_effective_stat(stat_id: String) -> int:
-	var canonical_stat_id := _canonical_stat_id(stat_id)
 	var combatant_state: Variant = _player_combatant_state()
 	if combatant_state != null:
 		_sync_player_state_modifiers()
-		return combatant_state.get_effective_stat(canonical_stat_id)
+		return combatant_state.get_effective_stats()
 
-	var value := int(player_base_stats.get(canonical_stat_id, 0))
-	for modifier in run_stat_modifiers:
-		if str(modifier.get("stat_id", "")) == canonical_stat_id:
-			value += int(modifier.get("amount", 0))
+	var effective_stats: Dictionary = {}
+	for stat_id in StatId.ALL:
+		effective_stats[stat_id] = 0
+	return effective_stats
 
-	return max(value, 0)
+func get_effective_stat(stat_id: String) -> int:
+	var resolved_stat_id := StatId.from_value(stat_id)
+	var combatant_state: Variant = _player_combatant_state()
+	if combatant_state != null:
+		_sync_player_state_modifiers()
+		return combatant_state.get_effective_stat(resolved_stat_id)
+
+	return 0
 
 func apply_player_stats_to_combatant(combatant: Variant) -> void:
 	if combatant == null:
@@ -202,16 +184,39 @@ func apply_player_stats_to_combatant(combatant: Variant) -> void:
 		combatant_state.apply_stats_to_combatant(combatant)
 		return
 
-	combatant.strength = get_effective_stat(STAT_STRENGTH)
-	combatant.dexterity = get_effective_stat(STAT_DEXTERITY)
-	combatant.intelligence = get_effective_stat(STAT_INTELLIGENCE)
-	combatant.vitality = get_effective_stat(STAT_VITALITY)
+	for stat_id in StatId.ALL:
+		var field_name := str(StatId.PROFILE_FIELD_BY_ID.get(stat_id, ""))
+		if not field_name.is_empty():
+			combatant.set(field_name, get_effective_stat(stat_id))
 
-func set_player_hp_from_combat(current_hp: int, max_hp: int = -1) -> void:
+func get_player_hp_snapshot() -> Dictionary:
+	var combatant_state: Variant = _player_combatant_state()
+	if combatant_state != null:
+		return {
+			"current": int(combatant_state.current_hp),
+			"max": int(combatant_state.max_hp),
+		}
+
+	return {
+		"current": 0,
+		"max": 0,
+	}
+
+func get_selected_player_combatant_id() -> String:
+	var combatant_state: Variant = _player_combatant_state()
+	if combatant_state == null:
+		return ""
+
+	return str(combatant_state.combatant_id)
+
+func set_player_hp(current_hp: int, max_hp: int = -1) -> void:
+	var combatant_state: Variant = _player_combatant_state()
+	if combatant_state == null:
+		return
+
 	if max_hp > 0:
-		player_max_hp = max_hp
-	player_current_hp = clamp(current_hp, 0, max(player_max_hp, 1))
-	_sync_player_state_hp_from_legacy()
+		combatant_state.set_max_hp(max_hp, false)
+	combatant_state.set_current_hp(current_hp)
 
 func apply_encounter_choice(choice_data: Dictionary) -> Dictionary:
 	var outcome := {
@@ -246,9 +251,10 @@ func apply_encounter_effect(effect_data: Dictionary) -> Dictionary:
 	var amount := int(effect_data.get("amount", 0))
 	match effect_id:
 		&"damage":
-			var previous_hp := player_current_hp
-			set_player_hp_from_combat(player_current_hp - max(amount, 0))
-			var actual_damage := previous_hp - player_current_hp
+			var hp_snapshot := get_player_hp_snapshot()
+			var previous_hp := int(hp_snapshot.get("current", 0))
+			set_player_hp(previous_hp - max(amount, 0), int(hp_snapshot.get("max", 0)))
+			var actual_damage := previous_hp - int(get_player_hp_snapshot().get("current", 0))
 			damage_taken += actual_damage
 			outcome["damage_taken"] = actual_damage
 		&"stat":
@@ -259,7 +265,7 @@ func apply_encounter_effect(effect_data: Dictionary) -> Dictionary:
 			if not permanent and duration_seconds <= 0.0:
 				return outcome
 			run_stat_modifiers.append({
-				"stat_id": _canonical_stat_id(str(effect_data.get("stat", STAT_STRENGTH))),
+				"stat_id": StatId.from_value(effect_data.get("stat", StatId.STR)),
 				"amount": amount,
 				"permanent": permanent,
 				"remaining_seconds": duration_seconds,
@@ -271,7 +277,7 @@ func apply_encounter_effect(effect_data: Dictionary) -> Dictionary:
 	return outcome
 
 func is_player_defeated() -> bool:
-	return player_current_hp <= 0
+	return int(get_player_hp_snapshot().get("current", 0)) <= 0
 
 func set_encounter(
 	node_id: int,
@@ -406,7 +412,12 @@ func mark_dungeon_node_visited(node_id: int, pawn_id: String = "") -> void:
 	if not synced_pawn and pawn_id.is_empty():
 		current_dungeon_node_id = node_id
 
+## Marks a node resolved while preserving the invariant: resolved nodes are visited and revealed.
 func mark_dungeon_node_resolved(node_id: int) -> void:
+	if node_id < 0:
+		return
+
+	_mark_dungeon_node_visit_state(node_id)
 	_add_node_id(resolved_dungeon_node_ids, node_id)
 
 ## Resolves a node event/effect and unlocks only pawns participating in that event node.
@@ -432,12 +443,6 @@ func get_event_locked_dungeon_pawn_ids(node_id: int) -> Array[String]:
 	var locked_pawn_ids: Array[String] = []
 	if node_id < 0:
 		return locked_pawn_ids
-
-	for raw_pawn_id in active_dungeon_pawn_ids:
-		var pawn_id := str(raw_pawn_id)
-		var pawn: Variant = get_dungeon_map_pawn(pawn_id)
-		if _is_pawn_locked_for_event_node(pawn, node_id):
-			_add_pawn_id(locked_pawn_ids, pawn_id)
 
 	for raw_pawn in dungeon_map_pawns.values():
 		var pawn: Variant = raw_pawn
@@ -561,11 +566,8 @@ func get_dungeon_pawn_travel_path(pawn_id: String, destination_node_id: int) -> 
 
 func get_allowed_dungeon_path_node_ids() -> Array[int]:
 	var allowed_node_ids: Array[int] = []
+	#; Node state invariant: resolved nodes are visited and revealed; visited nodes are revealed.
 	for node_id in revealed_dungeon_node_ids:
-		_add_node_id(allowed_node_ids, node_id)
-	for node_id in visited_dungeon_node_ids:
-		_add_node_id(allowed_node_ids, node_id)
-	for node_id in resolved_dungeon_node_ids:
 		_add_node_id(allowed_node_ids, node_id)
 
 	for raw_pawn_id in active_dungeon_pawn_ids:
@@ -598,15 +600,13 @@ func register_combat_result(result: Variant) -> void:
 	damage_dealt += max(result.damage_dealt, 0)
 	damage_taken += max(result.damage_taken, 0)
 	actions_used += max(result.actions_used, 0)
-	var player_hp_after: Variant = result.get("player_hp_after")
-	var result_player_max_hp: Variant = result.get("player_max_hp")
-	if (player_hp_after is int or player_hp_after is float) and (result_player_max_hp is int or result_player_max_hp is float) and int(result_player_max_hp) > 0:
-		set_player_hp_from_combat(int(player_hp_after), int(result_player_max_hp))
+	_apply_combat_participant_results(result.get("participant_results"))
 
 	if not result.victory:
 		end_run(result.end_reason if not str(result.end_reason).is_empty() else END_REASON_DEFEAT)
 		return
 
+	#; Combat rewards are party-wide run progress in the current single-party model.
 	grant_rewards(result.memories_awarded, result.gold_awarded)
 	fights_completed += 1
 	complete_dungeon_node(result.node_id)
@@ -616,6 +616,35 @@ func register_combat_result(result: Variant) -> void:
 		end_run(END_REASON_VICTORY)
 	else:
 		regular_fights_completed += 1
+
+func _apply_combat_participant_results(raw_participant_results: Variant) -> void:
+	if not (raw_participant_results is Array):
+		return
+
+	for raw_result in raw_participant_results:
+		if raw_result is Dictionary:
+			_apply_player_participant_result(raw_result)
+
+func _apply_player_participant_result(participant_result: Dictionary) -> void:
+	if str(participant_result.get(CombatResultScript.PARTICIPANT_SIDE_ID, "")) != CombatResultScript.SIDE_ID_PLAYER:
+		return
+	if player_party_state == null:
+		return
+
+	var combatant_id := str(participant_result.get(CombatResultScript.PARTICIPANT_COMBATANT_ID, "")).strip_edges()
+	if combatant_id.is_empty():
+		return
+
+	var member: Variant = player_party_state.get_member_for_combatant_id(combatant_id)
+	if member == null or member.combatant_state == null:
+		return
+
+	var combatant_state: Variant = member.combatant_state
+	var max_hp_value := int(participant_result.get(CombatResultScript.PARTICIPANT_MAX_HP, combatant_state.max_hp))
+	var hp_after_value := int(participant_result.get(CombatResultScript.PARTICIPANT_HP_AFTER, combatant_state.current_hp))
+	if max_hp_value > 0:
+		combatant_state.set_max_hp(max_hp_value, false)
+	combatant_state.set_current_hp(hp_after_value)
 
 func _request_single_dungeon_pawn_travel(pawn_id: String, destination_node_id: int) -> Dictionary:
 	var pawn: Variant = get_dungeon_map_pawn(pawn_id)
@@ -839,12 +868,11 @@ func _tick_run_stat_modifiers(seconds: float) -> void:
 
 func _recalculate_player_max_hp(heal_to_full: bool) -> void:
 	_sync_player_state_modifiers()
-	player_max_hp = max(get_effective_stat(STAT_VITALITY), 1) * 10
-	if heal_to_full:
-		player_current_hp = player_max_hp
-	else:
-		player_current_hp = clamp(player_current_hp, 0, player_max_hp)
-	_sync_player_state_hp_from_legacy()
+	var combatant_state: Variant = _player_combatant_state()
+	if combatant_state == null:
+		return
+
+	combatant_state.recalculate_max_hp(heal_to_full)
 
 func _player_combatant_state() -> Variant:
 	if player_party_state == null:
@@ -858,42 +886,6 @@ func _sync_player_state_modifiers() -> void:
 		return
 
 	combatant_state.set_runtime_modifiers(run_stat_modifiers)
-
-func _sync_player_legacy_fields_from_state() -> void:
-	var combatant_state: Variant = _player_combatant_state()
-	if combatant_state == null:
-		return
-
-	#; Legacy player fields remain as compatibility mirrors until later phases migrate call sites.
-	player_base_stats = combatant_state.stats.duplicate()
-	player_max_hp = combatant_state.max_hp
-	player_current_hp = combatant_state.current_hp
-
-func _sync_player_state_hp_from_legacy() -> void:
-	var combatant_state: Variant = _player_combatant_state()
-	if combatant_state == null:
-		return
-
-	combatant_state.set_runtime_modifiers(run_stat_modifiers)
-	combatant_state.set_max_hp(player_max_hp, false)
-	combatant_state.set_current_hp(player_current_hp)
-
-func _canonical_stat_id(stat_id: String) -> String:
-	var normalized := stat_id.strip_edges().to_upper()
-	if STAT_FIELD_BY_ID.has(normalized):
-		return normalized
-
-	match normalized:
-		"STRENGTH":
-			return STAT_STRENGTH
-		"DEXTERITY":
-			return STAT_DEXTERITY
-		"INTELLIGENCE":
-			return STAT_INTELLIGENCE
-		"VITALITY":
-			return STAT_VITALITY
-		_:
-			return STAT_STRENGTH
 
 func _effect_id(effect_data: Dictionary) -> StringName:
 	var value: Variant = effect_data.get("id", &"")

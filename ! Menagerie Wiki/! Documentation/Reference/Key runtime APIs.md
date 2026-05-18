@@ -38,9 +38,12 @@ This page summarizes the most important runtime APIs new developers usually need
 | `PlayerPartyMemberState.control_mode` | `int` | Uses `PartyControlMode`: `LocalPlayer`, `AutoPilot`, `RemotePlayer`, or `Inactive`. |
 | `PlayerPartyMemberState.map_pawn_id` | `String` | Links an active party member to its run-owned dungeon pawn. |
 | `PlayerPartyMemberState.combatant_state` | `CombatantState` | Reusable persistent combat data for the party member. |
-| `CombatantState.current_hp`, `max_hp` | `int` | Intended persistent HP model. Existing `RunData.player_*` fields mirror these values in Phase 1. |
+| `CombatantState.current_hp`, `max_hp` | `int` | Persistent HP source of truth for player combatants during a run. |
 | `CombatantState.stats` | `Dictionary` | Base stat map keyed by `STR`, `DEX`, `INT`, and `VIT`. |
 | `CombatantState.runtime_modifiers` | `Array[Dictionary]` | Mirrored run stat modifiers used by `get_effective_stat()`. |
+| `StatId.STR`, `DEX`, `INT`, `VIT` | `String` | Shared stat IDs used by combatants, HUDs, stat allocation, and authored effect lookups. |
+| `StatId.ALL` | `Array[String]` | Ordered shared stat list. |
+| `StatId.PROFILE_FIELD_BY_ID` | `Dictionary` | Maps stat IDs to profile fields such as `strength` and `vitality`. |
 
 ## RunData dungeon state
 
@@ -55,14 +58,13 @@ This page summarizes the most important runtime APIs new developers usually need
 | `dungeon_floor_layer` | `int` | Current floor layer; `1` until multi-floor progression exists. |
 | `dungeon_node_descriptors` | `Array` | Stored generated map descriptors for the active run. Fight/Boss descriptors carry `combat_encounter_id`, `combat_encounter_profile_path`, legacy `enemy` profile path data, and generated `enemy_instances`. |
 | `current_dungeon_node_id` | `int` | Compatibility mirror of the selected dungeon pawn's current node. |
-| `player_current_hp`, `player_max_hp` | `int` | Compatibility mirrors for Warrior `CombatantState` HP, still used by existing HUD and combat setup APIs. |
 | `run_stat_modifiers` | `Array[Dictionary]` | Permanent and run-time-limited stat modifiers from encounter choices, mirrored into Warrior `CombatantState`. |
 | `initialize_dungeon_map_state(start_node_id := 0)` | method | Creates active member pawns, marks Haven revealed/visited, and reveals descriptor-connected neighbors. Haven does not start resolved. |
 | `get_selected_dungeon_map_pawn()` | method | Returns the selected or leader pawn. |
 | `get_current_dungeon_node_id()` | method | Returns the selected pawn's current node, falling back to the legacy mirror. |
 | `complete_dungeon_node(node_id, pawn_id := "")` | method | Marks a node visited/resolved, reveals connected neighbors, syncs explicit or event-locked participant pawns, and unlocks pawns assigned to that event node. Falls back to the selected pawn only when no participant lock exists. |
 | `mark_dungeon_node_visited(node_id, pawn_id := "")` | method | Adds a visited node ID on entry, reveals that node and descriptor-connected neighbors, and syncs the entering pawn when provided. |
-| `mark_dungeon_node_resolved(node_id)` | method | Adds a resolved node ID. |
+| `mark_dungeon_node_resolved(node_id)` | method | Adds a resolved node ID while enforcing `resolved -> visited -> revealed`. |
 | `reveal_connected_dungeon_nodes(node_id)` | method | Reveals neighboring node IDs using descriptor connections, with linear fallback for older descriptors. |
 | `is_dungeon_node_visited(node_id)` | method | Checks whether a pawn has entered a node. |
 | `is_dungeon_node_revealed(node_id)` | method | Checks whether a node is visible on the map. |
@@ -76,11 +78,13 @@ This page summarizes the most important runtime APIs new developers usually need
 | `request_dungeon_pawn_travel(pawn_id, destination_node_id)` | method | Validates pathing and stores a travel order or pending replacement. If the pawn belongs to the local leader, active `AutoPilot` pawns attempt to follow the same destination. |
 | `can_request_selected_dungeon_pawn_travel(destination_node_id)` | method | Checks whether the selected pawn can path to a destination without mutating travel state. |
 | `get_dungeon_pawn_travel_path(pawn_id, destination_node_id)` | method | Returns the allowed path for a pawn using current descriptor connections and revealed/visited/resolved node IDs. |
-| `get_allowed_dungeon_path_node_ids()` | method | Returns the current pathable node set derived from revealed, visited, resolved, and active pawn current positions. |
+| `get_allowed_dungeon_path_node_ids()` | method | Returns the current pathable node set derived from revealed nodes and active pawn current positions. |
 | `get_dungeon_connection_graph()` | method | Returns a descriptor-derived connection graph for pathfinding. |
 | `get_event_locked_dungeon_pawn_ids(node_id)` | method | Returns pawn IDs currently locked as participants in an unresolved event at that node. |
 | `unlock_dungeon_pawns_for_event_node(node_id)` | method | Clears event lock state for pawns whose active event node was resolved. |
 | `apply_encounter_choice(choice_data)` | method | Applies an inline encounter choice dictionary, currently damage and stat modifiers. |
+| `get_player_hp_snapshot()` | method | Returns selected player `CombatantState` HP as `{current, max}` with an empty fallback when no combatant state exists. |
+| `get_selected_player_combatant_id()` | method | Returns the selected player's persistent `CombatantState.combatant_id` for combat participant result matching. |
 | `get_effective_stat(stat_id)` | method | Returns a stat after active run modifiers. |
 
 ## DungeonMapPawnState

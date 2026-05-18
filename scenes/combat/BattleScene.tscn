@@ -8,7 +8,7 @@
 [node name="BattleScene" type="Node" unique_id=1966631071]
 script = ExtResource("1_85vv1")
 
-[node name="TextureRect" type="TextureRect" parent="." unique_id=1647634104]
+[node name="CombatBackground" type="TextureRect" parent="." unique_id=1647634104]
 offset_right = 1920.0
 offset_bottom = 1080.0
 texture = ExtResource("2_5jc5f")
@@ -19,18 +19,18 @@ script = ExtResource("2_2fq3d")
 
 [node name="Combatants" type="Node" parent="." unique_id=1576678820]
 
+[node name="BattleHUD" parent="." unique_id=1283886424 instance=ExtResource("5_wvw5b")]
+offset_left = 1.0
+offset_top = -1.0
+offset_right = 1.0
+offset_bottom = -1.0
+
 [node name="CombatantDisplays" type="Control" parent="." unique_id=806953201]
 layout_mode = 3
 anchors_preset = 0
 offset_right = 1920.0
 offset_bottom = 1080.0
 mouse_filter = 2
-
-[node name="BattleHUD" parent="." unique_id=1283886424 instance=ExtResource("5_wvw5b")]
-offset_left = 1.0
-offset_top = -1.0
-offset_right = 1.0
-offset_bottom = -1.0
 
 [node name="PlayerSlots" type="Control" parent="." unique_id=1310777311]
 visible = false

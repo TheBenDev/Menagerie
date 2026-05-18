@@ -2,16 +2,7 @@
 class_name CombatantState
 extends RefCounted
 
-const STAT_STRENGTH := "STR"
-const STAT_DEXTERITY := "DEX"
-const STAT_INTELLIGENCE := "INT"
-const STAT_VITALITY := "VIT"
-const STAT_FIELD_BY_ID := {
-	STAT_STRENGTH: "strength",
-	STAT_DEXTERITY: "dexterity",
-	STAT_INTELLIGENCE: "intelligence",
-	STAT_VITALITY: "vitality",
-}
+const StatId := preload("res://core/combat/stat_id.gd")
 const ValueReaderScript := preload("res://core/utils/value_reader.gd")
 
 var combatant_id: String = ""
@@ -42,12 +33,7 @@ func configure_from_profile(new_combatant_id: String, new_profile_path: String, 
 	combatant_id = new_combatant_id.strip_edges()
 	profile_path = new_profile_path.strip_edges()
 	display_name = _profile_string(profile, "display_name", display_name)
-	stats = {
-		STAT_STRENGTH: ValueReaderScript.resource_int(profile, "strength", 5),
-		STAT_DEXTERITY: ValueReaderScript.resource_int(profile, "dexterity", 5),
-		STAT_INTELLIGENCE: ValueReaderScript.resource_int(profile, "intelligence", 5),
-		STAT_VITALITY: ValueReaderScript.resource_int(profile, "vitality", 5),
-	}
+	stats = _profile_stats(profile, 5)
 	statuses.clear()
 	runtime_modifiers.clear()
 	recalculate_max_hp(true)
@@ -58,16 +44,14 @@ func set_runtime_modifiers(modifiers: Array[Dictionary]) -> void:
 
 ## Returns effective stats after runtime modifiers.
 func get_effective_stats() -> Dictionary:
-	return {
-		STAT_STRENGTH: get_effective_stat(STAT_STRENGTH),
-		STAT_DEXTERITY: get_effective_stat(STAT_DEXTERITY),
-		STAT_INTELLIGENCE: get_effective_stat(STAT_INTELLIGENCE),
-		STAT_VITALITY: get_effective_stat(STAT_VITALITY),
-	}
+	var effective_stats: Dictionary = {}
+	for stat_id in StatId.ALL:
+		effective_stats[stat_id] = get_effective_stat(stat_id)
+	return effective_stats
 
 ## Returns one effective stat after applying active runtime modifiers.
 func get_effective_stat(stat_id: String) -> int:
-	var resolved_stat_id: String = canonical_stat_id(stat_id)
+	var resolved_stat_id: String = StatId.from_value(stat_id)
 	var value := int(stats.get(resolved_stat_id, 0))
 	for modifier in runtime_modifiers:
 		if str(modifier.get("stat_id", "")) == resolved_stat_id:
@@ -77,7 +61,7 @@ func get_effective_stat(stat_id: String) -> int:
 
 ## Recalculates maximum HP from effective vitality and optionally heals to full.
 func recalculate_max_hp(heal_to_full: bool) -> void:
-	set_max_hp(maxi(get_effective_stat(STAT_VITALITY), 1) * 10, heal_to_full)
+	set_max_hp(maxi(get_effective_stat(StatId.VIT), 1) * 10, heal_to_full)
 
 ## Updates max HP while preserving or restoring current HP according to the caller's intent.
 func set_max_hp(new_max_hp: int, heal_to_full: bool = false) -> void:
@@ -98,35 +82,22 @@ func apply_stats_to_combatant(combatant: Variant) -> void:
 	if combatant == null:
 		return
 
-	combatant.strength = get_effective_stat(STAT_STRENGTH)
-	combatant.dexterity = get_effective_stat(STAT_DEXTERITY)
-	combatant.intelligence = get_effective_stat(STAT_INTELLIGENCE)
-	combatant.vitality = get_effective_stat(STAT_VITALITY)
-
-static func canonical_stat_id(stat_id: String) -> String:
-	var normalized := stat_id.strip_edges().to_upper()
-	if STAT_FIELD_BY_ID.has(normalized):
-		return normalized
-
-	match normalized:
-		"STRENGTH":
-			return STAT_STRENGTH
-		"DEXTERITY":
-			return STAT_DEXTERITY
-		"INTELLIGENCE":
-			return STAT_INTELLIGENCE
-		"VITALITY":
-			return STAT_VITALITY
-		_:
-			return STAT_STRENGTH
+	for stat_id in StatId.ALL:
+		var field_name := str(StatId.PROFILE_FIELD_BY_ID.get(stat_id, ""))
+		if not field_name.is_empty():
+			combatant.set(field_name, get_effective_stat(stat_id))
 
 func _reset_default_stats() -> void:
-	stats = {
-		STAT_STRENGTH: 5,
-		STAT_DEXTERITY: 5,
-		STAT_INTELLIGENCE: 5,
-		STAT_VITALITY: 5,
-	}
+	stats = {}
+	for stat_id in StatId.ALL:
+		stats[stat_id] = 5
+
+func _profile_stats(profile: Resource, default_value: int) -> Dictionary:
+	var profile_stats: Dictionary = {}
+	for stat_id in StatId.ALL:
+		var field_name := str(StatId.PROFILE_FIELD_BY_ID.get(stat_id, ""))
+		profile_stats[stat_id] = ValueReaderScript.resource_int(profile, field_name, default_value)
+	return profile_stats
 
 func _profile_string(profile: Resource, field_name: String, default_value: String) -> String:
 	if profile == null:

@@ -2,6 +2,7 @@
 extends CanvasLayer
 
 const NumberFontHelper := preload("res://scenes/ui/common/number_font.gd")
+const StatId := preload("res://core/combat/stat_id.gd")
 const ValueReaderScript := preload("res://core/utils/value_reader.gd")
 
 @onready var player_button: TextureButton = $HUDRoot/TopLeftPanel/PlayerButton
@@ -93,10 +94,10 @@ func _refresh_player_panel() -> void:
 func _set_stat_values(profile: CombatantProfile) -> void:
 	if _has_game_manager() and GameManager.current_run_data != null:
 		var effective_stats: Dictionary = GameManager.get_effective_player_stats()
-		strength_value.text = str(int(effective_stats.get(RunData.STAT_STRENGTH, 0)))
-		dexterity_value.text = str(int(effective_stats.get(RunData.STAT_DEXTERITY, 0)))
-		intelligence_value.text = str(int(effective_stats.get(RunData.STAT_INTELLIGENCE, 0)))
-		vitality_value.text = str(int(effective_stats.get(RunData.STAT_VITALITY, 0)))
+		strength_value.text = str(int(effective_stats.get(StatId.STR, 0)))
+		dexterity_value.text = str(int(effective_stats.get(StatId.DEX, 0)))
+		intelligence_value.text = str(int(effective_stats.get(StatId.INT, 0)))
+		vitality_value.text = str(int(effective_stats.get(StatId.VIT, 0)))
 		return
 
 	strength_value.text = _profile_stat_text(profile, "strength")

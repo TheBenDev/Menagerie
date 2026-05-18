@@ -22,6 +22,7 @@ static func normalize_reward_result(reward_result: Variant) -> Dictionary:
 static func apply_reward_result(run_data: Variant, reward_result: Variant) -> Dictionary:
 	var normalized := normalize_reward_result(reward_result)
 	if run_data != null and run_data.has_method("grant_rewards"):
+		#; Combat rewards are party-wide run progress; limited-use event effects will add usage metadata later.
 		run_data.grant_rewards(
 			int(normalized.get("memories_awarded", 0)),
 			int(normalized.get("gold_awarded", 0))

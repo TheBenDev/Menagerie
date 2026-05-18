@@ -9,9 +9,12 @@ signal died(combatant: Combatant)
 signal action_started(combatant: Combatant, action: CombatActionData)
 signal action_resolved(combatant: Combatant, action: CombatActionData)
 
+const StatId := preload("res://core/combat/stat_id.gd")
+
 @export var display_name: String = "Combatant"
 @export var profile: CombatantProfile = null
 
+var combatant_id: String = ""
 var strength: int = 5
 var dexterity: int = 5
 var intelligence: int = 5
@@ -65,17 +68,11 @@ func reset_runtime_state() -> void:
 	pending_targets.clear()
 
 func get_stat_value(stat_id: String) -> int:
-	match stat_id:
-		"STR":
-			return strength
-		"DEX":
-			return dexterity
-		"INT":
-			return intelligence
-		"VIT":
-			return vitality
-		_:
-			return 0
+	var field_name := str(StatId.PROFILE_FIELD_BY_ID.get(StatId.from_value(stat_id), ""))
+	if field_name.is_empty():
+		return 0
+
+	return int(get(field_name))
 
 func get_placeholder_color() -> Color:
 	if profile == null:

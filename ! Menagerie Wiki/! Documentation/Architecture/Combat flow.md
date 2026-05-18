@@ -35,7 +35,7 @@ Combat is a time-based queue where the local leader chooses actions, AI-controll
 11. `Combatant.resolve_pending_action()` calls `ActionResolver.resolve_action()`.
 12. `ActionResolver` applies HP costs, then dispatches each `effect_data` dictionary.
 13. Damage/status/block/rage behavior is dispatched through `CombatEffectLibrary`.
-14. Death signals update group state. Combat ends only when the player group or enemy group has no living combatants, then `BattleScene` creates a `CombatResult`.
+14. Death signals update group state. Combat ends only when the player group or enemy group has no living combatants, then `BattleScene` creates a `CombatResult` with side results and participant HP snapshots.
 
 ## Player targeting
 

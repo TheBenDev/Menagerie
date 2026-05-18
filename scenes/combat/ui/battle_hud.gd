@@ -111,6 +111,12 @@ func choose_action_index(index: int) -> void:
 func choose_hotbar_slot_index(index: int) -> void:
 	action_bar.choose_slot_index(index)
 
+func choose_hotbar_keycode(keycode: int) -> void:
+	action_bar.choose_hotkey_keycode(keycode)
+
+func set_hotbar_keybindings(new_hotkey_bindings: Array[Dictionary]) -> void:
+	action_bar.set_hotkey_bindings(new_hotkey_bindings)
+
 func set_hotbar_slots(slot_entries: Array[Dictionary]) -> void:
 	action_bar.set_hotbar_slots(slot_entries)
 

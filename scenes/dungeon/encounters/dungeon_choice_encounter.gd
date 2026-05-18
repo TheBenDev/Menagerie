@@ -4,6 +4,8 @@ extends Control
 
 signal encounter_finished(result: Dictionary)
 
+const StatId := preload("res://core/combat/stat_id.gd")
+
 @onready var title_label: Label = $EncounterPanel/PanelMargin/Layout/TitleLabel
 @onready var description_label: Label = $EncounterPanel/PanelMargin/Layout/DescriptionLabel
 @onready var choices_container: VBoxContainer = $EncounterPanel/PanelMargin/Layout/ChoicesContainer
@@ -85,7 +87,7 @@ func _effect_summary(choice_data: Dictionary) -> String:
 				summaries.append("Take %s damage" % max(amount, 0))
 			"stat":
 				var duration_text := "permanently" if bool(effect_data.get("permanent", false)) else "for %ss" % int(round(float(effect_data.get("duration", 0.0))))
-				summaries.append("%+d %s %s" % [amount, str(effect_data.get("stat", "STR")), duration_text])
+				summaries.append("%+d %s %s" % [amount, StatId.from_value(effect_data.get("stat", StatId.STR)), duration_text])
 
 	return ", ".join(summaries)
 

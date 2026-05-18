@@ -65,6 +65,7 @@ This inventory lists runtime `.gd` scripts under `res://core` and `res://scenes`
 | `res://core/combat/combatant_group.gd` | `CombatantGroup` | Temporary combat-side container for player or enemy combatants in battle. |
 | `res://core/combat/combatant_stat_allocator.gd` | `CombatantStatAllocator` | Allocates level-scaled enemy stats from profile weights and difficulty budgets. |
 | `res://core/combat/combatant_state.gd` | `CombatantState` | Persistent runtime combat state for combat-capable characters or enemies. |
+| `res://core/combat/stat_id.gd` | `StatId` | Shared combat stat IDs and profile field mapping. |
 | `res://scenes/combat/battle_scene.gd` | None | Wires combatants, targeting, HUD, audio, run data, and final combat result reporting. |
 | `res://core/combat/combat_result.gd` | `CombatResult` | Encounter result used by run progress, rewards, and summary UI. |
 | `res://scenes/combatants/combatant.gd` | `Combatant` | Base combatant stats, resources, statuses, action state, and damage handling. |
@@ -133,12 +134,12 @@ This inventory lists runtime `.gd` scripts under `res://core` and `res://scenes`
 
 | Script | Class | Purpose |
 | --- | --- | --- |
-| `res://scenes/combat/ui/action_bar.gd` | `BattleActionBar` | Binds manually positioned hotbar buttons to configurable slot contents. |
+| `res://scenes/combat/ui/action_bar.gd` | `BattleActionBar` | Binds manually positioned hotbar buttons to configurable slot contents and keybinding metadata. |
 | `res://scenes/combat/ui/battle_hud.gd` | `BattleHUD` | Coordinates the combat timeline, hotbar action buttons, targeting gate, hotbar resource bars, player status bar, hover info panel, and time controls. |
 | `res://scenes/combat/ui/combatant_display.gd` | `CombatantDisplay` | Reusable battle display for one combatant's visual, HP, statuses, hover name panel, and target-selection highlight. |
 | `res://scenes/combat/ui/hover_info_button.gd` | `HoverInfoButton` | Button with authored hover info metadata for the fixed info panel. |
 | `res://scenes/combat/ui/hover_info_panel.gd` | `HoverInfoPanel` | Fixed info panel that renders hover metadata from registered controls. |
-| `res://scenes/combat/ui/hotbar_slot_button.gd` | `HotbarSlotButton` | Button for one configurable combat hotbar slot. |
+| `res://scenes/combat/ui/hotbar_slot_button.gd` | `HotbarSlotButton` | Button for one configurable combat hotbar slot with an optional key badge. |
 | `res://scenes/combat/ui/status_icon_view.gd` | `StatusIconView` | Control view that previews and renders a status icon from the shared status atlas. |
 | `res://scenes/ui/common/number_font.gd` | `NumberFont` | Applies and draws shared-font numeric spans. |
 | `res://scenes/ui/common/resource_bar.gd` | None | Custom resource meter control with optional segmented overlay fills. |
