@@ -26,6 +26,5 @@ var damage_dealt: int = 0
 var damage_taken: int = 0
 var actions_used: int = 0
 var time_elapsed: float = 0.0
-var memories_awarded: int = 0
-var gold_awarded: int = 0
+var reward_package: Dictionary = {}
 var end_reason: String = ""

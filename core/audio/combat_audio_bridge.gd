@@ -1,11 +1,6 @@
 ## Bridges combat events to SoundManager by playing action SFX and updating adaptive combat music states.
 extends Node
 
-const COMBAT_MUSIC_ID := &"music.combat"
-const MUSIC_STATE_BASE := &"combat_base"
-const MUSIC_STATE_TENSE := &"combat_tense"
-const MUSIC_STATE_CRITICAL := &"combat_critical"
-
 var battle: BattleController = null
 var player: Combatant = null
 var enemy: Combatant = null
@@ -125,20 +120,12 @@ func _on_battle_state_changed(_arg: Variant = null) -> void:
 	_refresh_music_state()
 
 func _refresh_music_state() -> void:
-	var sound_manager := _sound_manager()
-	if sound_manager == null or not _has_music_pressure_sources():
-		return
-	if not _should_update_music_state(sound_manager):
+	var music_director := _music_director()
+	if music_director == null or not _has_music_pressure_sources():
 		return
 
 	var intensity := _combat_intensity()
-	sound_manager.call("set_music_state", _music_state_for_intensity(intensity), intensity)
-
-func _should_update_music_state(sound_manager: Node) -> bool:
-	if sound_manager == null or not sound_manager.has_method("get_current_music_id"):
-		return false
-
-	return StringName(sound_manager.call("get_current_music_id")) == COMBAT_MUSIC_ID
+	music_director.call("set_combat_music_pressure", intensity)
 
 func _combat_intensity() -> float:
 	var player_pressure: float = _group_hp_pressure(player_group, player)
@@ -147,14 +134,6 @@ func _combat_intensity() -> float:
 	var boss_pressure: float = 0.25 if is_boss else 0.0
 	var intensity: float = max(player_pressure, enemy_pressure * 0.75, queue_pressure * 0.5, boss_pressure)
 	return clamp(intensity, 0.0, 1.0)
-
-func _music_state_for_intensity(intensity: float) -> StringName:
-	if _group_hp_pressure(player_group, player) >= 0.75 or intensity >= 0.7:
-		return MUSIC_STATE_CRITICAL
-	if intensity >= 0.35:
-		return MUSIC_STATE_TENSE
-
-	return MUSIC_STATE_BASE
 
 func _pending_action_count() -> int:
 	if battle == null:
@@ -221,8 +200,8 @@ func _play_sfx(sfx_id: StringName, priority: int) -> void:
 
 	sound_manager.call("play_sfx", sfx_id, {"priority": priority})
 
-func _has_sound_manager() -> bool:
-	return _sound_manager() != null
-
 func _sound_manager() -> Node:
 	return get_node_or_null("/root/SoundManager")
+
+func _music_director() -> Node:
+	return get_node_or_null("/root/MusicDirector")

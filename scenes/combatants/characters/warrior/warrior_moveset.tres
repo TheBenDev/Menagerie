@@ -47,7 +47,6 @@ effect_data = Array[Dictionary]([{
 "id": &"combat.block"
 }])
 target_rule = "Self"
-target_enemy = false
 
 [resource]
 script = ExtResource("1_moveset")

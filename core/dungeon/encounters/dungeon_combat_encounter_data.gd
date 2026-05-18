@@ -20,16 +20,6 @@ const SLOT_MODIFIER_DATA := "modifier_data"
 func is_valid_for_floor(floor_layer: int) -> bool:
 	return DungeonEncounterPoolHelperScript.is_valid_for_floor(self, floor_layer)
 
-## Returns the first enemy profile path for legacy single-profile encounter fallback.
-func primary_enemy_profile_path() -> String:
-	for slot in enemy_slots:
-		var slot_data: Dictionary = slot
-		var profile_path := str(slot_data.get(SLOT_COMBATANT_PROFILE_PATH, "")).strip_edges()
-		if not profile_path.is_empty():
-			return profile_path
-
-	return ""
-
 func enemy_profile_paths() -> Array[String]:
 	var profile_paths: Array[String] = []
 	for slot in enemy_slots:

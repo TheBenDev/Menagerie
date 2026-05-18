@@ -2,7 +2,6 @@
 extends CanvasLayer
 
 const NumberFontHelper := preload("res://scenes/ui/common/number_font.gd")
-const StatId := preload("res://core/combat/stat_id.gd")
 const ValueReaderScript := preload("res://core/utils/value_reader.gd")
 
 @onready var player_button: TextureButton = $HUDRoot/TopLeftPanel/PlayerButton
@@ -50,14 +49,21 @@ func _connect_game_manager_signals() -> void:
 func _refresh_all() -> void:
 	_refresh_player_panel()
 
-	if not _has_game_manager() or GameManager.current_run_data == null:
+	if not _has_game_manager() or not GameManager.has_active_run():
 		_on_run_time_changed(0.0, 300.0)
 		_on_run_currencies_changed(0, 0)
 		return
 
-	var run_data: Variant = GameManager.current_run_data
-	_on_run_time_changed(run_data.remaining_run_time_seconds, run_data.max_run_time_seconds)
-	_on_run_currencies_changed(run_data.memories, run_data.gold)
+	var timer_snapshot: Dictionary = GameManager.get_timer_snapshot()
+	var currency_snapshot: Dictionary = GameManager.get_currency_snapshot()
+	_on_run_time_changed(
+		float(timer_snapshot.get("remaining_time_seconds", 0.0)),
+		float(timer_snapshot.get("max_time_seconds", 300.0))
+	)
+	_on_run_currencies_changed(
+		int(currency_snapshot.get("memories", 0)),
+		int(currency_snapshot.get("gold", 0))
+	)
 
 func _on_run_time_changed(remaining_time_seconds: float, max_time_seconds: float) -> void:
 	timer_bar.set_timer_values(remaining_time_seconds, max_time_seconds)
@@ -92,7 +98,7 @@ func _refresh_player_panel() -> void:
 	_set_hp_values(int(hp_snapshot.get("current", 0)), int(hp_snapshot.get("max", 0)))
 
 func _set_stat_values(profile: CombatantProfile) -> void:
-	if _has_game_manager() and GameManager.current_run_data != null:
+	if _has_game_manager() and GameManager.has_active_run():
 		var effective_stats: Dictionary = GameManager.get_effective_player_stats()
 		strength_value.text = str(int(effective_stats.get(StatId.STR, 0)))
 		dexterity_value.text = str(int(effective_stats.get(StatId.DEX, 0)))

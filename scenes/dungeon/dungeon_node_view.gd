@@ -6,7 +6,6 @@ extends TextureButton
 @export_enum("Empty", "Haven", "Fight", "Encounter", "Boss") var node_type: String = "Fight"
 @export var grid_position: Vector2i = Vector2i.ZERO
 @export var grid_size: Vector2i = Vector2i.ONE
-@export_file("*.tres") var enemy_profile_path: String = ""
 @export var encounter_id: StringName = &""
 @export var combat_encounter_id: StringName = &""
 @export_file("*.tres") var combat_encounter_profile_path: String = ""
@@ -33,7 +32,6 @@ func configure(data: DungeonNodeData, cell_size: float) -> void:
 	node_type = data.node_type
 	grid_position = data.grid_position
 	grid_size = data.grid_size
-	enemy_profile_path = data.enemy_profile
 	encounter_id = data.encounter_id
 	combat_encounter_id = data.combat_encounter_id
 	combat_encounter_profile_path = data.combat_encounter_profile_path

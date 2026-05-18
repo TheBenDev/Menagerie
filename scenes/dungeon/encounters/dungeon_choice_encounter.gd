@@ -4,7 +4,6 @@ extends Control
 
 signal encounter_finished(result: Dictionary)
 
-const StatId := preload("res://core/combat/stat_id.gd")
 
 @onready var title_label: Label = $EncounterPanel/PanelMargin/Layout/TitleLabel
 @onready var description_label: Label = $EncounterPanel/PanelMargin/Layout/DescriptionLabel

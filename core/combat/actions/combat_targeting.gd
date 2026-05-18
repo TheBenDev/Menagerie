@@ -9,27 +9,29 @@ const TARGET_SELF := "Self"
 const TARGET_ALL_ALLIES := "AllAllies"
 const TARGET_ALL_ENEMIES := "AllEnemies"
 
-const LEGACY_TARGET_RANDOM_OPPONENT := "RandomOpponent"
-const LEGACY_TARGET_MANUAL_OPPONENT := "ManualOpponent"
-const LEGACY_TARGET_ALL_OPPONENTS := "AllOpponents"
+const VALID_TARGET_RULES := {
+	TARGET_SINGLE_ENEMY: true,
+	TARGET_SINGLE_ALLY: true,
+	TARGET_RANDOM_ENEMY: true,
+	TARGET_SELF: true,
+	TARGET_ALL_ALLIES: true,
+	TARGET_ALL_ENEMIES: true,
+}
 
 static func target_rule_for(action: CombatActionData) -> String:
 	if action == null:
-		return TARGET_SINGLE_ENEMY
+		push_error("Combat action is missing; cannot resolve target rule.")
+		return ""
 
 	var raw_rule := _action_string(action, "target_rule", "")
-	if raw_rule == TARGET_SINGLE_ENEMY and not action.target_enemy:
-		return TARGET_SELF
+	if not is_valid_target_rule(raw_rule):
+		push_error("Combat action %s has invalid target_rule: %s." % [action.resource_path, raw_rule])
+		return ""
 
-	match raw_rule:
-		"", LEGACY_TARGET_MANUAL_OPPONENT:
-			return TARGET_SINGLE_ENEMY if action.target_enemy else TARGET_SELF
-		LEGACY_TARGET_RANDOM_OPPONENT:
-			return TARGET_RANDOM_ENEMY
-		LEGACY_TARGET_ALL_OPPONENTS:
-			return TARGET_ALL_ENEMIES
-		_:
-			return raw_rule
+	return raw_rule
+
+static func is_valid_target_rule(target_rule: String) -> bool:
+	return bool(VALID_TARGET_RULES.get(target_rule, false))
 
 static func requires_manual_target(action: CombatActionData) -> bool:
 	var target_rule := target_rule_for(action)
@@ -76,7 +78,8 @@ static func targets_for_action(
 		TARGET_SINGLE_ENEMY:
 			return _first_living_target(opponents)
 		_:
-			return _first_living_target(opponents)
+			push_error("Cannot resolve targets for invalid target_rule: %s." % target_rule)
+			return []
 
 static func living_targets(raw_targets: Array) -> Array[Combatant]:
 	var targets: Array[Combatant] = []

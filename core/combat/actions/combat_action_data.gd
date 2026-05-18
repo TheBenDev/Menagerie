@@ -24,5 +24,3 @@ const TARGET_ALL_ENEMIES := "AllEnemies"
 @export var mana_cost: int = 0
 
 @export_enum("SingleEnemy", "SingleAlly", "RandomEnemy", "Self", "AllAllies", "AllEnemies") var target_rule: String = TARGET_SINGLE_ENEMY
-;# Legacy side flag used by older resources; prefer `target_rule` for new actions.
-@export var target_enemy: bool = true

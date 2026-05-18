@@ -4,52 +4,36 @@ extends RefCounted
 
 const ValueReaderScript := preload("res://core/utils/value_reader.gd")
 
-## Builds a symmetric node connection graph from dungeon node descriptors.
-static func connection_graph_from_descriptors(descriptors: Array, use_linear_fallback: bool = true) -> Dictionary:
+## Builds a symmetric node connection graph from explicit dungeon descriptor connections.
+static func connection_graph_from_descriptors(descriptors: Array) -> Dictionary:
 	var graph: Dictionary = {}
-	var descriptor_ids: Array[int] = []
-	var has_explicit_connections := false
 
 	for raw_descriptor in descriptors:
 		if not (raw_descriptor is Dictionary):
-			continue
+			push_error("Dungeon connection graph requires dictionary descriptors.")
+			return {}
 
 		var descriptor: Dictionary = raw_descriptor
 		var node_id: int = int(descriptor.get("id", -1))
 		if node_id < 0:
-			continue
+			push_error("Dungeon connection graph descriptor is missing a valid id.")
+			return {}
+		if not descriptor.has("connections") or not (descriptor.get("connections") is Array):
+			push_error("Dungeon node %s is missing explicit connections." % node_id)
+			return {}
 
-		_add_unique_int(descriptor_ids, node_id)
 		if not graph.has(node_id):
 			graph[node_id] = []
-		if descriptor.has("connections"):
-			has_explicit_connections = true
 
-	if has_explicit_connections:
-		for raw_descriptor in descriptors:
-			if not (raw_descriptor is Dictionary):
-				continue
-
-			var descriptor: Dictionary = raw_descriptor
-			var node_id: int = int(descriptor.get("id", -1))
-			if node_id < 0 or not graph.has(node_id):
-				continue
-
-			var raw_connections: Variant = descriptor.get("connections", [])
-			if not (raw_connections is Array):
-				continue
-
-			for raw_connected_id in raw_connections:
-				var connected_id: int = int(raw_connected_id)
-				if graph.has(connected_id):
-					_connect_node_ids(graph, node_id, connected_id)
-	elif use_linear_fallback:
-		descriptor_ids.sort()
-		for index in range(descriptor_ids.size()):
-			if index > 0:
-				_connect_node_ids(graph, descriptor_ids[index], descriptor_ids[index - 1])
-			if index < descriptor_ids.size() - 1:
-				_connect_node_ids(graph, descriptor_ids[index], descriptor_ids[index + 1])
+	for raw_descriptor in descriptors:
+		var descriptor: Dictionary = raw_descriptor
+		var node_id: int = int(descriptor.get("id", -1))
+		for raw_connected_id in descriptor.get("connections", []):
+			var connected_id: int = int(raw_connected_id)
+			if not graph.has(connected_id):
+				push_error("Dungeon node %s references missing connection %s." % [node_id, connected_id])
+				return {}
+			_connect_node_ids(graph, node_id, connected_id)
 
 	return graph
 

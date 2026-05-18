@@ -25,11 +25,15 @@ static func has_active_travel_orders(run_data: Variant) -> bool:
 	return false
 
 ## Advances every active traveling pawn by one node step and reports whether movement should pause.
-static func advance_one_step(run_data: Variant, interrupt_node_ids: Array = []) -> Dictionary:
+static func advance_one_step(run_data: Variant, interrupt_node_ids: Array = [], movement_rules: Variant = null) -> Dictionary:
 	var result: Dictionary = _empty_result()
 	if run_data == null:
 		result[RESULT_PAUSE_REQUESTED] = true
 		result[RESULT_PAUSE_REASONS].append("missing_run_data")
+		return result
+	if movement_rules == null:
+		result[RESULT_PAUSE_REQUESTED] = true
+		result[RESULT_PAUSE_REASONS].append("missing_movement_rules")
 		return result
 
 	var moving_pawns: Array = _active_moving_pawns(run_data)
@@ -49,11 +53,11 @@ static func advance_one_step(run_data: Variant, interrupt_node_ids: Array = []) 
 			_append_pause_reason(result, "invalid_next_node")
 			continue
 
-		run_data.move_dungeon_pawn_to_node(pawn_id, next_node_id)
+		movement_rules.move_pawn_to_node(run_data, pawn_id, next_node_id)
 		map_pawn.travel_path_index += 1
 		_append_result_id(result, RESULT_MOVED_PAWN_IDS, pawn_id)
 
-		if _handle_post_step_state(run_data, map_pawn, interrupt_lookup, result):
+		if _handle_post_step_state(run_data, map_pawn, interrupt_lookup, result, movement_rules):
 			result[RESULT_PAUSE_REQUESTED] = true
 
 	return result
@@ -62,7 +66,8 @@ static func _handle_post_step_state(
 	run_data: Variant,
 	pawn: Variant,
 	interrupt_lookup: Dictionary,
-	result: Dictionary
+	result: Dictionary,
+	movement_rules: Variant
 ) -> bool:
 	var pawn_id: String = str(pawn.pawn_id)
 	var current_node_id: int = int(pawn.current_node_id)
@@ -81,7 +86,7 @@ static func _handle_post_step_state(
 	if int(pawn.pending_destination_node_id) >= 0:
 		var replacement_destination_id: int = int(pawn.pending_destination_node_id)
 		pawn.pending_destination_node_id = -1
-		var replacement_path: Array[int] = run_data.get_dungeon_pawn_travel_path(pawn_id, replacement_destination_id)
+		var replacement_path: Array[int] = movement_rules.get_pawn_travel_path(run_data, pawn_id, replacement_destination_id)
 		if replacement_path.is_empty():
 			pawn.clear_travel()
 			_append_result_id(result, RESULT_INTERRUPTED_PAWN_IDS, pawn_id)
@@ -91,8 +96,8 @@ static func _handle_post_step_state(
 		if pawn.set_travel_order(
 			replacement_destination_id,
 			replacement_path,
-			RunData.NODE_TRAVEL_TIME,
-			RunData.VISUAL_NODE_STEPS_PER_REAL_SECOND
+			float(movement_rules.travel_step_game_seconds()),
+			float(movement_rules.visual_node_steps_per_real_second())
 		):
 			_append_result_id(result, RESULT_REPLACED_PAWN_IDS, pawn_id)
 			return false

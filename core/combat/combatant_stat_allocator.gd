@@ -3,7 +3,6 @@ class_name CombatantStatAllocator
 extends RefCounted
 
 const DEFAULT_WEIGHT := 1.0
-const StatId := preload("res://core/combat/stat_id.gd")
 const ValueReaderScript := preload("res://core/utils/value_reader.gd")
 
 static func allocate_enemy_stats(profile: Resource, difficulty_profile: Resource, enemy_level: int, stat_seed: int) -> Dictionary:
@@ -26,13 +25,13 @@ static func stat_weights_for_profile(profile: Resource) -> Dictionary:
 
 	var normalized_weights: Dictionary = {}
 	var total_weight: float = 0.0
-	for stat_id in StatId.ALL:
+	for stat_id: String in StatId.ALL:
 		var weight: float = maxf(_weight_value(weights, stat_id, DEFAULT_WEIGHT), 0.0)
 		normalized_weights[stat_id] = weight
 		total_weight += weight
 
 	if total_weight <= 0.0:
-		for stat_id in StatId.ALL:
+		for stat_id: String in StatId.ALL:
 			normalized_weights[stat_id] = DEFAULT_WEIGHT
 
 	return normalized_weights
@@ -41,7 +40,7 @@ static func apply_stats_to_combatant(combatant: Combatant, stats: Dictionary) ->
 	if combatant == null:
 		return
 
-	for stat_id in StatId.ALL:
+	for stat_id: String in StatId.ALL:
 		var field_name := str(StatId.PROFILE_FIELD_BY_ID.get(stat_id, ""))
 		if field_name.is_empty():
 			continue
@@ -50,7 +49,7 @@ static func apply_stats_to_combatant(combatant: Combatant, stats: Dictionary) ->
 
 static func _roll_weighted_stats(budget: int, weights: Dictionary, stat_seed: int) -> Dictionary:
 	var stats: Dictionary = {}
-	for stat_id in StatId.ALL:
+	for stat_id: String in StatId.ALL:
 		stats[stat_id] = 0
 	if budget <= 0:
 		return stats
@@ -71,9 +70,9 @@ static func _roll_stat_id(weights: Dictionary, total_weight: float, rng: RandomN
 	if total_weight <= 0.0:
 		return StatId.ALL[rng.randi_range(0, StatId.ALL.size() - 1)]
 
-	var roll := rng.randf() * total_weight
-	var running_weight := 0.0
-	for stat_id in StatId.ALL:
+	var roll: float = rng.randf() * total_weight
+	var running_weight: float = 0.0
+	for stat_id: String in StatId.ALL:
 		running_weight += max(float(weights.get(stat_id, DEFAULT_WEIGHT)), 0.0)
 		if roll <= running_weight:
 			return stat_id
@@ -81,8 +80,8 @@ static func _roll_stat_id(weights: Dictionary, total_weight: float, rng: RandomN
 	return StatId.VIT
 
 static func _total_weight(weights: Dictionary) -> float:
-	var total_weight := 0.0
-	for stat_id in StatId.ALL:
+	var total_weight: float = 0.0
+	for stat_id: String in StatId.ALL:
 		total_weight += max(float(weights.get(stat_id, DEFAULT_WEIGHT)), 0.0)
 	return total_weight
 

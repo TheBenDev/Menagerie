@@ -1,10 +1,7 @@
-## Autoload that coordinates run setup, scene transitions, combat routing, run timers, and scene music.
+## Autoload that coordinates top-level run setup, scene transitions, run timers, and subsystem delegation.
 extends Node
 
 const RunDataScript := preload("res://core/run_data.gd")
-const DungeonFloorGeneratorScript := preload("res://core/dungeon/dungeon_floor_generator.gd")
-const DungeonEncounterResolverScript := preload("res://core/dungeon/encounters/dungeon_encounter_resolver.gd")
-const PlayerRunStateServiceScript := preload("res://core/party/player_run_state_service.gd")
 const RewardServiceScript := preload("res://core/rewards/reward_service.gd")
 const SceneRouteServiceScript := preload("res://core/scene_route_service.gd")
 const DEFAULT_DUNGEON_GENERATION_CONFIG := preload("res://core/dungeon/default_dungeon_floor_generation_config.tres")
@@ -16,48 +13,37 @@ signal run_time_changed(remaining_time_seconds: float, max_time_seconds: float)
 signal run_currencies_changed(memories: int, gold: int)
 signal run_ended(reason: String)
 
-const DEFAULT_ENEMY_PROFILE_PATH := "res://scenes/combatants/enemies/training_ghoul/training_ghoul_profile.tres"
-const CHARACTER_PROFILE_PATHS := {
-	"Warrior": "res://scenes/combatants/characters/warrior/warrior_profile.tres",
-}
-const DIFFICULTY_PROFILE_PATHS := {
-	"easy": "res://core/difficulty/easy.tres",
-	"normal": "res://core/difficulty/normal.tres",
-	"hard": "res://core/difficulty/hard.tres",
-}
-
-var run_setup_data = RunDataScript.new()
 var current_run_data = null
+var selected_setup_character: String = RunDataScript.DEFAULT_CHARACTER
+var setup_dungeon_seed: String = ""
+var setup_dungeon_floor_layer: int = 1
 var pending_class_memory_awards: Dictionary = {}
 
 func _ready() -> void:
 	call_deferred("_play_music_for_current_scene")
 
 func start_new_run(character: String, difficulty: String, dungeon_seed: String = "", dungeon_floor_layer: int = 1) -> Variant:
+	var difficulty_id := StringName(difficulty.strip_edges().to_lower())
+	DifficultyService.set_active_difficulty_id(difficulty_id)
 	current_run_data = RunDataScript.new()
 	current_run_data.start_run(
 		character,
-		difficulty,
 		RunDataScript.DEFAULT_RUN_TIME_SECONDS,
-		DEFAULT_ENEMY_PROFILE_PATH,
 		_resolve_dungeon_seed(dungeon_seed),
 		max(dungeon_floor_layer, 1)
 	)
-	current_run_data.initialize_player_state(get_selected_character_profile(), get_selected_character_profile_path())
+	PartyManager.initialize_party_for_run(current_run_data, StringName(character))
 	_apply_run_seed(current_run_data.dungeon_seed)
-	current_run_data.dungeon_node_descriptors = DungeonFloorGeneratorScript.generate_floor_from_global_rng(
-		current_run_data.dungeon_floor_layer,
-		current_run_data.selected_difficulty,
-		DEFAULT_DUNGEON_GENERATION_CONFIG,
-		DEFAULT_DUNGEON_ENCOUNTER_POOL,
-		DEFAULT_DUNGEON_COMBAT_ENCOUNTER_POOL
-	)
-	current_run_data.initialize_dungeon_map_state(RunDataScript.START_DUNGEON_NODE_ID)
-	run_setup_data.configure_selection(current_run_data.selected_character, current_run_data.selected_difficulty)
-	run_setup_data.dungeon_seed = current_run_data.dungeon_seed
-	run_setup_data.dungeon_floor_layer = current_run_data.dungeon_floor_layer
+	DungeonManager.initialize_dungeon_for_run(current_run_data)
+	if current_run_data.dungeon_node_descriptors.is_empty():
+		push_error("New run could not start because dungeon generation produced no valid descriptors.")
+		clear_run()
+		return null
+	selected_setup_character = current_run_data.selected_character
+	setup_dungeon_seed = current_run_data.dungeon_seed
+	setup_dungeon_floor_layer = current_run_data.dungeon_floor_layer
 	emit_run_state()
-	play_run_music(true)
+	MusicDirector.on_run_started()
 	return current_run_data
 
 func clear_run() -> void:
@@ -66,7 +52,6 @@ func clear_run() -> void:
 func start_combat(
 	node_id: int,
 	node_type: String,
-	enemy_profile_path: String,
 	is_boss: bool,
 	charge_travel_time: bool = true,
 	combat_encounter_id: StringName = &"",
@@ -75,44 +60,46 @@ func start_combat(
 ) -> void:
 	if current_run_data == null:
 		start_new_run(
-			run_setup_data.selected_character,
-			run_setup_data.selected_difficulty,
-			run_setup_data.dungeon_seed,
-			run_setup_data.dungeon_floor_layer
+			selected_setup_character,
+			get_selected_difficulty_id(),
+			setup_dungeon_seed,
+			setup_dungeon_floor_layer
 		)
-
-	current_run_data.set_encounter(
-		node_id,
-		node_type,
-		enemy_profile_path,
-		is_boss,
-		DEFAULT_ENEMY_PROFILE_PATH,
-		combat_encounter_id,
-		combat_encounter_profile_path,
-		enemy_instances
-	)
-
-	if charge_travel_time and not advance_run_time(RunDataScript.NODE_TRAVEL_TIME):
+	if current_run_data == null:
+		return
+	if not _validate_combat_payload(node_id, combat_encounter_id, enemy_instances):
 		return
 
+	CombatManager.start_combat_from_dungeon(current_run_data, node_id, {
+		"node_type": node_type,
+		"is_boss": is_boss,
+		"combat_encounter_id": combat_encounter_id,
+		"combat_encounter_profile_path": combat_encounter_profile_path,
+		"enemy_instances": enemy_instances,
+	})
+
+	if charge_travel_time and not advance_run_time(DungeonManager.NODE_TRAVEL_TIME):
+		return
+
+	MusicDirector.on_combat_started({"is_boss": is_boss})
 	go_to_scene("combat/BattleScene")
 
 func complete_combat(result: Variant) -> void:
 	if _is_run_ended():
 		return
 
-	if current_run_data != null:
-		current_run_data.store_combat_result(result)
+	if result != null:
+		CombatManager.complete_combat(result)
 	go_to_scene("dungeon")
 
 func consume_last_combat_result() -> Variant:
 	if current_run_data == null:
 		return null
 
-	return current_run_data.consume_pending_combat_result()
+	return CombatManager.consume_pending_combat_result()
 
 func has_pending_combat_result() -> bool:
-	return current_run_data != null and current_run_data.has_pending_combat_result()
+	return CombatManager.has_pending_combat_result()
 
 func advance_run_time(seconds: float) -> bool:
 	if current_run_data == null:
@@ -120,7 +107,8 @@ func advance_run_time(seconds: float) -> bool:
 	if _is_run_ended():
 		return false
 
-	current_run_data.advance_time(seconds)
+	var applied_seconds: float = current_run_data.advance_time(seconds)
+	PartyManager.advance_run_effects(current_run_data, applied_seconds)
 	emit_run_state()
 
 	if current_run_data.remaining_run_time_seconds <= 0.0:
@@ -130,21 +118,16 @@ func advance_run_time(seconds: float) -> bool:
 	return true
 
 func get_dungeon_encounter(encounter_id: StringName) -> Resource:
-	return DungeonEncounterResolverScript.encounter_for_id(DEFAULT_DUNGEON_ENCOUNTER_POOL, encounter_id)
+	return DungeonManager.get_dungeon_encounter(encounter_id)
 
 func get_dungeon_encounter_scene(encounter_id: StringName) -> PackedScene:
-	return DungeonEncounterResolverScript.scene_for_encounter(DEFAULT_DUNGEON_ENCOUNTER_POOL, get_dungeon_encounter(encounter_id))
+	return DungeonManager.get_dungeon_encounter_scene(encounter_id)
 
 func get_dungeon_combat_encounter(encounter_id: StringName) -> Resource:
-	if String(encounter_id).is_empty():
-		return null
-	return DEFAULT_DUNGEON_COMBAT_ENCOUNTER_POOL.call("get_encounter", encounter_id) as Resource
+	return DungeonManager.get_dungeon_combat_encounter(encounter_id)
 
 func get_dungeon_abilities(slot_count: int = 3) -> Array:
-	if DEFAULT_DUNGEON_ABILITY_POOL == null:
-		return []
-
-	return DEFAULT_DUNGEON_ABILITY_POOL.get_hotbar_abilities(slot_count)
+	return DungeonManager.get_dungeon_abilities(slot_count)
 
 func apply_dungeon_encounter_result(encounter_id: StringName, result: Dictionary) -> Dictionary:
 	var outcome := {
@@ -155,33 +138,27 @@ func apply_dungeon_encounter_result(encounter_id: StringName, result: Dictionary
 	if current_run_data == null or _is_run_ended():
 		return outcome
 
-	var mode := str(result.get("mode", "complete"))
-	if mode != "complete":
-		push_warning("Unsupported dungeon encounter result mode: %s" % mode)
-		return outcome
-
-	var encounter_data: Resource = get_dungeon_encounter(encounter_id)
-	var choice_index := int(result.get("choice_index", -1))
-	var choice_data: Dictionary = DungeonEncounterResolverScript.choice_for_index(encounter_data, choice_index)
-	var effect_outcome: Dictionary = current_run_data.apply_encounter_choice(choice_data)
-	outcome["handled"] = true
-	outcome["damage_taken"] = int(effect_outcome.get("damage_taken", 0))
-	outcome["stat_modifiers_added"] = int(effect_outcome.get("stat_modifiers_added", 0))
+	var manager_result := result.duplicate(true)
+	manager_result["encounter_id"] = encounter_id
+	outcome = DungeonManager.apply_encounter_result(current_run_data, manager_result)
 	emit_run_state()
 
-	if current_run_data.is_player_defeated():
+	if PartyManager.is_player_defeated(current_run_data):
 		end_current_run(RunDataScript.END_REASON_DEFEAT)
 
 	return outcome
 
 func apply_run_player_state_to_combatant(combatant: Variant) -> void:
-	PlayerRunStateServiceScript.apply_run_state_to_combatant(current_run_data, combatant)
+	PartyManager.apply_member_state_to_combatant(current_run_data, combatant)
 
 func get_run_player_hp_snapshot() -> Dictionary:
-	return PlayerRunStateServiceScript.hp_snapshot(current_run_data)
+	return PartyManager.get_selected_member_hp_snapshot(current_run_data)
+
+func get_selected_player_combatant_id() -> String:
+	return PartyManager.get_selected_combatant_id(current_run_data)
 
 func get_effective_player_stats() -> Dictionary:
-	return PlayerRunStateServiceScript.effective_player_stats(current_run_data, get_selected_character_profile())
+	return PartyManager.get_selected_member_effective_stats(current_run_data)
 
 func end_current_run(reason: String) -> void:
 	if current_run_data == null or _is_run_ended():
@@ -205,66 +182,93 @@ func export_current_run_memories() -> int:
 	if current_run_data == null:
 		return 0
 
-	return current_run_data.export_memories_to(pending_class_memory_awards)
-
-func calculate_rewards_for_profile(profile: CombatantProfile, is_boss: bool) -> Dictionary:
-	return RewardServiceScript.calculate_combat_rewards(profile, get_selected_difficulty_profile(), is_boss)
-
-func calculate_rewards_for_profiles(profiles: Array, is_boss: bool) -> Dictionary:
-	return RewardServiceScript.calculate_combat_rewards_for_profiles(profiles, get_selected_difficulty_profile(), is_boss)
+	return RewardServiceScript.export_run_memories_to_class_awards(current_run_data, pending_class_memory_awards)
 
 func get_selected_difficulty_profile() -> Resource:
-	var profile_path := get_selected_difficulty_profile_path()
-	if profile_path.is_empty():
-		return null
-
-	return load(profile_path)
+	return DifficultyService.get_active_profile()
 
 func get_selected_character_profile() -> CombatantProfile:
-	var profile_path := get_selected_character_profile_path()
-	if profile_path.is_empty():
-		return null
-
-	return load(profile_path) as CombatantProfile
+	return PartyManager.get_character_profile(get_selected_character_id()) as CombatantProfile
 
 func get_selected_character_profile_path() -> String:
-	return str(CHARACTER_PROFILE_PATHS.get(get_selected_character_id(), CHARACTER_PROFILE_PATHS[RunDataScript.DEFAULT_CHARACTER]))
+	return PartyManager.get_character_profile_path(get_selected_character_id())
 
 func get_selected_character_id() -> String:
 	if current_run_data != null:
 		return current_run_data.selected_character
 
-	return run_setup_data.selected_character
+	return selected_setup_character
 
 func get_selected_difficulty_id() -> String:
-	if current_run_data != null:
-		return current_run_data.selected_difficulty
-
-	return run_setup_data.selected_difficulty
+	return String(DifficultyService.get_active_difficulty_id())
 
 func get_selected_difficulty_profile_path() -> String:
-	return str(DIFFICULTY_PROFILE_PATHS.get(get_selected_difficulty_id(), DIFFICULTY_PROFILE_PATHS[RunDataScript.DEFAULT_DIFFICULTY]))
+	return DifficultyService.get_profile_path(StringName(get_selected_difficulty_id()))
 
 func get_selected_difficulty_display_name() -> String:
-	var profile := get_selected_difficulty_profile()
-	if profile == null:
-		return get_selected_difficulty_id().capitalize()
+	return DifficultyService.get_active_display_name()
 
-	return profile.display_name
+func has_active_run() -> bool:
+	return current_run_data != null and not _is_run_ended()
 
-func get_current_encounter() -> Dictionary:
+func has_current_run_data() -> bool:
+	return current_run_data != null
+
+## Temporary action boundary for scene controllers; display/UI code must use snapshots instead.
+func get_current_run_reference() -> Variant:
+	return current_run_data
+
+func get_timer_snapshot() -> Dictionary:
 	if current_run_data == null:
 		return {
-			"node_id": -1,
-			"node_type": "",
-			"enemy_profile_path": DEFAULT_ENEMY_PROFILE_PATH,
-			"enemy_instances": [],
-			"combat_encounter_id": &"",
-			"combat_encounter_profile_path": "",
-			"is_boss": false,
+			"remaining_time_seconds": 0.0,
+			"max_time_seconds": RunDataScript.DEFAULT_RUN_TIME_SECONDS,
 		}
 
-	return current_run_data.get_current_encounter(DEFAULT_ENEMY_PROFILE_PATH)
+	return {
+		"remaining_time_seconds": current_run_data.remaining_run_time_seconds,
+		"max_time_seconds": current_run_data.max_run_time_seconds,
+	}
+
+func get_currency_snapshot() -> Dictionary:
+	if current_run_data == null:
+		return {
+			"memories": 0,
+			"gold": 0,
+		}
+
+	return {
+		"memories": max(int(current_run_data.memories), 0),
+		"gold": max(int(current_run_data.gold), 0),
+	}
+
+func get_run_summary_snapshot() -> Dictionary:
+	if current_run_data == null:
+		return {}
+
+	return {
+		"character": current_run_data.selected_character,
+		"difficulty": get_selected_difficulty_display_name(),
+		"fights_completed": current_run_data.fights_completed,
+		"boss_defeated": current_run_data.boss_defeated,
+		"damage_dealt": current_run_data.damage_dealt,
+		"damage_taken": current_run_data.damage_taken,
+		"actions_used": current_run_data.actions_used,
+		"time_elapsed": current_run_data.time_elapsed,
+		"memories": current_run_data.memories,
+		"gold": current_run_data.gold,
+		"run_end_reason": current_run_data.run_end_reason,
+		"run_victory": current_run_data.run_victory,
+	}
+
+func get_party_snapshot() -> Dictionary:
+	return PartyManager.get_party_snapshot(current_run_data)
+
+func get_dungeon_snapshot() -> Dictionary:
+	return DungeonManager.get_dungeon_snapshot(current_run_data)
+
+func get_combat_snapshot() -> Dictionary:
+	return CombatManager.get_combat_snapshot()
 
 func go_to_scene(scene_ref: String) -> void:
 	var scene_path := scene_path_for(scene_ref)
@@ -281,12 +285,7 @@ func play_music_for_scene(scene_ref: String) -> void:
 	_play_music_for_scene_path(scene_path_for(scene_ref))
 
 func play_run_music(restart: bool = false) -> void:
-	var sound_manager := _sound_manager()
-	if sound_manager == null:
-		return
-
-	sound_manager.call("play_music", SceneRouteServiceScript.RUN_MUSIC_ID, -1.0, restart)
-	sound_manager.call("set_music_state", &"", 0.0)
+	MusicDirector.on_dungeon_entered({"restart": restart})
 
 func scene_path_for(scene_ref: String) -> String:
 	return SceneRouteServiceScript.scene_path_for(scene_ref)
@@ -299,25 +298,7 @@ func _play_music_for_current_scene() -> void:
 	_play_music_for_scene_path(current_scene.scene_file_path)
 
 func _play_music_for_scene_path(scene_path: String) -> void:
-	var sound_manager := _sound_manager()
-	if sound_manager == null:
-		return
-
-	var music_id := SceneRouteServiceScript.music_id_for_scene_path(scene_path)
-	if String(music_id).is_empty():
-		return
-
-	sound_manager.call("play_music", music_id)
-	if music_id == &"music.combat":
-		sound_manager.call("set_music_state", &"combat_base", 0.0)
-	else:
-		sound_manager.call("set_music_state", &"", 0.0)
-
-func _sound_manager() -> Node:
-	if not is_inside_tree():
-		return null
-
-	return get_node_or_null("/root/SoundManager")
+	MusicDirector.on_route_changed(StringName(scene_path))
 
 func _resolve_dungeon_seed(requested_seed: String) -> String:
 	var requested_seed_text := requested_seed.strip_edges()
@@ -331,3 +312,35 @@ func _apply_run_seed(run_seed: String) -> void:
 
 func _is_run_ended() -> bool:
 	return current_run_data != null and current_run_data.has_ended()
+
+func _validate_combat_payload(node_id: int, combat_encounter_id: StringName, enemy_instances: Array[Dictionary]) -> bool:
+	if node_id < 0:
+		push_error("Combat cannot start for an invalid dungeon node id: %s." % node_id)
+		return false
+	if String(combat_encounter_id).strip_edges().is_empty():
+		push_error("Combat cannot start without a combat encounter id.")
+		return false
+	if enemy_instances.is_empty():
+		push_error("Combat cannot start without generated enemy instances.")
+		return false
+
+	for enemy_instance in enemy_instances:
+		if not _is_valid_enemy_instance(enemy_instance):
+			push_error("Combat cannot start with malformed enemy instance data: %s." % enemy_instance)
+			return false
+
+	return true
+
+func _is_valid_enemy_instance(enemy_instance: Dictionary) -> bool:
+	if String(enemy_instance.get("instance_id", "")).strip_edges().is_empty():
+		return false
+	if String(enemy_instance.get("profile_path", "")).strip_edges().is_empty():
+		return false
+	if String(enemy_instance.get("slot_id", "")).strip_edges().is_empty():
+		return false
+	if not enemy_instance.has("level"):
+		return false
+	if not enemy_instance.has("stat_seed"):
+		return false
+
+	return true

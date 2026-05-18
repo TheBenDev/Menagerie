@@ -1,24 +1,15 @@
-## Scene route helper for resolving scene references and choosing scene-level music tracks.
+## Scene route helper for resolving scene references and validating scene paths.
 class_name SceneRouteService
 extends RefCounted
 
 const SCENE_ROOT_PATH := "res://scenes"
 const SCENE_EXTENSION := ".tscn"
-const RUN_MUSIC_ID := &"music.dungeon"
 
 const SCENE_ROUTE_PATHS := {
 	"main_menu": "ui/main_menu/MainMenu",
 	"waiting_room": "ui/waiting_room/WaitingRoom",
 	"run_summary": "ui/run_summary/RunSummary",
 	"dungeon": "dungeon/DungeonMap",
-}
-
-const SCENE_MUSIC_IDS := {
-	"res://scenes/ui/main_menu/MainMenu.tscn": &"music.main_menu",
-	"res://scenes/ui/waiting_room/WaitingRoom.tscn": &"music.waiting_room",
-	"res://scenes/dungeon/DungeonMap.tscn": &"music.dungeon",
-	"res://scenes/combat/BattleScene.tscn": &"music.combat",
-	"res://scenes/ui/run_summary/RunSummary.tscn": &"music.main_menu",
 }
 
 static func scene_path_for(scene_ref: String) -> String:
@@ -35,10 +26,6 @@ static func scene_path_for(scene_ref: String) -> String:
 	normalized_ref = scene_route_path_for(normalized_ref)
 
 	return with_scene_extension(SCENE_ROOT_PATH.path_join(normalized_ref))
-
-static func music_id_for_scene_path(scene_path: String) -> StringName:
-	var normalized_scene_path := scene_path_for(scene_path)
-	return StringName(SCENE_MUSIC_IDS.get(normalized_scene_path, &""))
 
 static func scene_route_path_for(scene_ref: String) -> String:
 	var route_key := scene_ref

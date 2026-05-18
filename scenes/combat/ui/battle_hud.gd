@@ -258,8 +258,9 @@ func _class_resource_text(current_value: int, reference_value: int) -> String:
 	return "%s" % current_value
 
 func _current_run_memories() -> int:
-	if _has_game_manager() and GameManager.current_run_data != null:
-		return max(int(GameManager.current_run_data.memories), 0)
+	if _has_game_manager():
+		var currency_snapshot: Dictionary = GameManager.get_currency_snapshot()
+		return int(currency_snapshot.get("memories", 0))
 
 	return 0
 

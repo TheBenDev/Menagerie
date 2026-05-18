@@ -9,7 +9,6 @@ signal died(combatant: Combatant)
 signal action_started(combatant: Combatant, action: CombatActionData)
 signal action_resolved(combatant: Combatant, action: CombatActionData)
 
-const StatId := preload("res://core/combat/stat_id.gd")
 
 @export var display_name: String = "Combatant"
 @export var profile: CombatantProfile = null

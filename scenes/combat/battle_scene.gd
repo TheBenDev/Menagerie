@@ -13,7 +13,6 @@ const EnemyCombatantScript := preload("res://scenes/combatants/enemies/enemy_com
 const WarriorCombatantScript := preload("res://scenes/combatants/characters/warrior/warrior_combatant.gd")
 const ValueReaderScript := preload("res://core/utils/value_reader.gd")
 const DEFAULT_PLAYER_PROFILE := preload("res://scenes/combatants/characters/warrior/warrior_profile.tres")
-const DEFAULT_ENEMY_PROFILE := preload("res://scenes/combatants/enemies/training_ghoul/training_ghoul_profile.tres")
 
 const DEFAULT_PLAYER_SLOT_ID := &"PlayerSlot1"
 const DEFAULT_ENEMY_SLOT_ID := &"EnemySlot1"
@@ -40,7 +39,6 @@ var player_combatants: Array[Combatant] = []
 var enemy_combatants: Array[Combatant] = []
 var ai_player_combatants: Array[Combatant] = []
 var enemy_instance_data: Array[Dictionary] = []
-var enemy_reward_profiles: Array[Resource] = []
 var combatant_display_entries: Array[Dictionary] = []
 var _game_manager = null
 
@@ -109,28 +107,28 @@ func _setup_player_combatants() -> void:
 
 func _setup_enemy_combatants() -> void:
 	enemy_combatants.clear()
-	enemy_reward_profiles.clear()
 	if enemy_instance_data.is_empty():
-		enemy_instance_data.append(_fallback_enemy_instance())
+		push_error("BattleScene cannot set up combat without validated enemy instances.")
+		return
 
 	for index in enemy_instance_data.size():
 		var instance_data: Dictionary = enemy_instance_data[index]
 		var active_enemy := _new_enemy_combatant("Enemy%s" % (index + 1))
 		active_enemy.combatant_id = str(instance_data.get("instance_id", "enemy_%s" % (index + 1)))
 		var enemy_profile := _profile_for_enemy_instance(instance_data)
-		if enemy_profile != null:
-			active_enemy.profile = enemy_profile
+		if enemy_profile == null:
+			push_error("BattleScene cannot load enemy profile for instance %s." % instance_data)
+			continue
+		active_enemy.profile = enemy_profile
 		active_enemy.apply_profile()
 		_apply_enemy_instance_stats(active_enemy, instance_data)
 		enemy_combatants.append(active_enemy)
-		if active_enemy.profile != null:
-			enemy_reward_profiles.append(active_enemy.profile)
 
 func _apply_enemy_instance_stats(active_enemy: Combatant, instance_data: Dictionary) -> void:
 	if active_enemy == null:
 		return
 
-	var enemy_level: int = int(instance_data.get("enemy_level", 0))
+	var enemy_level: int = int(instance_data.get("level", 0))
 	var stat_seed: int = int(instance_data.get("stat_seed", active_enemy.name.hash()))
 	var stats: Dictionary = CombatantStatAllocatorScript.allocate_enemy_stats(active_enemy.profile, battle.difficulty_profile, enemy_level, stat_seed)
 	CombatantStatAllocatorScript.apply_stats_to_combatant(active_enemy, stats)
@@ -165,7 +163,7 @@ func _player_combatant_script() -> Script:
 
 func _selected_player_profile() -> CombatantProfile:
 	if _game_manager != null:
-		var profile := _game_manager.get_selected_character_profile()
+		var profile: CombatantProfile = _game_manager.get_selected_character_profile() as CombatantProfile
 		if profile != null:
 			return profile
 
@@ -188,7 +186,7 @@ func _setup_combatant_displays() -> void:
 	for index in enemy_combatants.size():
 		var display: CombatantDisplayScript = _new_combatant_display("EnemyCombatantDisplay%s" % (index + 1))
 		var instance_data: Dictionary = enemy_instance_data[index] if index < enemy_instance_data.size() else {}
-		var slot_id: StringName = ValueReaderScript.string_name_from_variant(instance_data.get("position_id", &""))
+		var slot_id: StringName = ValueReaderScript.string_name_from_variant(instance_data.get("slot_id", &""))
 		if String(slot_id).is_empty():
 			slot_id = ENEMY_SLOT_IDS[min(index, ENEMY_SLOT_IDS.size() - 1)]
 		_setup_combatant_display(display, enemy_combatants[index], enemy_slots, slot_id, DEFAULT_ENEMY_SLOT_ID)
@@ -265,7 +263,7 @@ func _setup_audio_bridge() -> void:
 	audio_bridge = CombatAudioBridgeScript.new()
 	audio_bridge.name = "CombatAudioBridge"
 	add_child(audio_bridge)
-	var encounter := _game_manager.get_current_encounter() if _game_manager != null else {}
+	var encounter := CombatManager.get_current_combat_payload()
 	audio_bridge.call("setup", battle, player_leader, _primary_enemy(), bool(encounter.get("is_boss", false)), battle.player_group, battle.enemy_group)
 
 ## Starts explicit player targeting or immediately queues auto-targeted actions.
@@ -420,50 +418,23 @@ func _configure_encounter_from_game_manager() -> void:
 	if _game_manager == null:
 		return
 
-	var encounter := _game_manager.get_current_encounter()
-	var combat_encounter_profile := _combat_encounter_profile_for(encounter)
-	enemy_instance_data = _enemy_instances_for_encounter(encounter, combat_encounter_profile)
+	var encounter := CombatManager.get_current_combat_payload()
+	if encounter.is_empty():
+		push_error("BattleScene cannot configure combat because CombatManager has no active payload.")
+		return
+	enemy_instance_data = _enemy_instances_for_encounter(encounter)
 	battle.difficulty_profile = _game_manager.get_selected_difficulty_profile()
 
-func _combat_encounter_profile_for(encounter: Dictionary) -> Resource:
-	var profile_path := str(encounter.get("combat_encounter_profile_path", "")).strip_edges()
-	if not profile_path.is_empty():
-		var profile := load(profile_path) as Resource
-		if profile != null:
-			return profile
-
-	var encounter_id: StringName = ValueReaderScript.string_name_from_variant(encounter.get("combat_encounter_id", &""))
-	if _game_manager != null and not String(encounter_id).is_empty():
-		return _game_manager.get_dungeon_combat_encounter(encounter_id)
-
-	return null
-
-func _enemy_instances_for_encounter(encounter: Dictionary, combat_encounter_profile: Resource) -> Array[Dictionary]:
+func _enemy_instances_for_encounter(encounter: Dictionary) -> Array[Dictionary]:
 	var instances := _enemy_instances_from_variant(encounter.get("enemy_instances", []))
 	if not instances.is_empty():
+		for instance in instances:
+			if not _is_valid_enemy_instance(instance):
+				push_error("BattleScene received malformed enemy instance: %s." % instance)
+				return []
 		return instances
 
-	var encounter_enemy_slots := _enemy_slots_for_profile(combat_encounter_profile)
-	if not encounter_enemy_slots.is_empty():
-		var min_count := _encounter_count_value(combat_encounter_profile, "min_enemy_count", 1)
-		var max_count := _encounter_count_value(combat_encounter_profile, "max_enemy_count", min_count)
-		min_count = clamp(min_count, 1, encounter_enemy_slots.size())
-		max_count = clamp(max(max_count, min_count), min_count, encounter_enemy_slots.size())
-		for index in randi_range(min_count, max_count):
-			var slot_data: Dictionary = encounter_enemy_slots[index]
-			instances.append({
-				"instance_id": "enemy_%s" % (index + 1),
-				"combatant_profile_path": str(slot_data.get("combatant_profile_path", "")),
-				"position_id": str(slot_data.get("position_id", ENEMY_SLOT_IDS[min(index, ENEMY_SLOT_IDS.size() - 1)])),
-				"enemy_level": 0,
-				"stat_seed": int(("fallback_%s" % index).hash()),
-			})
-		return instances
-
-	var fallback_profile_path := str(encounter.get("enemy_profile_path", "")).strip_edges()
-	if not fallback_profile_path.is_empty():
-		instances.append(_enemy_instance(fallback_profile_path, DEFAULT_ENEMY_SLOT_ID, 0, fallback_profile_path.hash()))
-
+	push_error("BattleScene received a combat encounter without enemy_instances.")
 	return instances
 
 func _enemy_instances_from_variant(raw_instances: Variant) -> Array[Dictionary]:
@@ -477,56 +448,28 @@ func _enemy_instances_from_variant(raw_instances: Variant) -> Array[Dictionary]:
 
 	return instances
 
-func _enemy_slots_for_profile(combat_encounter_profile: Resource) -> Array[Dictionary]:
-	var slots: Array[Dictionary] = []
-	if combat_encounter_profile == null:
-		return slots
-
-	var raw_slots: Variant = combat_encounter_profile.get("enemy_slots")
-	if not (raw_slots is Array):
-		return slots
-
-	for raw_slot in raw_slots:
-		if raw_slot is Dictionary:
-			slots.append(raw_slot)
-
-	return slots
-
-func _encounter_count_value(combat_encounter_profile: Resource, field_name: String, default_value: int) -> int:
-	if combat_encounter_profile == null:
-		return default_value
-
-	var value: Variant = combat_encounter_profile.get(field_name)
-	if value is int or value is float:
-		return int(value)
-
-	return default_value
-
-func _fallback_enemy_instance() -> Dictionary:
-	var fallback_path := ""
-	if _game_manager != null:
-		fallback_path = str(_game_manager.get_current_encounter().get("enemy_profile_path", ""))
-	if fallback_path.strip_edges().is_empty():
-		fallback_path = str(DEFAULT_ENEMY_PROFILE.resource_path)
-	return _enemy_instance(fallback_path, DEFAULT_ENEMY_SLOT_ID, 0, fallback_path.hash())
-
-func _enemy_instance(profile_path: String, slot_id: StringName, enemy_level: int, stat_seed: int) -> Dictionary:
-	return {
-		"instance_id": "enemy_1",
-		"combatant_profile_path": profile_path,
-		"position_id": String(slot_id),
-		"enemy_level": enemy_level,
-		"stat_seed": stat_seed,
-	}
-
 func _profile_for_enemy_instance(instance_data: Dictionary) -> CombatantProfile:
-	var profile_path := str(instance_data.get("combatant_profile_path", "")).strip_edges()
+	var profile_path := str(instance_data.get("profile_path", "")).strip_edges()
 	if not profile_path.is_empty():
 		var loaded_profile := load(profile_path) as CombatantProfile
 		if loaded_profile != null:
 			return loaded_profile
 
-	return DEFAULT_ENEMY_PROFILE
+	return null
+
+func _is_valid_enemy_instance(instance_data: Dictionary) -> bool:
+	if String(instance_data.get("instance_id", "")).strip_edges().is_empty():
+		return false
+	if String(instance_data.get("profile_path", "")).strip_edges().is_empty():
+		return false
+	if String(instance_data.get("slot_id", "")).strip_edges().is_empty():
+		return false
+	if not instance_data.has("level"):
+		return false
+	if not instance_data.has("stat_seed"):
+		return false
+
+	return true
 
 ## Copies an authored slot marker rectangle onto a display node.
 func _apply_display_slot(display: Control, slot_parent: Control, slot_id: StringName, fallback_slot_id: StringName) -> void:
@@ -555,8 +498,9 @@ func _apply_run_player_state() -> void:
 	if player_leader == null or _game_manager == null:
 		return
 
-	if _game_manager.current_run_data != null and _game_manager.current_run_data.has_method("get_selected_player_combatant_id"):
-		player_leader.combatant_id = str(_game_manager.current_run_data.get_selected_player_combatant_id())
+	var selected_combatant_id: String = str(_game_manager.get_selected_player_combatant_id())
+	if not selected_combatant_id.strip_edges().is_empty():
+		player_leader.combatant_id = selected_combatant_id
 	_game_manager.apply_run_player_state_to_combatant(player_leader)
 	var hp_snapshot: Dictionary = _game_manager.get_run_player_hp_snapshot()
 	battle.player_starting_hp_override = int(hp_snapshot.get("current", player_leader.max_hp))
@@ -577,8 +521,8 @@ func _on_run_ended(reason: String) -> void:
 	var result: Variant = _build_combat_result(false)
 	result.end_reason = reason
 
-	if _game_manager != null and _game_manager.current_run_data != null:
-		_game_manager.current_run_data.register_combat_result(result)
+	if _game_manager != null:
+		CombatManager.complete_combat(result)
 		_game_manager.emit_run_state()
 
 func _finish_combat(victory: bool) -> void:
@@ -593,16 +537,11 @@ func _finish_combat(victory: bool) -> void:
 	if _game_manager == null:
 		return
 
-	if victory:
-		var rewards: Dictionary = _game_manager.calculate_rewards_for_profiles(enemy_reward_profiles, result.is_boss)
-		result.memories_awarded = int(rewards.get("memories_awarded", 0))
-		result.gold_awarded = int(rewards.get("gold_awarded", 0))
-
 	await get_tree().create_timer(1.0).timeout
 	_game_manager.complete_combat(result)
 
 func _build_combat_result(victory: bool) -> Variant:
-	var encounter := _game_manager.get_current_encounter() if _game_manager != null else {}
+	var encounter := CombatManager.get_current_combat_payload()
 	var result: Variant = CombatResultScript.new()
 	result.victory = victory
 	result.node_id = int(encounter.get("node_id", -1))

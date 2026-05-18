@@ -10,7 +10,6 @@ enemy_stat_budget = 20
 enemy_health_multiplier = 1.0
 enemy_damage_multiplier = 1.0
 enemy_time_cost_multiplier = 0.95
-reward_multiplier = 1.25
 ai_randomness = 0.20
 ai_score_strength = 0.90
 ai_survival_awareness = 0.80

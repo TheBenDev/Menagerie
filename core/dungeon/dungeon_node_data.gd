@@ -16,7 +16,6 @@ var visited: bool = false
 var revealed: bool = false
 var resolved: bool = false
 var connected_node_ids: Array[int] = []
-var enemy_profile: String = ""
 var enemy_instances: Array[Dictionary] = []
 var encounter_id: StringName = &""
 var combat_encounter_id: StringName = &""
@@ -26,7 +25,6 @@ var is_boss: bool = false
 func _init(
 	new_id: int = -1,
 	new_node_type: String = TYPE_FIGHT,
-	new_enemy_profile: String = "",
 	new_enemy_instances: Array[Dictionary] = [],
 	new_encounter_id: StringName = &"",
 	new_combat_encounter_id: StringName = &"",
@@ -37,7 +35,6 @@ func _init(
 ) -> void:
 	id = new_id
 	node_type = new_node_type
-	enemy_profile = new_enemy_profile
 	enemy_instances = new_enemy_instances.duplicate(true)
 	encounter_id = new_encounter_id
 	combat_encounter_id = new_combat_encounter_id

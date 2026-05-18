@@ -2,7 +2,6 @@
 class_name CombatantState
 extends RefCounted
 
-const StatId := preload("res://core/combat/stat_id.gd")
 const ValueReaderScript := preload("res://core/utils/value_reader.gd")
 
 var combatant_id: String = ""
@@ -45,14 +44,14 @@ func set_runtime_modifiers(modifiers: Array[Dictionary]) -> void:
 ## Returns effective stats after runtime modifiers.
 func get_effective_stats() -> Dictionary:
 	var effective_stats: Dictionary = {}
-	for stat_id in StatId.ALL:
+	for stat_id: String in StatId.ALL:
 		effective_stats[stat_id] = get_effective_stat(stat_id)
 	return effective_stats
 
 ## Returns one effective stat after applying active runtime modifiers.
 func get_effective_stat(stat_id: String) -> int:
 	var resolved_stat_id: String = StatId.from_value(stat_id)
-	var value := int(stats.get(resolved_stat_id, 0))
+	var value: int = int(stats.get(resolved_stat_id, 0))
 	for modifier in runtime_modifiers:
 		if str(modifier.get("stat_id", "")) == resolved_stat_id:
 			value += int(modifier.get("amount", 0))
@@ -82,19 +81,19 @@ func apply_stats_to_combatant(combatant: Variant) -> void:
 	if combatant == null:
 		return
 
-	for stat_id in StatId.ALL:
+	for stat_id: String in StatId.ALL:
 		var field_name := str(StatId.PROFILE_FIELD_BY_ID.get(stat_id, ""))
 		if not field_name.is_empty():
 			combatant.set(field_name, get_effective_stat(stat_id))
 
 func _reset_default_stats() -> void:
 	stats = {}
-	for stat_id in StatId.ALL:
+	for stat_id: String in StatId.ALL:
 		stats[stat_id] = 5
 
 func _profile_stats(profile: Resource, default_value: int) -> Dictionary:
 	var profile_stats: Dictionary = {}
-	for stat_id in StatId.ALL:
+	for stat_id: String in StatId.ALL:
 		var field_name := str(StatId.PROFILE_FIELD_BY_ID.get(stat_id, ""))
 		profile_stats[stat_id] = ValueReaderScript.resource_int(profile, field_name, default_value)
 	return profile_stats
@@ -105,7 +104,7 @@ func _profile_string(profile: Resource, field_name: String, default_value: Strin
 
 	var value: Variant = profile.get(field_name)
 	if value is String or value is StringName:
-		var text := str(value)
+		var text: String = str(value)
 		if not text.is_empty():
 			return text
 

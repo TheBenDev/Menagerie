@@ -6,7 +6,7 @@ const PartyControlModeScript := preload("res://core/party/party_control_mode.gd"
 
 var party_member_id: String = ""
 var character_id: String = ""
-var combatant_state = null
+var combatant_state: CombatantState = null
 var control_mode: int = PartyControlModeScript.LOCAL_PLAYER
 var map_pawn_id: String = ""
 var is_unlocked: bool = true
@@ -15,7 +15,7 @@ var is_active: bool = true
 func _init(
 	new_party_member_id: String = "",
 	new_character_id: String = "",
-	new_combatant_state: Variant = null,
+	new_combatant_state: CombatantState = null,
 	new_control_mode: int = PartyControlModeScript.LOCAL_PLAYER
 ) -> void:
 	party_member_id = new_party_member_id

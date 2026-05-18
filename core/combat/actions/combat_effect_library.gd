@@ -8,7 +8,6 @@ const EFFECT_APPLY_STATUS := &"status.apply"
 const EFFECT_RAGE_GAIN := &"resource.rage.gain"
 const EFFECT_STRENGTH_ADD := &"stat.strength.add"
 
-const StatId := preload("res://core/combat/stat_id.gd")
 
 const STATUS_ROOT_PATH := "res://core/statuses"
 const STATUS_NAMESPACE_PREFIX := "status."

@@ -17,14 +17,14 @@ func _ready() -> void:
 	focus_mode = Control.FOCUS_NONE
 	z_index = 10
 
-## Initializes this marker from a pawn and its current node.
-func configure(pawn: Variant, node_data: DungeonNodeData, cell_size: float) -> void:
-	pawn_id = str(pawn.pawn_id) if pawn != null else ""
-	apply_pawn_state(pawn, node_data, cell_size)
+## Initializes this marker from a pawn snapshot and its current node.
+func configure(pawn_data: Variant, node_data: DungeonNodeData, cell_size: float) -> void:
+	pawn_id = _pawn_id(pawn_data)
+	apply_pawn_state(pawn_data, node_data, cell_size)
 
-## Repositions and redraws this marker from authoritative pawn position state.
-func apply_pawn_state(pawn: Variant, node_data: DungeonNodeData, cell_size: float) -> void:
-	if pawn == null or node_data == null or int(pawn.current_node_id) != node_data.id:
+## Repositions and redraws this marker from an authoritative pawn snapshot.
+func apply_pawn_state(pawn_data: Variant, node_data: DungeonNodeData, cell_size: float) -> void:
+	if pawn_data == null or node_data == null or _pawn_current_node_id(pawn_data) != node_data.id:
 		visible = false
 		return
 
@@ -56,3 +56,17 @@ func _draw() -> void:
 	var center: Vector2 = size * 0.5
 	draw_circle(center, radius, outline_color)
 	draw_circle(center, max(radius - 3.0, 1.0), marker_color)
+
+func _pawn_id(pawn_data: Variant) -> String:
+	if pawn_data is Dictionary:
+		return str(pawn_data.get("pawn_id", ""))
+	if pawn_data != null:
+		return str(pawn_data.pawn_id)
+	return ""
+
+func _pawn_current_node_id(pawn_data: Variant) -> int:
+	if pawn_data is Dictionary:
+		return int(pawn_data.get("current_node_id", -1))
+	if pawn_data != null:
+		return int(pawn_data.current_node_id)
+	return -1

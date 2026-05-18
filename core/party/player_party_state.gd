@@ -18,18 +18,18 @@ func configure_single_member(character_id: String, profile_path: String, profile
 	leader_member_id = ""
 	selected_member_id = ""
 
-	var normalized_id := _normalized_id(character_id)
-	var combatant_state := CombatantStateScript.new(
+	var normalized_id: String = _normalized_id(character_id)
+	var combatant_state: CombatantState = CombatantStateScript.new(
 		"combatant.%s" % normalized_id,
 		profile_path,
 		profile
-	)
-	var member := PlayerPartyMemberStateScript.new(
+	) as CombatantState
+	var member: PlayerPartyMemberState = PlayerPartyMemberStateScript.new(
 		"party_member.%s" % normalized_id,
 		character_id,
 		combatant_state,
 		PartyControlModeScript.LOCAL_PLAYER
-	)
+	) as PlayerPartyMemberState
 	add_member(member, true)
 	leader_member_id = member.party_member_id
 	selected_member_id = member.party_member_id
@@ -69,7 +69,7 @@ func get_selected_combatant_state() -> Variant:
 
 func get_active_members() -> Array:
 	var active_members: Array = []
-	for member_id in active_member_ids:
+	for member_id: String in active_member_ids:
 		var member: Variant = get_member(member_id)
 		if member != null and member.is_active:
 			active_members.append(member)
@@ -78,7 +78,7 @@ func get_active_members() -> Array:
 
 func get_member_for_combatant_id(combatant_id: String) -> Variant:
 	for member in members.values():
-		var party_member = member
+		var party_member: Variant = member
 		if party_member == null or party_member.combatant_state == null:
 			continue
 		if party_member.combatant_state.combatant_id == combatant_id:
