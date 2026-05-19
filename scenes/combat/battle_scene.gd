@@ -49,6 +49,10 @@ func _ready() -> void:
 	_setup_player_combatants()
 	_setup_enemy_combatants()
 
+	if enemy_combatants == null or enemy_combatants.is_empty():
+		push_error("BattleScene cannot initialize combat without enemy combatants.")
+		return
+
 	battle.player = player_leader
 	battle.enemy = _primary_enemy()
 	battle.configure_combatant_groups(player_combatants, enemy_combatants)
@@ -520,7 +524,7 @@ func _finish_combat(victory: bool) -> void:
 	_cancel_targeting(false)
 	combat_result_reported = true
 	var result: Variant = _build_combat_result(victory)
-	result.end_reason = "" if victory else RunData.END_REASON_DEFEAT
+	result.end_reason = RunData.END_REASON_VICTORY if victory else RunData.END_REASON_DEFEAT
 
 	if _game_manager == null:
 		return
