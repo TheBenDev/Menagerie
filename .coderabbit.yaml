@@ -36,6 +36,7 @@ reviews:
   path_filters: 
     - "!**/! Menagerie Wiki/**"
     - "!! Menagerie Wiki/**"
+    - "!assets/fonts/"
   path_instructions: []
   abort_on_close: true
   disable_cache: false
