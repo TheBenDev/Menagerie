@@ -8,6 +8,8 @@ var party_member_id: String = ""
 var character_id: String = ""
 var combatant_state: CombatantState = null
 var control_mode: int = PartyControlModeScript.LOCAL_PLAYER
+var owner_peer_id: int = 1
+var platform_user_id: String = ""
 var map_pawn_id: String = ""
 var is_unlocked: bool = true
 var is_active: bool = true
@@ -16,12 +18,16 @@ func _init(
 	new_party_member_id: String = "",
 	new_character_id: String = "",
 	new_combatant_state: CombatantState = null,
-	new_control_mode: int = PartyControlModeScript.LOCAL_PLAYER
+	new_control_mode: int = PartyControlModeScript.LOCAL_PLAYER,
+	new_owner_peer_id: int = 1,
+	new_platform_user_id: String = ""
 ) -> void:
 	party_member_id = new_party_member_id
 	character_id = new_character_id
 	combatant_state = new_combatant_state
 	control_mode = new_control_mode
+	owner_peer_id = max(new_owner_peer_id, 1)
+	platform_user_id = new_platform_user_id.strip_edges()
 
 func control_mode_id() -> String:
 	return PartyControlModeScript.id_for_mode(control_mode)

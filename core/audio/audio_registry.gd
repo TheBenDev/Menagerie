@@ -72,6 +72,8 @@ func _register_audio_path(audio_path: String, stream_id: StringName) -> void:
 	if String(stream_id).is_empty():
 		return
 	if paths_by_id.has(stream_id):
+		if str(paths_by_id.get(stream_id, "")) == audio_path:
+			return
 		if not duplicate_paths.has(stream_id):
 			duplicate_paths[stream_id] = [paths_by_id.get(stream_id, "")]
 		duplicate_paths[stream_id].append(audio_path)
@@ -211,13 +213,34 @@ func _collect_audio_paths(folder_path: String, audio_paths: Array[String]) -> vo
 		var entry_path := folder_path.path_join(entry_name)
 		if directory.current_is_dir():
 			_collect_audio_paths(entry_path, audio_paths)
-		elif _is_supported_audio_file(entry_name):
-			audio_paths.append(entry_path)
+		else:
+			var audio_path := _audio_resource_path_from_entry_path(entry_path)
+			if not audio_path.is_empty() and not audio_paths.has(audio_path):
+				audio_paths.append(audio_path)
 
 		entry_name = directory.get_next()
 
 	directory.list_dir_end()
 
 func _is_supported_audio_file(file_name: String) -> bool:
-	var extension := file_name.get_extension().to_lower()
+	return _is_supported_audio_resource_path(_resource_path_from_export_entry(file_name))
+
+static func _audio_resource_path_from_entry_path(entry_path: String) -> String:
+	var resource_path := _resource_path_from_export_entry(entry_path)
+	if _is_supported_audio_resource_path(resource_path):
+		return resource_path
+
+	return ""
+
+static func _resource_path_from_export_entry(entry_path: String) -> String:
+	var resource_path := entry_path
+	if resource_path.ends_with(".remap"):
+		resource_path = resource_path.trim_suffix(".remap")
+	if resource_path.ends_with(".import"):
+		resource_path = resource_path.trim_suffix(".import")
+
+	return resource_path
+
+static func _is_supported_audio_resource_path(resource_path: String) -> bool:
+	var extension := resource_path.get_extension().to_lower()
 	return bool(SUPPORTED_EXTENSIONS.get(extension, false))

@@ -15,8 +15,8 @@ const ROUTE_MUSIC_IDS := {
 	&"main_menu": MUSIC_MAIN_MENU,
 	&"waiting_room": MUSIC_WAITING_ROOM,
 	&"dungeon": MUSIC_DUNGEON,
-	&"combat": MUSIC_COMBAT,
-	&"combat/BattleScene": MUSIC_COMBAT,
+	&"combat": MUSIC_DUNGEON,
+	&"combat/BattleScene": MUSIC_DUNGEON,
 	&"run_summary": MUSIC_MAIN_MENU,
 }
 
@@ -24,14 +24,14 @@ const SCENE_PATH_MUSIC_IDS := {
 	"res://scenes/ui/main_menu/MainMenu.tscn": MUSIC_MAIN_MENU,
 	"res://scenes/ui/waiting_room/WaitingRoom.tscn": MUSIC_WAITING_ROOM,
 	"res://scenes/dungeon/DungeonMap.tscn": MUSIC_DUNGEON,
-	"res://scenes/combat/BattleScene.tscn": MUSIC_COMBAT,
+	"res://scenes/combat/BattleScene.tscn": MUSIC_DUNGEON,
 	"res://scenes/ui/run_summary/RunSummary.tscn": MUSIC_MAIN_MENU,
 }
 
 func on_route_changed(route_id: StringName) -> void:
 	var music_id := _music_id_for_route_or_scene(route_id)
 	_play_music(music_id)
-	if music_id == MUSIC_COMBAT:
+	if _is_combat_route(route_id):
 		_set_music_state(MUSIC_STATE_COMBAT_BASE, 0.0)
 	else:
 		_set_music_state(&"", 0.0)
@@ -44,7 +44,7 @@ func on_dungeon_entered(context: Dictionary = {}) -> void:
 	_set_music_state(&"", 0.0)
 
 func on_combat_started(context: Dictionary = {}) -> void:
-	_play_music(MUSIC_COMBAT)
+	_play_music(MUSIC_DUNGEON)
 	var is_boss := bool(context.get("is_boss", false))
 	_set_music_state(MUSIC_STATE_COMBAT_TENSE if is_boss else MUSIC_STATE_COMBAT_BASE, 0.25 if is_boss else 0.0)
 
@@ -88,3 +88,10 @@ func _music_id_for_route_or_scene(route_id: StringName) -> StringName:
 
 	var scene_path := SceneRouteServiceScript.scene_path_for(String(route_id))
 	return StringName(SCENE_PATH_MUSIC_IDS.get(scene_path, &""))
+
+func _is_combat_route(route_id: StringName) -> bool:
+	var route_text := String(route_id)
+	if route_text == "combat" or route_text == "combat/BattleScene":
+		return true
+
+	return SceneRouteServiceScript.scene_path_for(route_text) == "res://scenes/combat/BattleScene.tscn"

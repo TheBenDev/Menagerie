@@ -2,9 +2,7 @@
 extends Node
 
 signal node_event_emitted(event: Dictionary)
-signal empty_node_entered(node_id: int)
 signal haven_node_entered(node_id: int)
-signal node_completed(node_id: int, node_type: String)
 
 const DungeonNodeDataScript := preload("res://core/dungeon/dungeon_node_data.gd")
 const DungeonNodeEventHelperScript := preload("res://core/dungeon/dungeon_node_event_helper.gd")
@@ -48,10 +46,15 @@ var node_order: Array[int] = []
 var nodes_by_id: Dictionary = {}
 var map_grid_size: Vector2i = Vector2i.ONE
 var active_encounter_scene: Node = null
-var is_processing_travel_orders: bool = false
+var active_encounter_node_id: int = -1
+var active_encounter_pawn_id: String = ""
 var has_emitted_initial_haven_entry: bool = false
 
 func _ready() -> void:
+	if GameManager.has_active_run():
+		GameManager.play_run_music(false)
+	if not NetworkManager.authoritative_snapshot_received.is_connected(_on_authoritative_snapshot_received):
+		NetworkManager.authoritative_snapshot_received.connect(_on_authoritative_snapshot_received)
 	var copy_seed_callback := Callable(self, "_on_copy_seed_button_pressed")
 	if not copy_seed_button.pressed.is_connected(copy_seed_callback):
 		copy_seed_button.pressed.connect(copy_seed_callback)
@@ -60,13 +63,15 @@ func _ready() -> void:
 	_configure_dungeon_hotbar()
 	_create_path_data(_generate_run_descriptors())
 	_build_node_views()
-	_sync_run_data_metadata()
+	if NetworkManager.is_authority():
+		_sync_run_data_metadata()
 
-	if _apply_pending_combat_result():
+	if NetworkManager.is_authority() and _apply_pending_combat_result():
 		return
 
 	_apply_progress_state()
 	_refresh_view()
+	_sync_active_encounter_from_snapshot()
 	_emit_initial_haven_entry()
 	call_deferred("_center_map_content")
 
@@ -83,8 +88,8 @@ func _create_path_data(descriptors: Array) -> void:
 		if not descriptor.has("connections") or not (descriptor.get("connections") is Array):
 			push_error("Dungeon node descriptor %s is missing explicit connections." % int(descriptor.get("id", -1)))
 			return
-		var grid_position: Vector2i = descriptor.get("grid", Vector2i.ZERO)
-		var grid_size: Vector2i = descriptor.get("size", _default_grid_size_for_type(str(descriptor.get("type", DungeonNodeDataScript.TYPE_FIGHT))))
+		var grid_position: Vector2i = _vector2i_value(descriptor.get("grid", Vector2i.ZERO))
+		var grid_size: Vector2i = _vector2i_value(descriptor.get("size", _default_grid_size_for_type(str(descriptor.get("type", DungeonNodeDataScript.TYPE_FIGHT)))))
 		var node := DungeonNodeDataScript.new(
 			int(descriptor.get("id", -1)),
 			str(descriptor.get("type", DungeonNodeDataScript.TYPE_FIGHT)),
@@ -158,7 +163,7 @@ func _build_pawn_views() -> void:
 	if pawn_layer == null:
 		return
 
-	var dungeon_snapshot: Dictionary = GameManager.get_dungeon_snapshot()
+	var dungeon_snapshot: Dictionary = _dungeon_snapshot_for_view()
 	var pawn_snapshots: Dictionary = dungeon_snapshot.get("pawns", {})
 	for raw_pawn_id in dungeon_snapshot.get("active_pawn_ids", []):
 		var pawn_id := str(raw_pawn_id)
@@ -187,7 +192,7 @@ func _apply_pending_combat_result() -> bool:
 	GameManager.emit_run_state()
 
 	if not result.victory or result.is_boss:
-		GameManager.call_deferred("go_to_scene", "run_summary")
+		NetworkManager.call_deferred("request_route", "run_summary")
 		return true
 
 	_apply_progress_state()
@@ -195,7 +200,7 @@ func _apply_pending_combat_result() -> bool:
 	return false
 
 func _apply_progress_state() -> void:
-	var dungeon_snapshot: Dictionary = GameManager.get_dungeon_snapshot()
+	var dungeon_snapshot: Dictionary = _dungeon_snapshot_for_view()
 	var visited_ids: Array = dungeon_snapshot.get("visited_node_ids", [])
 	var revealed_ids: Array = dungeon_snapshot.get("revealed_node_ids", [])
 	var resolved_ids: Array = dungeon_snapshot.get("resolved_node_ids", [])
@@ -209,7 +214,7 @@ func _apply_progress_state() -> void:
 		node.revealed = revealed_ids.has(node.id) or node.visited or node.id == START_NODE_ID
 
 func _refresh_view() -> void:
-	var dungeon_snapshot: Dictionary = GameManager.get_dungeon_snapshot()
+	var dungeon_snapshot: Dictionary = _dungeon_snapshot_for_view()
 	difficulty_label.text = "Difficulty: %s" % GameManager.get_selected_difficulty_display_name()
 	seed_label.text = "Seed: %s" % str(dungeon_snapshot.get("seed", ""))
 	_refresh_dungeon_hotbar()
@@ -255,10 +260,68 @@ func _refresh_pawn_views(dungeon_snapshot: Dictionary) -> void:
 			stale_view.queue_free()
 		pawn_views_by_id.erase(view_pawn_id)
 
+func _on_authoritative_snapshot_received(_snapshot: Dictionary) -> void:
+	_apply_progress_state()
+	_refresh_view()
+	_sync_active_encounter_from_snapshot()
+
+func _sync_active_encounter_from_snapshot() -> void:
+	var dungeon_snapshot: Dictionary = _dungeon_snapshot_for_view()
+	var active_event: Dictionary = dungeon_snapshot.get("active_event", {})
+	if active_event.is_empty():
+		if active_encounter_scene != null:
+			_clear_active_encounter_scene()
+		return
+	if str(active_event.get("type", "")) != "encounter":
+		return
+
+	var node_id: int = int(active_event.get("node_id", -1))
+	var node: DungeonNodeData = nodes_by_id.get(node_id) as DungeonNodeData
+	if node == null:
+		push_error("Active encounter references missing dungeon node %s." % node_id)
+		return
+	active_encounter_pawn_id = str(active_event.get("pawn_id", ""))
+	if active_encounter_pawn_id.is_empty():
+		push_error("Active encounter is missing its owning pawn id.")
+		return
+	if active_encounter_scene != null and active_encounter_node_id == node_id:
+		_apply_encounter_interactivity()
+		return
+	_start_encounter_node(node, false, active_encounter_pawn_id)
+
+func _apply_encounter_interactivity() -> void:
+	if active_encounter_scene == null:
+		return
+	var active_event: Dictionary = _dungeon_snapshot_for_view().get("active_event", {})
+	var can_interact: bool = int(active_event.get("owner_peer_id", 1)) == NetworkManager.local_peer_id()
+	if active_encounter_scene.has_method("set_interactive"):
+		active_encounter_scene.call("set_interactive", can_interact)
+
+func _dungeon_snapshot_for_view() -> Dictionary:
+	if NetworkManager.is_client() and not NetworkManager.last_authoritative_snapshot.is_empty():
+		var dungeon_snapshot: Dictionary = NetworkManager.last_authoritative_snapshot.get("dungeon", {})
+		if not dungeon_snapshot.is_empty():
+			return dungeon_snapshot
+	return GameManager.get_dungeon_snapshot()
+
+func _dungeon_snapshot_for_local_input() -> Dictionary:
+	var dungeon_snapshot := _dungeon_snapshot_for_view().duplicate(true)
+	dungeon_snapshot["selected_pawn_id"] = _local_input_pawn_id(dungeon_snapshot)
+	return dungeon_snapshot
+
+func _local_input_pawn_id(dungeon_snapshot: Dictionary) -> String:
+	var pawns: Dictionary = dungeon_snapshot.get("pawns", {})
+	for raw_pawn_id in dungeon_snapshot.get("active_pawn_ids", []):
+		var pawn_id := str(raw_pawn_id)
+		var pawn: Dictionary = pawns.get(pawn_id, {})
+		if int(pawn.get("owner_peer_id", 1)) == NetworkManager.local_peer_id():
+			return pawn_id
+	return str(dungeon_snapshot.get("selected_pawn_id", ""))
+
 func _can_select_node(node: Variant) -> bool:
 	if node == null or not node.revealed:
 		return false
-	var dungeon_snapshot: Dictionary = GameManager.get_dungeon_snapshot()
+	var dungeon_snapshot: Dictionary = _dungeon_snapshot_for_local_input()
 	if node.id == int(dungeon_snapshot.get("current_node_id", -1)):
 		return false
 
@@ -266,7 +329,7 @@ func _can_select_node(node: Variant) -> bool:
 
 # Copies the active run seed to the system clipboard.
 func _on_copy_seed_button_pressed() -> void:
-	DisplayServer.clipboard_set(str(GameManager.get_dungeon_snapshot().get("seed", "")))
+	DisplayServer.clipboard_set(str(_dungeon_snapshot_for_view().get("seed", "")))
 
 func _configure_dungeon_hotbar() -> void:
 	var profile: CombatantProfile = GameManager.get_selected_character_profile()
@@ -366,130 +429,16 @@ func _on_node_pressed(node_id: int) -> void:
 	if not _can_select_node(node):
 		return
 
-	var travel_request: Dictionary = DungeonManager.request_selected_pawn_travel(_run_data_for_action(), node_id)
-	if not bool(travel_request.get("accepted", false)):
+	var dungeon_snapshot: Dictionary = _dungeon_snapshot_for_local_input()
+	var pawn_id: String = str(dungeon_snapshot.get("selected_pawn_id", ""))
+	if pawn_id.is_empty():
 		return
 
-	_refresh_view()
-	_ensure_travel_processing()
-
-func _ensure_travel_processing() -> void:
-	if is_processing_travel_orders:
-		return
-
-	call_deferred("_process_travel_orders")
-
-func _process_travel_orders() -> void:
-	if is_processing_travel_orders:
-		return
-
-	is_processing_travel_orders = true
-	while DungeonManager.has_active_travel_orders(_run_data_for_action()):
-		if not GameManager.advance_run_time(DungeonManager.NODE_TRAVEL_TIME):
-			break
-
-		var step_result: Dictionary = DungeonManager.advance_travel_one_step(_run_data_for_action(), _unresolved_event_node_ids())
-		var route_started: bool = _handle_travel_step_arrivals(step_result)
-		if route_started:
-			break
-
-		_apply_progress_state()
-		_refresh_view()
-
-		if bool(step_result.get("pause_requested", false)):
-			break
-
-		var delay_seconds: float = _travel_step_delay_seconds()
-		if delay_seconds > 0.0:
-			await get_tree().create_timer(delay_seconds).timeout
-
-	is_processing_travel_orders = false
-
-## Processes every pawn that moved during the last synchronized travel step.
-func _handle_travel_step_arrivals(step_result: Dictionary) -> bool:
-	var moved_pawn_ids: Array = step_result.get("moved_pawn_ids", [])
-	var route_requests: Array[Dictionary] = []
-	for raw_pawn_id in moved_pawn_ids:
-		var pawn_id := str(raw_pawn_id)
-		var pawn: Variant = DungeonManager.get_pawn(_run_data_for_action(), pawn_id)
-		if pawn == null:
-			continue
-
-		var node: DungeonNodeData = nodes_by_id.get(int(pawn.current_node_id)) as DungeonNodeData
-		var route_request := _process_pawn_arrival_at_node(pawn_id, node)
-		if not route_request.is_empty():
-			route_requests.append(route_request)
-
-	if route_requests.is_empty():
-		return false
-
-	if route_requests.size() > 1:
-		push_warning("Multiple routed dungeon events reached in one step. Current single-local-player routing starts only the first; multiplayer combat instances will handle this later.")
-	_start_arrival_route(route_requests[0])
-	return true
-
-## Applies visit/reveal state and node-type behavior when one pawn enters a node.
-func _handle_pawn_arrival_at_node(pawn_id: String, node: DungeonNodeData) -> bool:
-	var route_request := _process_pawn_arrival_at_node(pawn_id, node)
-	if route_request.is_empty():
-		return false
-
-	_start_arrival_route(route_request)
-	return true
-
-func _process_pawn_arrival_at_node(pawn_id: String, node: DungeonNodeData) -> Dictionary:
-	if node == null:
-		return {}
-
-	var run_data: Variant = _run_data_for_action()
-	var pawn: Variant = DungeonManager.get_pawn(run_data, pawn_id)
-	if pawn == null:
-		return {}
-
-	DungeonManager.mark_node_visited(run_data, node.id, StringName(pawn_id))
-	_emit_node_entered(node)
-
-	match node.node_type:
-		DungeonNodeDataScript.TYPE_EMPTY:
-			empty_node_entered.emit(node.id)
-			_resolve_node_visit(node, pawn_id)
-		DungeonNodeDataScript.TYPE_HAVEN:
-			haven_node_entered.emit(node.id)
-			GameManager.emit_run_state()
-		DungeonNodeDataScript.TYPE_FIGHT, DungeonNodeDataScript.TYPE_BOSS:
-			if not DungeonManager.is_node_resolved(run_data, node.id):
-				DungeonManager.lock_pawn_for_event(run_data, pawn_id, node.id)
-				_apply_progress_state()
-				_refresh_view()
-				return _route_request("combat", node)
-			GameManager.emit_run_state()
-		DungeonNodeDataScript.TYPE_ENCOUNTER:
-			if not DungeonManager.is_node_resolved(run_data, node.id):
-				DungeonManager.lock_pawn_for_event(run_data, pawn_id, node.id)
-				_apply_progress_state()
-				_refresh_view()
-				return _route_request("encounter", node)
-			GameManager.emit_run_state()
-		_:
-			GameManager.emit_run_state()
-
-	return {}
-
-func _start_arrival_route(route_request: Dictionary) -> void:
-	var node: DungeonNodeData = route_request.get("node", null) as DungeonNodeData
-	match str(route_request.get("type", "")):
-		"combat":
-			_start_combat_node(node, false)
-		"encounter":
-			_start_encounter_node(node, false)
-
-func _route_request(route_type: String, node: DungeonNodeData) -> Dictionary:
-	return {
-		"type": route_type,
-		"node": node,
-	}
+	NetworkManager.request_pawn_travel(pawn_id, node_id)
 
 func _emit_initial_haven_entry() -> void:
+	if not NetworkManager.is_authority():
+		return
 	if has_emitted_initial_haven_entry:
 		return
 
@@ -503,45 +452,19 @@ func _emit_initial_haven_entry() -> void:
 		return
 
 	has_emitted_initial_haven_entry = true
-	if not _handle_pawn_arrival_at_node(str(pawn.pawn_id), node):
-		_apply_progress_state()
-		_refresh_view()
+	_emit_node_entered(node)
+	haven_node_entered.emit(node.id)
+	_apply_progress_state()
+	_refresh_view()
 
 func _emit_node_entered(node: DungeonNodeData) -> void:
 	node_event_emitted.emit(DungeonNodeEventHelperScript.build_node_event(node))
 
-func _unresolved_event_node_ids() -> Array[int]:
-	var event_node_ids: Array[int] = []
-	var dungeon_snapshot: Dictionary = GameManager.get_dungeon_snapshot()
-	var resolved_ids: Array = dungeon_snapshot.get("resolved_node_ids", [])
-	for node_id in node_order:
-		var node = nodes_by_id.get(node_id)
-		if node == null or not _is_event_node(node):
-			continue
-		if not resolved_ids.has(node.id):
-			event_node_ids.append(node.id)
-
-	return event_node_ids
-
-func _is_event_node(node: DungeonNodeData) -> bool:
-	return node.node_type == DungeonNodeDataScript.TYPE_FIGHT \
-		or node.node_type == DungeonNodeDataScript.TYPE_BOSS \
-		or node.node_type == DungeonNodeDataScript.TYPE_ENCOUNTER
-
-func _travel_step_delay_seconds() -> float:
-	return 1.0 / max(DungeonManager.VISUAL_NODE_STEPS_PER_REAL_SECOND, 0.01)
-
-func _start_combat_node(node: DungeonNodeData, charge_travel_time: bool = true) -> void:
+func _start_encounter_node(node: DungeonNodeData, charge_travel_time: bool = true, pawn_id: String = "") -> void:
 	if node == null:
 		return
-
-	var starts_boss_combat: bool = node.is_boss or node.node_type == DungeonNodeDataScript.TYPE_BOSS
-	if starts_boss_combat and SoundManager != null:
-		SoundManager.play_sfx(&"sfx.global.boss.boss_start_fight")
-	DungeonManager.start_combat_node(_run_data_for_action(), node, charge_travel_time)
-
-func _start_encounter_node(node: DungeonNodeData, charge_travel_time: bool = true) -> void:
-	if node == null:
+	if pawn_id.is_empty():
+		push_error("Cannot start dungeon encounter node %s without an owning pawn id." % node.id)
 		return
 	if charge_travel_time and not GameManager.advance_run_time(DungeonManager.NODE_TRAVEL_TIME):
 		return
@@ -549,11 +472,12 @@ func _start_encounter_node(node: DungeonNodeData, charge_travel_time: bool = tru
 	var encounter_data: Resource = GameManager.get_dungeon_encounter(node.encounter_id)
 	var encounter_scene: PackedScene = GameManager.get_dungeon_encounter_scene(node.encounter_id)
 	if encounter_data == null or encounter_scene == null:
-		push_warning("Dungeon encounter %s could not be resolved." % node.encounter_id)
-		_complete_node_visit(node)
+		push_error("Dungeon encounter %s could not be resolved." % node.encounter_id)
 		return
 
 	_clear_active_encounter_scene()
+	active_encounter_node_id = node.id
+	active_encounter_pawn_id = pawn_id
 	active_encounter_scene = encounter_scene.instantiate()
 	encounter_layer.visible = true
 	encounter_layer.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -568,8 +492,9 @@ func _start_encounter_node(node: DungeonNodeData, charge_travel_time: bool = tru
 		active_encounter_scene.call("setup", encounter_data, {
 			"node_id": node.id,
 			"encounter_id": node.encounter_id,
-			"floor_layer": int(GameManager.get_dungeon_snapshot().get("floor_layer", 1)),
+			"floor_layer": int(_dungeon_snapshot_for_view().get("floor_layer", 1)),
 		})
+	_apply_encounter_interactivity()
 
 func _on_encounter_finished(result: Dictionary, node_id: int) -> void:
 	var node = nodes_by_id.get(node_id)
@@ -581,42 +506,24 @@ func _on_encounter_finished(result: Dictionary, node_id: int) -> void:
 	if result_mode != "complete":
 		push_warning("Unsupported dungeon encounter result mode: %s. Keeping encounter active so event-locked pawns can still resolve it." % result_mode)
 		return
+	if active_encounter_pawn_id.is_empty():
+		push_error("Cannot resolve dungeon encounter node %s without an owning pawn id." % node.id)
+		return
 
 	var manager_result := result.duplicate(true)
-	manager_result["encounter_id"] = node.encounter_id
-	DungeonManager.apply_encounter_result(_run_data_for_action(), manager_result)
-	GameManager.emit_run_state()
-	_clear_active_encounter_scene()
-	if DungeonManager.is_player_defeated(_run_data_for_action()):
-		GameManager.end_current_run(RunData.END_REASON_DEFEAT)
-		return
-	if not GameManager.has_active_run():
-		return
-
-	_complete_node_visit(node)
+	manager_result["node_id"] = node.id
+	manager_result["pawn_id"] = active_encounter_pawn_id
+	manager_result["encounter_id"] = String(node.encounter_id)
+	NetworkManager.request_encounter_choice(manager_result)
 
 func _clear_active_encounter_scene() -> void:
 	if active_encounter_scene != null:
 		active_encounter_scene.queue_free()
 		active_encounter_scene = null
+	active_encounter_node_id = -1
+	active_encounter_pawn_id = ""
 	encounter_layer.visible = false
 	encounter_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
-
-func _complete_node_visit(node: DungeonNodeData) -> void:
-	_resolve_node_visit(node)
-	_apply_progress_state()
-	_refresh_view()
-
-func _resolve_node_visit(node: DungeonNodeData, pawn_id: String = "") -> void:
-	if node == null:
-		return
-
-	var run_data: Variant = _run_data_for_action()
-	var was_resolved: bool = DungeonManager.is_node_resolved(run_data, node.id)
-	DungeonManager.resolve_node(run_data, node.id, StringName(pawn_id))
-	if not was_resolved:
-		node_completed.emit(node.id, node.node_type)
-	GameManager.emit_run_state()
 
 func _center_map_content() -> void:
 	var viewport_size := map_viewport.size
@@ -624,6 +531,8 @@ func _center_map_content() -> void:
 	map_content.position = (viewport_size - content_size) * 0.5
 
 func _run_data_for_action() -> Variant:
+	if not NetworkManager.is_authority():
+		return GameManager.get_current_run_reference()
 	if not GameManager.has_current_run_data():
 		GameManager.start_new_run(GameManager.get_selected_character_id(), GameManager.get_selected_difficulty_id())
 
@@ -638,6 +547,10 @@ func _resolve_pawn_layer() -> Control:
 	return get_node_or_null("../MapViewport/MapContent/PawnLayer") as Control
 
 func _generate_run_descriptors() -> Array:
+	var snapshot_descriptors: Array = _dungeon_snapshot_for_view().get("descriptors", [])
+	if not snapshot_descriptors.is_empty():
+		return snapshot_descriptors.duplicate(true)
+
 	var run_data: Variant = _run_data_for_action()
 	if run_data.dungeon_node_descriptors.is_empty():
 		DungeonManager.initialize_dungeon_for_run(run_data)
@@ -666,6 +579,15 @@ func _default_grid_size_for_type(node_type: String) -> Vector2i:
 		return Vector2i.ONE
 
 	return Vector2i(3, 3)
+
+func _vector2i_value(value: Variant) -> Vector2i:
+	if value is Vector2i:
+		return value
+	if value is Dictionary:
+		return Vector2i(int(value.get("x", 0)), int(value.get("y", 0)))
+	if value is Array and value.size() >= 2:
+		return Vector2i(int(value[0]), int(value[1]))
+	return Vector2i.ZERO
 
 func _enemy_instances_from_descriptor(descriptor: Dictionary) -> Array[Dictionary]:
 	var enemy_instances: Array[Dictionary] = []

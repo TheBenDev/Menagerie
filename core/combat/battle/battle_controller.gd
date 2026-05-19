@@ -34,6 +34,7 @@ var time_scale_index: int = 1
 var time_scale_values: Array[float] = [0.5, 1.0, 2.0, 4.0]
 
 var waiting_for_player_input: bool = false
+var waiting_for_actor_ids: Array[String] = []
 var battle_over: bool = false
 var is_advancing: bool = false
 var is_paused: bool = false
@@ -96,7 +97,8 @@ func start_battle() -> void:
 
 	current_time = 0.0
 	battle_over = false
-	waiting_for_player_input = true
+	waiting_for_player_input = false
+	waiting_for_actor_ids.clear()
 	set_paused(false)
 	action_queue.clear()
 	_next_queue_id = 1
@@ -104,12 +106,13 @@ func start_battle() -> void:
 	action_queue_changed.emit()
 
 	battle_log.emit("Battle started.")
-	if player != null and player.hp > 0:
-		player_ready.emit(player)
-	else:
+	_update_ready_player_inputs()
+	if waiting_for_actor_ids.is_empty():
 		waiting_for_player_input = false
 		_choose_ready_ai_actions()
 		advance_until_input_needed()
+	else:
+		_emit_waiting_player_ready()
 
 func _ensure_combatant_groups() -> void:
 	if player_group == null:
@@ -174,17 +177,24 @@ func _apply_player_hp_override() -> void:
 	player.hp_changed.emit(player)
 
 func player_choose_action(action: CombatActionData, explicit_targets: Array[Combatant] = []) -> void:
-	if battle_over or not waiting_for_player_input or action == null:
+	player_choose_action_for_actor(player, action, explicit_targets)
+
+func player_choose_action_for_actor(actor: Combatant, action: CombatActionData, explicit_targets: Array[Combatant] = []) -> void:
+	if battle_over or actor == null or action == null:
+		return
+	var actor_id := _combatant_identity(actor)
+	if not waiting_for_actor_ids.has(actor_id):
 		return
 
-	var targets: Array[Combatant] = _targets_for_player_action(action, explicit_targets)
+	var targets: Array[Combatant] = _targets_for_player_action(actor, action, explicit_targets)
 	if targets.is_empty():
 		return
 
-	waiting_for_player_input = false
-	player.start_action(action, targets, current_time)
-	_enqueue_action(player, action)
-	battle_log.emit(player.display_name + " starts " + action.display_name + ".")
+	waiting_for_actor_ids.erase(actor_id)
+	waiting_for_player_input = not waiting_for_actor_ids.is_empty()
+	actor.start_action(action, targets, current_time)
+	_enqueue_action(actor, action)
+	battle_log.emit(actor.display_name + " starts " + action.display_name + ".")
 
 	_choose_ready_ai_actions()
 
@@ -215,12 +225,12 @@ func advance_until_input_needed() -> void:
 	is_advancing = true
 	var should_emit_player_ready := false
 
-	while not waiting_for_player_input and not battle_over:
+	while waiting_for_actor_ids.is_empty() and not battle_over:
 		var tick_delay_seconds := _tick_delay_seconds()
 		if tick_delay_seconds > 0.0:
 			await _wait_tick_delay(tick_delay_seconds)
 
-		if waiting_for_player_input or battle_over:
+		if not waiting_for_actor_ids.is_empty() or battle_over:
 			break
 
 		current_time = CombatTime.snap_absolute_time(current_time + tick_size)
@@ -236,15 +246,14 @@ func advance_until_input_needed() -> void:
 
 		_choose_ready_ai_actions()
 
-		_sync_convenience_refs_from_groups()
-		if player != null and player.hp > 0 and not player.is_busy:
-			waiting_for_player_input = true
+		_update_ready_player_inputs()
+		if not waiting_for_actor_ids.is_empty():
 			should_emit_player_ready = true
 			break
 
 	is_advancing = false
 	if should_emit_player_ready:
-		player_ready.emit(player)
+		_emit_waiting_player_ready()
 	else:
 		time_changed.emit(current_time)
 
@@ -330,10 +339,10 @@ func _apply_enemy_difficulty_profile(enemy_combatant: Combatant, active_difficul
 	enemy_combatant.hp_changed.emit(enemy_combatant)
 	enemy_combatant.block_changed.emit(enemy_combatant)
 
-func _targets_for_player_action(action: CombatActionData, explicit_targets: Array[Combatant]) -> Array[Combatant]:
+func _targets_for_player_action(actor: Combatant, action: CombatActionData, explicit_targets: Array[Combatant]) -> Array[Combatant]:
 	var opponents: Array[Combatant] = enemy_group.get_living_combatants() if enemy_group != null else []
 	var allies: Array[Combatant] = player_group.get_living_combatants() if player_group != null else []
-	return CombatTargetingScript.targets_for_action(action, player, opponents, allies, explicit_targets)
+	return CombatTargetingScript.targets_for_action(action, actor, opponents, allies, explicit_targets)
 
 func _combatant_targets_from(raw_targets: Variant) -> Array[Combatant]:
 	var targets: Array[Combatant] = []
@@ -354,14 +363,17 @@ func _on_combatant_died(combatant: Combatant) -> void:
 	var players_defeated := is_player_group_defeated()
 	var enemies_defeated := is_enemy_group_defeated()
 	if not players_defeated and not enemies_defeated:
+		var combatant_id := _combatant_identity(combatant)
+		waiting_for_actor_ids.erase(combatant_id)
+		waiting_for_player_input = not waiting_for_actor_ids.is_empty()
 		if combatant == player:
-			waiting_for_player_input = false
 			_choose_ready_ai_actions()
 			advance_until_input_needed()
 		return
 
 	battle_over = true
 	waiting_for_player_input = false
+	waiting_for_actor_ids.clear()
 	set_paused(false)
 	if players_defeated:
 		player_group_defeated.emit()
@@ -378,6 +390,53 @@ func _enqueue_action(actor: Combatant, action: CombatActionData) -> void:
 	_next_queue_id += 1
 	action_queue.append(entry)
 	action_queue_changed.emit()
+
+func is_waiting_for_actor(combatant_id: String) -> bool:
+	return waiting_for_actor_ids.has(combatant_id)
+
+func get_waiting_player_combatants() -> Array[Combatant]:
+	var combatants: Array[Combatant] = []
+	for waiting_id in waiting_for_actor_ids:
+		var combatant := _combatant_for_id(waiting_id)
+		if combatant != null:
+			combatants.append(combatant)
+	return combatants
+
+func _update_ready_player_inputs() -> void:
+	_sync_convenience_refs_from_groups()
+	waiting_for_actor_ids.clear()
+	for active_player in get_living_player_combatants():
+		if active_player == null or active_player.is_busy:
+			continue
+		if ai_controlled_combatants.has(active_player):
+			continue
+		waiting_for_actor_ids.append(_combatant_identity(active_player))
+	waiting_for_player_input = not waiting_for_actor_ids.is_empty()
+	var first_waiting := _combatant_for_id(waiting_for_actor_ids[0]) if not waiting_for_actor_ids.is_empty() else null
+	if first_waiting != null:
+		player = first_waiting
+
+func _emit_waiting_player_ready() -> void:
+	for active_player in get_waiting_player_combatants():
+		player_ready.emit(active_player)
+
+func _combatant_for_id(combatant_id: String) -> Combatant:
+	for active_player in get_player_combatants():
+		if _combatant_identity(active_player) == combatant_id:
+			return active_player
+	for active_enemy in get_enemy_combatants():
+		if _combatant_identity(active_enemy) == combatant_id:
+			return active_enemy
+	return null
+
+static func _combatant_identity(combatant: Combatant) -> String:
+	if combatant == null:
+		return ""
+	if not str(combatant.get("combatant_id")).strip_edges().is_empty():
+		return str(combatant.get("combatant_id"))
+	if not str(combatant.name).is_empty():
+		return str(combatant.name)
+	return str(combatant.get_instance_id())
 
 func _cancel_pending_actions_for(combatant: Combatant) -> void:
 	if combatant == null:

@@ -761,7 +761,7 @@ static func _heap_push(heap: Array, position: Vector2i, score: float) -> void:
 	})
 	var index := heap.size() - 1
 	while index > 0:
-		var parent_index := int((index - 1) / 2)
+		var parent_index: int = floori(float(index - 1) / 2.0)
 		if not _heap_entry_less(heap[index], heap[parent_index]):
 			break
 		var parent = heap[parent_index]

@@ -10,6 +10,7 @@ var _pending_combat_result: Variant = null
 var _current_run_data: Variant = null
 var _has_active_combat: bool = false
 var _cached_reward_profiles: Array[Resource] = []
+var _active_battle_scene: Node = null
 
 func start_combat_from_dungeon(run_data: Variant, node_id: int, encounter_payload: Dictionary) -> void:
 	if run_data == null:
@@ -37,6 +38,9 @@ func validate_combat_payload(payload: Dictionary) -> void:
 		push_error("Invalid combat payload (%s): %s." % [payload_error, payload])
 
 func complete_combat(result: Variant) -> void:
+	if NetworkManager != null and NetworkManager.is_client():
+		push_error("Clients cannot complete authoritative combat.")
+		return
 	if result == null:
 		push_error("CombatManager cannot complete combat with a null result.")
 		return
@@ -59,12 +63,31 @@ func has_pending_combat_result() -> bool:
 func has_active_combat() -> bool:
 	return _has_active_combat
 
+func register_battle_scene(scene: Node) -> void:
+	_active_battle_scene = scene
+
+func unregister_battle_scene(scene: Node) -> void:
+	if _active_battle_scene == scene:
+		_active_battle_scene = null
+
+func server_request_combat_action(sender_peer_id: int, payload: Dictionary) -> Dictionary:
+	if not _has_active_combat:
+		return {"accepted": false, "reason": "no_active_combat"}
+	if _active_battle_scene == null or not is_instance_valid(_active_battle_scene):
+		return {"accepted": false, "reason": "missing_battle_runtime"}
+	if not _active_battle_scene.has_method("server_request_combat_action"):
+		return {"accepted": false, "reason": "invalid_battle_runtime"}
+	return _active_battle_scene.call("server_request_combat_action", sender_peer_id, payload)
+
 func get_combat_snapshot() -> Dictionary:
-	return {
+	var snapshot := {
 		"has_active_combat": _has_active_combat,
 		"has_pending_result": _pending_combat_result != null,
 		"payload": _current_combat_payload.duplicate(true),
 	}
+	if _active_battle_scene != null and is_instance_valid(_active_battle_scene) and _active_battle_scene.has_method("get_combat_snapshot"):
+		snapshot["runtime"] = _active_battle_scene.call("get_combat_snapshot")
+	return snapshot
 
 func _apply_combat_result_to_run(run_data: Variant, result: Variant) -> void:
 	if run_data == null or result == null:

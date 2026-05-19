@@ -28,11 +28,36 @@ func configure_single_member(character_id: String, profile_path: String, profile
 		"party_member.%s" % normalized_id,
 		character_id,
 		combatant_state,
-		PartyControlModeScript.LOCAL_PLAYER
+		PartyControlModeScript.LOCAL_PLAYER,
+		1,
+		""
 	) as PlayerPartyMemberState
 	add_member(member, true)
 	leader_member_id = member.party_member_id
 	selected_member_id = member.party_member_id
+
+## Resets this party from authoritative network member configs.
+func configure_members(member_configs: Array[Dictionary], local_peer_id: int) -> void:
+	members.clear()
+	active_member_ids.clear()
+	leader_member_id = ""
+	selected_member_id = ""
+	if member_configs.is_empty():
+		push_error("PlayerPartyState cannot configure an empty multiplayer party.")
+		return
+
+	for config in member_configs:
+		var member: Variant = _member_from_config(config, local_peer_id)
+		if member == null:
+			continue
+		add_member(member, bool(config.get("is_active", true)))
+		if selected_member_id.is_empty() and int(member.owner_peer_id) == local_peer_id:
+			selected_member_id = member.party_member_id
+
+	if leader_member_id.is_empty() and not active_member_ids.is_empty():
+		leader_member_id = active_member_ids[0]
+	if selected_member_id.is_empty():
+		selected_member_id = leader_member_id
 
 ## Adds or replaces one party member and optionally marks it active.
 func add_member(member: Variant, make_active: bool = true) -> void:
@@ -100,3 +125,34 @@ static func _normalized_id(value: String) -> String:
 		return "member"
 
 	return normalized
+
+func _member_from_config(config: Dictionary, local_peer_id: int) -> Variant:
+	var character_id: String = str(config.get("character_id", "")).strip_edges()
+	var profile_path: String = str(config.get("profile_path", "")).strip_edges()
+	var party_member_id: String = str(config.get("party_member_id", "")).strip_edges()
+	var combatant_id: String = str(config.get("combatant_id", "")).strip_edges()
+	var owner_peer_id: int = int(config.get("owner_peer_id", 1))
+	var platform_user_id: String = str(config.get("platform_user_id", "")).strip_edges()
+	if character_id.is_empty() or profile_path.is_empty() or party_member_id.is_empty() or combatant_id.is_empty():
+		push_error("Invalid multiplayer party member config: %s." % config)
+		return null
+
+	var profile := load(profile_path) as Resource
+	if profile == null:
+		push_error("Could not load multiplayer party profile %s for %s." % [profile_path, party_member_id])
+		return null
+
+	var combatant_state: CombatantState = CombatantStateScript.new(combatant_id, profile_path, profile) as CombatantState
+	var control_mode: int = PartyControlModeScript.LOCAL_PLAYER if owner_peer_id == local_peer_id else PartyControlModeScript.REMOTE_PLAYER
+	if bool(config.get("is_active", true)) == false:
+		control_mode = PartyControlModeScript.INACTIVE
+	else:
+		control_mode = PartyControlModeScript.LOCAL_PLAYER if owner_peer_id == local_peer_id else PartyControlModeScript.REMOTE_PLAYER
+	return PlayerPartyMemberStateScript.new(
+		party_member_id,
+		character_id,
+		combatant_state,
+		control_mode,
+		owner_peer_id,
+		platform_user_id
+	) as PlayerPartyMemberState

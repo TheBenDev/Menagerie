@@ -24,7 +24,7 @@ const INACTIVE_ID := "Inactive"
 var pawn_id: String = ""
 var party_member_id: String = ""
 var combatant_id: String = ""
-var owner_player_id: String = ""
+var owner_peer_id: int = 1
 var control_mode: int = PartyControlModeScript.LOCAL_PLAYER
 var current_node_id: int = -1
 var travel_origin_node_id: int = -1
@@ -43,14 +43,14 @@ func _init(
 	new_pawn_id: String = "",
 	new_party_member_id: String = "",
 	new_combatant_id: String = "",
-	new_owner_player_id: String = "",
+	new_owner_peer_id: int = 1,
 	new_control_mode: int = PartyControlModeScript.LOCAL_PLAYER,
 	new_current_node_id: int = -1
 ) -> void:
 	pawn_id = new_pawn_id
 	party_member_id = new_party_member_id
 	combatant_id = new_combatant_id
-	owner_player_id = new_owner_player_id
+	owner_peer_id = max(new_owner_peer_id, 1)
 	control_mode = new_control_mode
 	set_current_node_id(new_current_node_id)
 
@@ -58,13 +58,12 @@ func _init(
 func configure_for_party_member(
 	new_pawn_id: String,
 	member: Variant,
-	start_node_id: int,
-	new_owner_player_id: String = ""
+	start_node_id: int
 ) -> void:
 	pawn_id = new_pawn_id.strip_edges()
 	party_member_id = str(member.party_member_id) if member != null else ""
 	combatant_id = _combatant_id_from_member(member)
-	owner_player_id = new_owner_player_id.strip_edges()
+	owner_peer_id = max(int(member.owner_peer_id), 1) if member != null else 1
 	control_mode = int(member.control_mode) if member != null else PartyControlModeScript.INACTIVE
 	set_current_node_id(start_node_id)
 	clear_travel()

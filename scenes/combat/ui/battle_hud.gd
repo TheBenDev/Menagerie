@@ -258,6 +258,11 @@ func _class_resource_text(current_value: int, reference_value: int) -> String:
 	return "%s" % current_value
 
 func _current_run_memories() -> int:
+	if _has_network_manager() and NetworkManager.is_client() and not NetworkManager.last_authoritative_snapshot.is_empty():
+		var currency_snapshot: Dictionary = NetworkManager.last_authoritative_snapshot.get("currencies", {})
+		if not currency_snapshot.is_empty():
+			return int(currency_snapshot.get("memories", 0))
+
 	if _has_game_manager():
 		var currency_snapshot: Dictionary = GameManager.get_currency_snapshot()
 		return int(currency_snapshot.get("memories", 0))
@@ -272,6 +277,9 @@ func _connect_run_currency_signal() -> void:
 
 func _has_game_manager() -> bool:
 	return get_node_or_null("/root/GameManager") != null
+
+func _has_network_manager() -> bool:
+	return get_node_or_null("/root/NetworkManager") != null
 
 func _timeline_markers() -> Array[Dictionary]:
 	var active_markers: Array[Dictionary] = []

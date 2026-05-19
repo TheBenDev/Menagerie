@@ -17,7 +17,6 @@ config/icon="res://assets/ui/AppIcon.png"
 
 [autoload]
 
-_mcp_game_helper="*res://addons/godot_ai/runtime/game_helper.gd"
 SoundManager="*res://core/audio/sound_manager.gd"
 GameManager="*res://core/game_manager.gd"
 DifficultyService="*res://core/difficulty/difficulty_service.gd"
@@ -25,6 +24,8 @@ PartyManager="*res://core/party/party_manager.gd"
 DungeonManager="*res://core/dungeon/dungeon_manager.gd"
 CombatManager="*res://core/combat/combat_manager.gd"
 MusicDirector="*res://core/audio/music_director.gd"
+NetworkManager="*res://core/multiplayer/network_manager.gd"
+_mcp_game_helper="*res://addons/godot_ai/runtime/game_helper.gd"
 
 [display]
 
@@ -35,7 +36,6 @@ window/stretch/aspect="expand"
 
 [editor]
 
-version_control/plugin_name="GitPlugin"
 version_control/autoload_on_startup=true
 
 [editor_plugins]

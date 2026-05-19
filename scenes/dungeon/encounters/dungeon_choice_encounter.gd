@@ -11,6 +11,7 @@ signal encounter_finished(result: Dictionary)
 
 var encounter_data: Resource = null
 var encounter_context: Dictionary = {}
+var is_interactive: bool = true
 
 func setup(new_encounter_data: Resource, context: Dictionary) -> void:
 	encounter_data = new_encounter_data
@@ -24,8 +25,8 @@ func _refresh() -> void:
 		_create_continue_button()
 		return
 
-	title_label.text = str(encounter_data.get("display_name"))
-	description_label.text = str(encounter_data.get("description"))
+	title_label.text = str(_encounter_value("display_name", "Encounter"))
+	description_label.text = str(_encounter_value("description", ""))
 	_rebuild_choice_buttons()
 
 func _rebuild_choice_buttons() -> void:
@@ -36,7 +37,7 @@ func _rebuild_choice_buttons() -> void:
 		_create_continue_button()
 		return
 
-	var raw_choices: Variant = encounter_data.get("choices", [])
+	var raw_choices: Variant = _encounter_value("choices", [])
 	if not (raw_choices is Array):
 		_create_continue_button()
 		return
@@ -55,6 +56,7 @@ func _rebuild_choice_buttons() -> void:
 		button.text = str(choice_data.get("label", "Continue"))
 		button.tooltip_text = _choice_tooltip(choice_data)
 		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		button.disabled = not is_interactive
 		button.pressed.connect(_on_choice_pressed.bind(choice_index))
 		choices_container.add_child(button)
 
@@ -65,8 +67,16 @@ func _create_continue_button() -> void:
 	var button := Button.new()
 	button.text = "Continue"
 	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	button.disabled = not is_interactive
 	button.pressed.connect(_on_choice_pressed.bind(-1))
 	choices_container.add_child(button)
+
+func set_interactive(new_is_interactive: bool) -> void:
+	is_interactive = new_is_interactive
+	for child in choices_container.get_children():
+		var button := child as Button
+		if button != null:
+			button.disabled = not is_interactive
 
 func _choice_tooltip(choice_data: Dictionary) -> String:
 	var parts: Array[String] = []
@@ -104,3 +114,10 @@ func _on_choice_pressed(choice_index: int) -> void:
 		"choice_index": choice_index,
 		"context": encounter_context,
 	})
+
+func _encounter_value(field_name: String, default_value: Variant) -> Variant:
+	if encounter_data == null:
+		return default_value
+
+	var value: Variant = encounter_data.get(field_name)
+	return default_value if value == null else value

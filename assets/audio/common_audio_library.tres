@@ -39,10 +39,15 @@ loop = true
 [sub_resource type="Resource" id="MusicTrack_combat"]
 script = ExtResource("2_music_track")
 id = &"music.combat"
-base_stream_id = &"music.bgtheme"
+base_stream_id = &"music.dungeon.cautious_battle"
+playlist_stream_ids = Array[StringName]([&"music.dungeon.cautious_battle", &"music.dungeon.dramtic_battle", &"music.dungeon.eerie_exploration", &"music.dungeon.impending_doom"])
+randomize_playlist = true
+avoid_immediate_repeats = true
+playlist_crossfade_min_seconds = 5.0
+playlist_crossfade_max_seconds = 10.0
 bus = &"Music"
 volume_db = -7.0
-default_fade_seconds = 2.0
+default_fade_seconds = 5.0
 loop = true
 
 [sub_resource type="Resource" id="AudioCue_button_click"]

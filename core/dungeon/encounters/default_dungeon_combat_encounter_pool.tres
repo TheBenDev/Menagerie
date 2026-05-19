@@ -1,6 +1,6 @@
-[gd_resource type="Resource" script_class="DungeonCombatEncounterPool" format=3]
+[gd_resource type="Resource" script_class="DungeonCombatEncounterPool" format=3 uid="uid://b5ccbmcih646j"]
 
-[ext_resource type="Script" path="res://core/dungeon/encounters/dungeon_combat_encounter_pool.gd" id="1_pool"]
+[ext_resource type="Script" uid="uid://15l43ap207lr" path="res://core/dungeon/encounters/dungeon_combat_encounter_pool.gd" id="1_pool"]
 
 [resource]
 script = ExtResource("1_pool")

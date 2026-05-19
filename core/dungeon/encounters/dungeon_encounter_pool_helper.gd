@@ -62,7 +62,15 @@ static func _collect_encounter_paths(scan_root: String, paths: Array[String], wa
 		var entry_path := scan_root.path_join(entry_name)
 		if dir.current_is_dir():
 			_collect_encounter_paths(entry_path, paths, warning_prefix)
-		elif entry_name.get_extension().to_lower() == "tres":
-			paths.append(entry_path)
+		else:
+			var encounter_path := _resource_path_from_export_entry(entry_path)
+			if encounter_path.get_extension().to_lower() == "tres" and not paths.has(encounter_path):
+				paths.append(encounter_path)
 
 		entry_name = dir.get_next()
+
+static func _resource_path_from_export_entry(entry_path: String) -> String:
+	if entry_path.ends_with(".remap"):
+		return entry_path.trim_suffix(".remap")
+
+	return entry_path

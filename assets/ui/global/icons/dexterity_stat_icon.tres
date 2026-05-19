@@ -1,4 +1,4 @@
-[gd_resource type="AtlasTexture" load_steps=2 format=3]
+[gd_resource type="AtlasTexture" format=3 uid="uid://6ei71jke45eu"]
 
 [ext_resource type="Texture2D" uid="uid://d0yaflbs3rvoe" path="res://assets/ui/global/icons/stats.png" id="1_stats"]
 

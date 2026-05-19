@@ -13,11 +13,13 @@ static func selected_combatant_state(run_data: Variant) -> Variant:
 
 ## Copies active run modifiers into the selected persistent combatant state.
 static func sync_modifiers(run_data: Variant) -> void:
-	var combatant_state: Variant = selected_combatant_state(run_data)
-	if combatant_state == null:
+	if run_data == null or run_data.player_party_state == null:
 		return
 
-	combatant_state.set_runtime_modifiers(run_data.run_stat_modifiers)
+	for member in run_data.player_party_state.get_active_members():
+		var party_member: Variant = member
+		if party_member != null and party_member.combatant_state != null:
+			party_member.combatant_state.set_runtime_modifiers(run_data.run_stat_modifiers)
 
 static func hp_snapshot(run_data: Variant) -> Dictionary:
 	var combatant_state: Variant = selected_combatant_state(run_data)

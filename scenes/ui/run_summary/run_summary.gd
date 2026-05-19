@@ -96,4 +96,4 @@ func _reason_text(reason: String) -> String:
 func _on_return_pressed() -> void:
 	SoundManager.play_sfx(&"sfx.global.death.run_ends_loop")
 	GameManager.clear_run()
-	GameManager.go_to_scene("waiting_room")
+	NetworkManager.request_route("waiting_room")

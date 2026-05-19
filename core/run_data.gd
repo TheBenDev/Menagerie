@@ -20,6 +20,7 @@ var active_dungeon_pawn_ids: Array[String] = []
 var revealed_dungeon_node_ids: Array[int] = []
 var resolved_dungeon_node_ids: Array[int] = []
 var visited_dungeon_node_ids: Array[int] = []
+var active_dungeon_event: Dictionary = {}
 
 var max_run_time_seconds: float = DEFAULT_RUN_TIME_SECONDS
 var remaining_run_time_seconds: float = DEFAULT_RUN_TIME_SECONDS
@@ -63,6 +64,7 @@ func start_run(
 	revealed_dungeon_node_ids.clear()
 	resolved_dungeon_node_ids.clear()
 	visited_dungeon_node_ids.clear()
+	active_dungeon_event.clear()
 	gold = 0
 	memories = 0
 	run_end_reason = END_REASON_IN_PROGRESS

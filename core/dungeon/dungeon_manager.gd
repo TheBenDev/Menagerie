@@ -14,7 +14,6 @@ const DEFAULT_DUNGEON_ENCOUNTER_POOL := preload("res://core/dungeon/encounters/d
 const DEFAULT_DUNGEON_COMBAT_ENCOUNTER_POOL := preload("res://core/dungeon/encounters/default_dungeon_combat_encounter_pool.tres")
 const DEFAULT_DUNGEON_ABILITY_POOL := preload("res://core/dungeon/abilities/default_dungeon_ability_pool.tres")
 
-const LOCAL_OWNER_PLAYER_ID := "local"
 const NODE_TRAVEL_TIME := 1.0
 const VISUAL_NODE_STEPS_PER_REAL_SECOND := 4.0
 const ALLOW_DESTINATION_REPLACE_DURING_TRAVEL := true
@@ -74,7 +73,7 @@ func initialize_map_state_for_run(run_data: Variant, start_node_id: int = RunDat
 
 		var pawn_id: String = _dungeon_pawn_id_for_member(str(member.party_member_id))
 		var pawn: Variant = DungeonMapPawnStateScript.new()
-		pawn.configure_for_party_member(pawn_id, member, start_node_id, LOCAL_OWNER_PLAYER_ID)
+		pawn.configure_for_party_member(pawn_id, member, start_node_id)
 		run_data.dungeon_map_pawns[pawn_id] = pawn
 		run_data.active_dungeon_pawn_ids.append(pawn_id)
 		member.map_pawn_id = pawn_id
@@ -97,28 +96,125 @@ func request_pawn_travel(run_data: Variant, pawn_id: StringName, destination_nod
 		result[TRAVEL_RESULT_AUTOPILOT_FOLLOW_RESULTS] = _request_autopilot_follow_orders(run_data, String(pawn_id), destination_node_id)
 	return result
 
-func request_selected_pawn_travel(run_data: Variant, destination_node_id: int) -> Dictionary:
+func server_request_pawn_travel(run_data: Variant, sender_peer_id: int, pawn_id: String, destination_node_id: int) -> Dictionary:
 	if run_data == null:
-		return {"accepted": false, "reason": "missing_run_data", "path": [], "queued_replacement": false}
-
-	var pawn: Variant = get_selected_pawn(run_data)
+		return _travel_request_result(false, "missing_run_data", [], false)
+	if _is_run_ended(run_data):
+		return _travel_request_result(false, "run_ended", [], false)
+	var pawn: Variant = get_pawn(run_data, pawn_id)
 	if pawn == null:
 		return _travel_request_result(false, "missing_pawn", [], false)
+	if int(pawn.owner_peer_id) != sender_peer_id:
+		return _travel_request_result(false, "sender_does_not_own_pawn", [], false)
+	return request_pawn_travel(run_data, StringName(pawn_id), destination_node_id)
 
-	return request_pawn_travel(run_data, StringName(str(pawn.pawn_id)), destination_node_id)
+func server_advance_travel_until_pause(run_data: Variant) -> Dictionary:
+	if run_data == null:
+		return {"accepted": false, "reason": "missing_run_data"}
+	if _is_run_ended(run_data):
+		return {"accepted": false, "reason": "run_ended"}
 
-func can_request_selected_pawn_travel(run_data: Variant, destination_node_id: int) -> bool:
-	var pawn: Variant = get_selected_pawn(run_data)
-	if pawn == null or destination_node_id < 0:
-		return false
-	if int(pawn.current_node_id) == destination_node_id:
-		return false
-	if bool(pawn.is_locked_by_event) or int(pawn.travel_state) == DungeonMapPawnStateScript.IN_EVENT:
-		return false
-	if not bool(pawn.is_active()):
-		return false
+	var result: Dictionary = {"accepted": true, "reason": "travel_idle"}
+	while has_active_travel_orders(run_data):
+		result = server_advance_travel_one_step(run_data)
+		if not bool(result.get("accepted", false)):
+			return result
+		var reason := str(result.get("reason", "travel_step"))
+		if reason != "travel_step":
+			return result
 
-	return not get_pawn_travel_path(run_data, str(pawn.pawn_id), destination_node_id).is_empty()
+	return result
+
+func server_advance_travel_one_step(run_data: Variant) -> Dictionary:
+	if run_data == null:
+		return {"accepted": false, "reason": "missing_run_data"}
+	if _is_run_ended(run_data):
+		return {"accepted": false, "reason": "run_ended"}
+	if not has_active_travel_orders(run_data):
+		return {"accepted": true, "reason": "travel_idle", "step_result": {}}
+	if not GameManager.advance_run_time(NODE_TRAVEL_TIME):
+		return {"accepted": true, "reason": "run_time_expired", "step_result": {}}
+
+	var step_result: Dictionary = advance_travel_one_step(run_data, _unresolved_event_node_ids(run_data))
+	var result: Dictionary = {
+		"accepted": true,
+		"reason": "travel_step",
+		"step_result": step_result,
+	}
+	var arrival_result: Dictionary = _server_resolve_step_arrivals(run_data, step_result)
+	if not arrival_result.is_empty():
+		arrival_result["step_result"] = step_result
+		return arrival_result
+	if bool(step_result.get("pause_requested", false)):
+		result["reason"] = "travel_paused"
+	return result
+
+func server_resolve_arrival(run_data: Variant, pawn_id: String, node_id: int) -> Dictionary:
+	if run_data == null:
+		return {"accepted": false, "reason": "missing_run_data"}
+	var pawn: Variant = get_pawn(run_data, pawn_id)
+	if pawn == null:
+		return {"accepted": false, "reason": "missing_pawn"}
+	var node: DungeonNodeData = _node_data_for_id(run_data, node_id)
+	if node == null:
+		return {"accepted": false, "reason": "missing_node"}
+
+	mark_node_visited(run_data, node.id, StringName(pawn_id))
+	match node.node_type:
+		DungeonNodeDataScript.TYPE_EMPTY:
+			resolve_node(run_data, node.id, StringName(pawn_id))
+			GameManager.emit_run_state()
+			return {"accepted": true, "reason": "empty_node_resolved"}
+		DungeonNodeDataScript.TYPE_HAVEN:
+			GameManager.emit_run_state()
+			return {"accepted": true, "reason": "haven_node_entered"}
+		DungeonNodeDataScript.TYPE_FIGHT, DungeonNodeDataScript.TYPE_BOSS:
+			if not is_node_resolved(run_data, node.id):
+				lock_pawn_for_event(run_data, pawn_id, node.id)
+				_set_active_dungeon_event(run_data, "combat", pawn_id, node)
+				start_combat_node(run_data, node, false)
+				return {"accepted": true, "reason": "combat_started"}
+			GameManager.emit_run_state()
+			return {"accepted": true, "reason": "combat_node_already_resolved"}
+		DungeonNodeDataScript.TYPE_ENCOUNTER:
+			if not is_node_resolved(run_data, node.id):
+				lock_pawn_for_event(run_data, pawn_id, node.id)
+				_set_active_dungeon_event(run_data, "encounter", pawn_id, node)
+				GameManager.emit_run_state()
+				return {"accepted": true, "reason": "encounter_started"}
+			GameManager.emit_run_state()
+			return {"accepted": true, "reason": "encounter_node_already_resolved"}
+		_:
+			GameManager.emit_run_state()
+			return {"accepted": true, "reason": "node_entered"}
+
+func server_resolve_encounter_choice(run_data: Variant, sender_peer_id: int, payload: Dictionary) -> Dictionary:
+	if run_data == null:
+		return {"accepted": false, "reason": "missing_run_data"}
+	var active_event: Dictionary = run_data.active_dungeon_event
+	if active_event.is_empty() or str(active_event.get("type", "")) != "encounter":
+		return {"accepted": false, "reason": "no_active_encounter"}
+	var pawn_id := str(payload.get("pawn_id", active_event.get("pawn_id", "")))
+	var pawn: Variant = get_pawn(run_data, pawn_id)
+	if pawn == null:
+		return {"accepted": false, "reason": "missing_pawn"}
+	if int(pawn.owner_peer_id) != sender_peer_id:
+		return {"accepted": false, "reason": "sender_does_not_own_pawn"}
+	var node_id := int(payload.get("node_id", active_event.get("node_id", -1)))
+	if node_id != int(active_event.get("node_id", -2)):
+		return {"accepted": false, "reason": "encounter_node_mismatch"}
+
+	var manager_result := payload.duplicate(true)
+	manager_result["encounter_id"] = StringName(str(active_event.get("encounter_id", "")))
+	apply_encounter_result(run_data, manager_result)
+	GameManager.emit_run_state()
+	if is_player_defeated(run_data):
+		GameManager.end_current_run(RunData.END_REASON_DEFEAT)
+		return {"accepted": true, "reason": "encounter_defeat"}
+	resolve_node(run_data, node_id, StringName(pawn_id))
+	_clear_active_dungeon_event(run_data, node_id)
+	GameManager.emit_run_state()
+	return {"accepted": true, "reason": "encounter_resolved"}
 
 func can_request_selected_pawn_travel_snapshot(dungeon_snapshot: Dictionary, destination_node_id: int) -> bool:
 	var selected_pawn_id: String = str(dungeon_snapshot.get("selected_pawn_id", ""))
@@ -144,6 +240,23 @@ func can_request_selected_pawn_travel_snapshot(dungeon_snapshot: Dictionary, des
 
 func has_active_travel_orders(run_data: Variant) -> bool:
 	return DungeonMovementCoordinatorScript.has_active_travel_orders(run_data)
+
+func are_active_travel_orders_ready(run_data: Variant) -> bool:
+	if run_data == null:
+		return false
+
+	var required_pawn_count := 0
+	var ready_pawn_count := 0
+	for raw_pawn_id in run_data.active_dungeon_pawn_ids:
+		var pawn: Variant = get_pawn(run_data, str(raw_pawn_id))
+		if not _requires_synchronized_travel_order(run_data, pawn):
+			continue
+
+		required_pawn_count += 1
+		if pawn.has_active_travel_order() and pawn.next_path_node_id() >= 0:
+			ready_pawn_count += 1
+
+	return required_pawn_count > 0 and ready_pawn_count == required_pawn_count
 
 func advance_travel_one_step(run_data: Variant, interrupt_node_ids: Array = []) -> Dictionary:
 	return DungeonMovementCoordinatorScript.advance_one_step(run_data, interrupt_node_ids, self)
@@ -173,6 +286,7 @@ func resolve_node(run_data: Variant, node_id: int, pawn_id: StringName = &"") ->
 			_sync_current_pawn_node(run_data, node_id, completion_pawn_id)
 	_mark_node_resolved(run_data, node_id)
 	unlock_pawns_for_event_node(run_data, node_id)
+	_clear_active_dungeon_event(run_data, node_id)
 
 func is_node_resolved(run_data: Variant, node_id: int) -> bool:
 	return run_data != null and run_data.resolved_dungeon_node_ids.has(node_id)
@@ -351,7 +465,7 @@ func get_dungeon_snapshot(run_data: Variant) -> Dictionary:
 	return {
 		"seed": run_data.dungeon_seed,
 		"floor_layer": run_data.dungeon_floor_layer,
-		"descriptors": run_data.dungeon_node_descriptors.duplicate(true),
+		"descriptors": _descriptor_snapshots(run_data),
 		"visited_node_ids": run_data.get_visited_dungeon_node_ids(),
 		"revealed_node_ids": run_data.get_revealed_dungeon_node_ids(),
 		"resolved_node_ids": run_data.get_resolved_dungeon_node_ids(),
@@ -359,6 +473,7 @@ func get_dungeon_snapshot(run_data: Variant) -> Dictionary:
 		"pawns": _pawn_snapshots_by_id(run_data),
 		"selected_pawn_id": _selected_pawn_id(run_data),
 		"current_node_id": current_node_id(run_data),
+		"active_event": run_data.active_dungeon_event.duplicate(true),
 	}
 
 func _active_difficulty_id() -> StringName:
@@ -458,6 +573,34 @@ func _request_autopilot_follow_orders(run_data: Variant, leader_pawn_id: String,
 
 	return follow_results
 
+func _requires_synchronized_travel_order(run_data: Variant, pawn: Variant) -> bool:
+	if run_data == null or pawn == null:
+		return false
+	if not bool(pawn.is_active()) or bool(pawn.is_locked_by_event):
+		return false
+	if int(pawn.travel_state) == DungeonMapPawnStateScript.IN_EVENT:
+		return false
+	if int(pawn.control_mode) != PartyControlModeScript.LOCAL_PLAYER and int(pawn.control_mode) != PartyControlModeScript.REMOTE_PLAYER:
+		return false
+	if pawn.has_active_travel_order() and pawn.next_path_node_id() >= 0:
+		return true
+
+	return _has_available_travel_destination(run_data, pawn)
+
+func _has_available_travel_destination(run_data: Variant, pawn: Variant) -> bool:
+	if run_data == null or pawn == null:
+		return false
+
+	var pawn_id := str(pawn.pawn_id)
+	var current_node_id := int(pawn.current_node_id)
+	for node_id: int in _allowed_path_node_ids(run_data):
+		if node_id == current_node_id:
+			continue
+		if not get_pawn_travel_path(run_data, pawn_id, node_id).is_empty():
+			return true
+
+	return false
+
 func _allowed_path_node_ids(run_data: Variant) -> Array[int]:
 	var allowed_node_ids: Array[int] = []
 	for node_id: int in run_data.revealed_dungeon_node_ids:
@@ -514,6 +657,127 @@ func _descriptor_for_node_id(run_data: Variant, node_id: int) -> Dictionary:
 			return descriptor
 
 	return {}
+
+func _node_data_for_id(run_data: Variant, node_id: int) -> DungeonNodeData:
+	var descriptor: Dictionary = _descriptor_for_node_id(run_data, node_id)
+	if descriptor.is_empty():
+		push_error("Dungeon node %s has no descriptor." % node_id)
+		return null
+	return DungeonNodeDataScript.new(
+		int(descriptor.get("id", -1)),
+		str(descriptor.get("type", DungeonNodeDataScript.TYPE_FIGHT)),
+		_duplicate_enemy_instances(descriptor.get("enemy_instances", [])),
+		StringName(str(descriptor.get("encounter_id", ""))),
+		StringName(str(descriptor.get("combat_encounter_id", ""))),
+		str(descriptor.get("combat_encounter_profile_path", "")),
+		bool(descriptor.get("is_boss", false)),
+		_vector2i_from_value(descriptor.get("grid", Vector2i.ZERO)),
+		_vector2i_from_value(descriptor.get("size", Vector2i.ONE))
+	) as DungeonNodeData
+
+func _server_resolve_step_arrivals(run_data: Variant, step_result: Dictionary) -> Dictionary:
+	for raw_pawn_id in step_result.get(DungeonMovementCoordinatorScript.RESULT_MOVED_PAWN_IDS, []):
+		var pawn_id := str(raw_pawn_id)
+		var pawn: Variant = get_pawn(run_data, pawn_id)
+		if pawn == null:
+			continue
+		var arrival_result: Dictionary = server_resolve_arrival(run_data, pawn_id, int(pawn.current_node_id))
+		if not arrival_result.is_empty() and str(arrival_result.get("reason", "")) in ["combat_started", "encounter_started"]:
+			return arrival_result
+	return {}
+
+func _unresolved_event_node_ids(run_data: Variant) -> Array[int]:
+	var event_node_ids: Array[int] = []
+	if run_data == null:
+		return event_node_ids
+	for raw_descriptor in run_data.dungeon_node_descriptors:
+		if not (raw_descriptor is Dictionary):
+			continue
+		var descriptor: Dictionary = raw_descriptor
+		var node_type := str(descriptor.get("type", ""))
+		if node_type != DungeonNodeDataScript.TYPE_FIGHT and node_type != DungeonNodeDataScript.TYPE_BOSS and node_type != DungeonNodeDataScript.TYPE_ENCOUNTER:
+			continue
+		var node_id := int(descriptor.get("id", -1))
+		if node_id >= 0 and not run_data.resolved_dungeon_node_ids.has(node_id):
+			event_node_ids.append(node_id)
+	return event_node_ids
+
+func _set_active_dungeon_event(run_data: Variant, event_type: String, pawn_id: String, node: DungeonNodeData) -> void:
+	if run_data == null or node == null:
+		return
+	var pawn: Variant = get_pawn(run_data, pawn_id)
+	run_data.active_dungeon_event = {
+		"type": event_type,
+		"node_id": int(node.id),
+		"node_type": str(node.node_type),
+		"pawn_id": pawn_id,
+		"owner_peer_id": int(pawn.owner_peer_id) if pawn != null else 1,
+		"encounter_id": String(node.encounter_id),
+		"combat_encounter_id": String(node.combat_encounter_id),
+	}
+
+func _clear_active_dungeon_event(run_data: Variant, node_id: int) -> void:
+	if run_data == null or run_data.active_dungeon_event.is_empty():
+		return
+	if int(run_data.active_dungeon_event.get("node_id", -1)) == node_id:
+		run_data.active_dungeon_event.clear()
+
+func _descriptor_snapshots(run_data: Variant) -> Array[Dictionary]:
+	var descriptors: Array[Dictionary] = []
+	if run_data == null:
+		return descriptors
+	for raw_descriptor in run_data.dungeon_node_descriptors:
+		if raw_descriptor is Dictionary:
+			descriptors.append(_descriptor_snapshot(raw_descriptor))
+	return descriptors
+
+func _descriptor_snapshot(descriptor: Dictionary) -> Dictionary:
+	return {
+		"id": int(descriptor.get("id", -1)),
+		"type": str(descriptor.get("type", "")),
+		"grid": _vector2i_snapshot(descriptor.get("grid", Vector2i.ZERO)),
+		"size": _vector2i_snapshot(descriptor.get("size", Vector2i.ONE)),
+		"connections": _int_array(descriptor.get("connections", [])),
+		"encounter_id": str(descriptor.get("encounter_id", "")),
+		"combat_encounter_id": str(descriptor.get("combat_encounter_id", "")),
+		"combat_encounter_profile_path": str(descriptor.get("combat_encounter_profile_path", "")),
+		"is_boss": bool(descriptor.get("is_boss", false)),
+		"enemy_instances": _duplicate_enemy_instances(descriptor.get("enemy_instances", [])),
+	}
+
+func _vector2i_snapshot(value: Variant) -> Dictionary:
+	var vector := _vector2i_from_value(value)
+	return {
+		"x": int(vector.x),
+		"y": int(vector.y),
+	}
+
+func _vector2i_from_value(value: Variant) -> Vector2i:
+	if value is Vector2i:
+		return value
+	if value is Dictionary:
+		return Vector2i(int(value.get("x", 0)), int(value.get("y", 0)))
+	if value is Array and value.size() >= 2:
+		return Vector2i(int(value[0]), int(value[1]))
+	return Vector2i.ZERO
+
+func _int_array(value: Variant) -> Array[int]:
+	var values: Array[int] = []
+	if value is Array:
+		for raw_value in value:
+			values.append(int(raw_value))
+	return values
+
+func _duplicate_enemy_instances(value: Variant) -> Array[Dictionary]:
+	var instances: Array[Dictionary] = []
+	if value is Array:
+		for raw_instance in value:
+			if raw_instance is Dictionary:
+				instances.append(raw_instance.duplicate(true))
+	return instances
+
+func _is_run_ended(run_data: Variant) -> bool:
+	return run_data != null and run_data.has_method("has_ended") and run_data.has_ended()
 
 func _completion_pawn_ids_for_node(run_data: Variant, node_id: int, pawn_id: String = "") -> Array[String]:
 	var completion_pawn_ids: Array[String] = []
@@ -623,7 +887,7 @@ func _pawn_snapshot(pawn: Variant) -> Dictionary:
 		"pawn_id": str(pawn.pawn_id),
 		"party_member_id": str(pawn.party_member_id),
 		"combatant_id": str(pawn.combatant_id),
-		"owner_player_id": str(pawn.owner_player_id),
+		"owner_peer_id": int(pawn.owner_peer_id),
 		"control_mode": int(pawn.control_mode),
 		"current_node_id": int(pawn.current_node_id),
 		"destination_node_id": int(pawn.destination_node_id),

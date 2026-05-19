@@ -15,7 +15,7 @@ func _request_scene_music() -> void:
 	GameManager.play_music_for_scene("main_menu")
 
 func _on_start_pressed() -> void:
-	GameManager.go_to_scene("waiting_room")
+	NetworkManager.request_route("waiting_room")
 
 func _on_escape_pressed() -> void:
 	escape_button.hide()

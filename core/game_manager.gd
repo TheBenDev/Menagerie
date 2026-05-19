@@ -19,11 +19,19 @@ var selected_setup_character: String = RunDataScript.DEFAULT_CHARACTER
 var setup_dungeon_seed: String = ""
 var setup_dungeon_floor_layer: int = 1
 var pending_class_memory_awards: Dictionary = {}
+var current_route_ref: String = "main_menu"
 
 func _ready() -> void:
 	call_deferred("_play_music_for_current_scene")
 
-func start_new_run(character: String, difficulty: String, dungeon_seed: String = "", dungeon_floor_layer: int = 1) -> Variant:
+func start_new_run(
+	character: String,
+	difficulty: String,
+	dungeon_seed: String = "",
+	dungeon_floor_layer: int = 1,
+	member_configs: Array[Dictionary] = [],
+	local_peer_id: int = 1
+) -> Variant:
 	var difficulty_id := StringName(difficulty.strip_edges().to_lower())
 	DifficultyService.set_active_difficulty_id(difficulty_id)
 	current_run_data = RunDataScript.new()
@@ -33,7 +41,10 @@ func start_new_run(character: String, difficulty: String, dungeon_seed: String =
 		_resolve_dungeon_seed(dungeon_seed),
 		max(dungeon_floor_layer, 1)
 	)
-	PartyManager.initialize_party_for_run(current_run_data, StringName(character))
+	if member_configs.is_empty():
+		PartyManager.initialize_party_for_run(current_run_data, StringName(character))
+	else:
+		PartyManager.initialize_party_for_multiplayer_run(current_run_data, member_configs, local_peer_id)
 	_apply_run_seed(current_run_data.dungeon_seed)
 	DungeonManager.initialize_dungeon_for_run(current_run_data)
 	if current_run_data.dungeon_node_descriptors.is_empty():
@@ -46,6 +57,22 @@ func start_new_run(character: String, difficulty: String, dungeon_seed: String =
 	emit_run_state()
 	MusicDirector.on_run_started()
 	return current_run_data
+
+func start_new_run_from_network(payload: Dictionary) -> Variant:
+	var character := str(payload.get("character", payload.get("selected_character_id", selected_setup_character))).strip_edges()
+	var difficulty := str(payload.get("difficulty", payload.get("difficulty_id", RunDataScript.DEFAULT_DIFFICULTY))).strip_edges()
+	var dungeon_seed := str(payload.get("dungeon_seed", "")).strip_edges()
+	var dungeon_floor_layer := int(payload.get("dungeon_floor_layer", 1))
+	var member_configs: Array[Dictionary] = []
+	var raw_member_configs: Variant = payload.get("member_configs", [])
+	if raw_member_configs is Array:
+		for raw_config in raw_member_configs:
+			if raw_config is Dictionary:
+				member_configs.append(raw_config)
+	if member_configs.is_empty() and NetworkManager != null:
+		member_configs = PartyManager.build_member_configs_from_network_players(NetworkManager.get_players_snapshot())
+	var local_peer_id := NetworkManager.local_peer_id() if NetworkManager != null else 1
+	return start_new_run(character, difficulty, dungeon_seed, dungeon_floor_layer, member_configs, local_peer_id)
 
 func clear_run() -> void:
 	current_run_data = null
@@ -77,7 +104,8 @@ func start_combat(
 	})
 
 	MusicDirector.on_combat_started({"is_boss": is_boss})
-	go_to_scene("combat/BattleScene")
+	NetworkManager.broadcast_run_snapshot("combat_started")
+	NetworkManager.request_route("combat/BattleScene")
 
 func complete_combat(result: Variant) -> void:
 	if _is_run_ended():
@@ -85,7 +113,9 @@ func complete_combat(result: Variant) -> void:
 
 	if result != null:
 		CombatManager.complete_combat(result)
-	go_to_scene("dungeon")
+		MusicDirector.on_combat_ended(result)
+		NetworkManager.broadcast_run_snapshot("combat_completed")
+	NetworkManager.request_route("dungeon")
 
 func consume_last_combat_result() -> Variant:
 	if current_run_data == null:
@@ -143,8 +173,8 @@ func apply_dungeon_encounter_result(encounter_id: StringName, result: Dictionary
 
 	return outcome
 
-func apply_run_player_state_to_combatant(combatant: Variant) -> void:
-	PartyManager.apply_member_state_to_combatant(current_run_data, combatant)
+func apply_run_player_state_to_combatant(combatant: Variant, party_member_id: StringName = &"") -> void:
+	PartyManager.apply_member_state_to_combatant(current_run_data, combatant, party_member_id)
 
 func get_run_player_hp_snapshot() -> Dictionary:
 	return PartyManager.get_selected_member_hp_snapshot(current_run_data)
@@ -162,7 +192,7 @@ func end_current_run(reason: String) -> void:
 	current_run_data.end_run(reason)
 	emit_run_state()
 	run_ended.emit(reason)
-	call_deferred("go_to_scene", "run_summary")
+	call_deferred("_request_run_summary_route")
 
 func emit_run_state() -> void:
 	if current_run_data == null:
@@ -265,7 +295,20 @@ func get_dungeon_snapshot() -> Dictionary:
 func get_combat_snapshot() -> Dictionary:
 	return CombatManager.get_combat_snapshot()
 
-func go_to_scene(scene_ref: String) -> void:
+func get_run_snapshot() -> Dictionary:
+	return {
+		"route": current_route_ref,
+		"timer": get_timer_snapshot(),
+		"currencies": get_currency_snapshot(),
+		"summary": get_run_summary_snapshot(),
+		"party": get_party_snapshot(),
+		"dungeon": get_dungeon_snapshot(),
+		"combat": get_combat_snapshot(),
+		"difficulty_id": get_selected_difficulty_id(),
+		"difficulty_display_name": get_selected_difficulty_display_name(),
+	}
+
+func apply_scene_route(scene_ref: String) -> void:
 	var scene_path := scene_path_for(scene_ref)
 	if scene_path.is_empty():
 		push_error("Failed to change scene: scene reference is empty.")
@@ -275,6 +318,8 @@ func go_to_scene(scene_ref: String) -> void:
 	if error != OK:
 		push_error("Failed to change scene to %s. Error: %s" % [scene_path, error])
 		return
+	current_route_ref = scene_ref
+	MusicDirector.on_route_changed(StringName(scene_ref))
 
 func play_music_for_scene(scene_ref: String) -> void:
 	_play_music_for_scene_path(scene_path_for(scene_ref))
@@ -294,6 +339,9 @@ func _play_music_for_current_scene() -> void:
 
 func _play_music_for_scene_path(scene_path: String) -> void:
 	MusicDirector.on_route_changed(StringName(scene_path))
+
+func _request_run_summary_route() -> void:
+	NetworkManager.request_route("run_summary")
 
 func _resolve_dungeon_seed(requested_seed: String) -> String:
 	var requested_seed_text := requested_seed.strip_edges()
