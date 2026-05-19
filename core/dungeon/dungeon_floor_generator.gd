@@ -1,0 +1,888 @@
+## Deterministic factory that builds dungeon floor node descriptors from a seed, floor layer, and difficulty.
+class_name DungeonFloorGenerator
+extends RefCounted
+
+const DungeonNodeDataScript := preload("res://core/dungeon/dungeon_node_data.gd")
+const DungeonFloorGenerationConfigScript := preload("res://core/dungeon/dungeon_floor_generation_config.gd")
+const CombatPayloadValidatorScript := preload("res://core/combat/combat_payload_validator.gd")
+const DEFAULT_DUNGEON_ENCOUNTER_POOL := preload("res://core/dungeon/encounters/default_dungeon_encounter_pool.tres")
+const DEFAULT_DUNGEON_COMBAT_ENCOUNTER_POOL := preload("res://core/dungeon/encounters/default_dungeon_combat_encounter_pool.tres")
+
+const EMPTY_SIZE := Vector2i.ONE
+const LARGE_SIZE := Vector2i(3, 3)
+const ENEMY_INSTANCE_PROFILE_PATH := "profile_path"
+const ENEMY_INSTANCE_SLOT_ID := "slot_id"
+const ENEMY_INSTANCE_LEVEL := "level"
+const ENEMY_INSTANCE_STAT_SEED := "stat_seed"
+const ENEMY_INSTANCE_ID := "instance_id"
+const TYPE_SORT_ORDER := {
+	DungeonNodeDataScript.TYPE_EMPTY: 0,
+	DungeonNodeDataScript.TYPE_FIGHT: 1,
+	DungeonNodeDataScript.TYPE_ENCOUNTER: 2,
+	DungeonNodeDataScript.TYPE_HAVEN: 3,
+	DungeonNodeDataScript.TYPE_BOSS: 4,
+}
+static func generate_floor(
+	base_seed: String,
+	floor_layer: int,
+	difficulty_id: String,
+	config: Resource = null,
+	encounter_pool: Resource = null,
+	combat_encounter_pool: Resource = null
+) -> Array:
+	var rng := RandomNumberGenerator.new()
+	var resolved_seed := int(base_seed.hash())
+	if resolved_seed == 0:
+		resolved_seed = 1
+	rng.seed = resolved_seed
+	var active_config: Resource = config
+	if active_config == null:
+		active_config = DungeonFloorGenerationConfigScript.new()
+	var active_encounter_pool: Resource = encounter_pool
+	if active_encounter_pool == null:
+		active_encounter_pool = DEFAULT_DUNGEON_ENCOUNTER_POOL
+	var active_combat_encounter_pool: Resource = combat_encounter_pool
+	if active_combat_encounter_pool == null:
+		active_combat_encounter_pool = DEFAULT_DUNGEON_COMBAT_ENCOUNTER_POOL
+
+	var resolved_layer: int = max(floor_layer, 1)
+	var resolved_difficulty := difficulty_id.strip_edges().to_lower()
+	if resolved_difficulty.is_empty():
+		resolved_difficulty = "normal"
+
+	var settings := _build_settings(resolved_layer, resolved_difficulty, active_config, active_encounter_pool, active_combat_encounter_pool)
+	settings["rng"] = rng
+	for retry_index in range(max(settings.max_generation_retries, 1)):
+		var descriptors := _try_generate_floor(settings)
+		if not descriptors.is_empty() and validate_descriptors(descriptors, settings.grid_size):
+			return descriptors
+
+	push_error("Dungeon floor generation failed after %s attempts for floor %s / difficulty %s." % [
+		max(settings.max_generation_retries, 1),
+		resolved_layer,
+		resolved_difficulty,
+	])
+	return []
+
+static func validate_descriptors(descriptors: Array, grid_size: Vector2i = Vector2i.ZERO) -> bool:
+	if descriptors.is_empty():
+		return false
+
+	var ids := {}
+	var nodes_by_id := {}
+	var haven_id := -1
+	var boss_id := -1
+	var occupied_large_cells := {}
+	var connector_cells := {}
+	var max_grid := grid_size
+
+	for raw_descriptor in descriptors:
+		if not (raw_descriptor is Dictionary):
+			return false
+
+		var descriptor: Dictionary = raw_descriptor
+		var node_id := int(descriptor.get("id", -1))
+		var node_type := str(descriptor.get("type", ""))
+		var grid_position: Vector2i = descriptor.get("grid", Vector2i.ZERO)
+		var grid_node_size: Vector2i = descriptor.get("size", EMPTY_SIZE if node_type == DungeonNodeDataScript.TYPE_EMPTY else LARGE_SIZE)
+		if node_id < 0 or ids.has(node_id):
+			return false
+		if not descriptor.has("connections") or not (descriptor.get("connections") is Array):
+			return false
+		if grid_position.x < 0 or grid_position.y < 0 or grid_node_size.x <= 0 or grid_node_size.y <= 0:
+			return false
+		if max_grid != Vector2i.ZERO and (grid_position.x + grid_node_size.x > max_grid.x or grid_position.y + grid_node_size.y > max_grid.y):
+			return false
+
+		ids[node_id] = true
+		nodes_by_id[node_id] = descriptor
+		if node_type == DungeonNodeDataScript.TYPE_HAVEN:
+			haven_id = node_id
+		elif node_type == DungeonNodeDataScript.TYPE_BOSS or bool(descriptor.get("is_boss", false)):
+			boss_id = node_id
+
+		if _is_combat_node_type(node_type) and not _has_valid_combat_descriptor_payload(descriptor):
+			return false
+
+		if node_type == DungeonNodeDataScript.TYPE_EMPTY:
+			if connector_cells.has(grid_position):
+				return false
+			connector_cells[grid_position] = node_id
+		else:
+			for x in range(grid_position.x, grid_position.x + grid_node_size.x):
+				for y in range(grid_position.y, grid_position.y + grid_node_size.y):
+					var cell := Vector2i(x, y)
+					if occupied_large_cells.has(cell):
+						return false
+					occupied_large_cells[cell] = node_id
+
+	if haven_id < 0 or boss_id < 0:
+		return false
+
+	for connector_cell in connector_cells.keys():
+		if occupied_large_cells.has(connector_cell):
+			return false
+
+	var graph := {}
+	for raw_id in nodes_by_id.keys():
+		var node_id: int = raw_id
+		graph[node_id] = []
+
+	for raw_descriptor in descriptors:
+		var descriptor: Dictionary = raw_descriptor
+		var node_id := int(descriptor.get("id", -1))
+		for raw_connection in descriptor.get("connections", []):
+			var connected_id := int(raw_connection)
+			if node_id == connected_id or not nodes_by_id.has(connected_id):
+				return false
+			if not _connection_cells_touch(descriptor, nodes_by_id[connected_id]):
+				return false
+			if not graph[node_id].has(connected_id):
+				graph[node_id].append(connected_id)
+
+	for node_id in graph.keys():
+		for connected_id in graph[node_id]:
+			if not graph.has(connected_id) or not graph[connected_id].has(node_id):
+				return false
+
+	var reachable := _reachable_ids(graph, haven_id)
+	return reachable.has(boss_id) and reachable.size() == nodes_by_id.size()
+
+static func _try_generate_floor(settings: Dictionary) -> Array:
+	var rng := settings.get("rng", null) as RandomNumberGenerator
+	if rng == null:
+		return []
+	var grid_size: Vector2i = settings.grid_size
+	var major_nodes: Array = []
+	var large_occupied := {}
+
+	var haven_position := Vector2i(0, rng.randi_range(0, max(grid_size.y - LARGE_SIZE.y, 0)))
+	var haven := _make_major("haven", DungeonNodeDataScript.TYPE_HAVEN, haven_position, false)
+	major_nodes.append(haven)
+	_reserve_large_node(haven, large_occupied)
+
+	var boss_position := Vector2i(grid_size.x - LARGE_SIZE.x, rng.randi_range(0, max(grid_size.y - LARGE_SIZE.y, 0)))
+	var boss := _make_major("boss", DungeonNodeDataScript.TYPE_BOSS, boss_position, true)
+	if not _can_place_major(boss_position, LARGE_SIZE, grid_size, large_occupied, int(settings.room_padding)):
+		return []
+	major_nodes.append(boss)
+	_reserve_large_node(boss, large_occupied)
+
+	var fights := _place_fights(settings, grid_size, large_occupied)
+	if fights.size() < int(settings.fight_count):
+		return []
+	if not _assign_combat_encounters(fights, settings):
+		return []
+	for fight in fights:
+		major_nodes.append(fight)
+	if not _assign_combat_encounters([boss], settings):
+		return []
+
+	var encounters := _place_major_nodes(
+		settings,
+		grid_size,
+		large_occupied,
+		DungeonNodeDataScript.TYPE_ENCOUNTER,
+		"encounter",
+		int(settings.encounter_count)
+	)
+	if encounters.size() < int(settings.encounter_count):
+		return []
+	if not _assign_encounter_ids(encounters, settings):
+		return []
+	for encounter in encounters:
+		major_nodes.append(encounter)
+
+	var connector_nodes := {}
+	var edges := {}
+	for node in major_nodes:
+		edges[node.uid] = []
+
+	var route_nodes := []
+	var branch_nodes := []
+	var progress_nodes := []
+	progress_nodes.append_array(fights)
+	progress_nodes.append_array(encounters)
+	_sort_major_nodes_by_position(progress_nodes)
+	for progress_node in progress_nodes:
+		if progress_nodes.size() > 1 and rng.randf() < float(settings.branch_chance):
+			branch_nodes.append(progress_node)
+		else:
+			route_nodes.append(progress_node)
+	if route_nodes.is_empty():
+		var promoted = branch_nodes.pop_front()
+		route_nodes.append(promoted)
+
+	var main_route := [haven]
+	main_route.append_array(route_nodes)
+	main_route.append(boss)
+	_sort_middle_route(main_route)
+
+	var blocked_cells := _large_node_cells(major_nodes)
+	for index in range(main_route.size() - 1):
+		if not _connect_nodes_with_path(main_route[index], main_route[index + 1], grid_size, blocked_cells, connector_nodes, edges, float(settings.path_noise), rng):
+			return []
+
+	for branch_node in branch_nodes:
+		var nearest_main: Variant = _nearest_major(branch_node, main_route)
+		if nearest_main == null:
+			return []
+		if not _connect_nodes_with_path(nearest_main, branch_node, grid_size, blocked_cells, connector_nodes, edges, float(settings.path_noise), rng):
+			return []
+		if rng.randf() < float(settings.extra_connection_chance):
+			var second_main: Variant = _nearest_major(branch_node, main_route, nearest_main.uid)
+			if second_main != null:
+				_connect_nodes_with_path(second_main, branch_node, grid_size, blocked_cells, connector_nodes, edges, float(settings.path_noise), rng)
+
+	for index in range(main_route.size() - 2):
+		if rng.randf() < float(settings.extra_connection_chance):
+			_connect_nodes_with_path(main_route[index], main_route[index + 2], grid_size, blocked_cells, connector_nodes, edges, float(settings.path_noise), rng)
+
+	var all_nodes := []
+	all_nodes.append_array(major_nodes)
+	for connector in connector_nodes.values():
+		all_nodes.append(connector)
+
+	return _export_descriptors(all_nodes, edges)
+
+static func _build_settings(
+	floor_layer: int,
+	difficulty_id: String,
+	config: Resource,
+	encounter_pool: Resource,
+	combat_encounter_pool: Resource
+) -> Dictionary:
+	var difficulty_index := _difficulty_index(difficulty_id)
+	var layer_offset: int = max(floor_layer - 1, 0)
+	var width: int = min(
+		config.base_grid_width + layer_offset * config.grid_width_per_layer + difficulty_index * config.grid_width_per_difficulty,
+		config.max_grid_width
+	)
+	var height: int = min(
+		config.base_grid_height + layer_offset * config.grid_height_per_layer + difficulty_index * config.grid_height_per_difficulty,
+		config.max_grid_height
+	)
+	var fight_count: int = clamp(
+		config.base_fight_count + layer_offset * config.fight_count_per_layer + difficulty_index * config.fight_count_per_difficulty,
+		config.min_fight_count,
+		config.max_fight_count
+	)
+	var encounter_count: int = clamp(
+		config.base_encounter_count + layer_offset * config.encounter_count_per_layer + difficulty_index * config.encounter_count_per_difficulty,
+		config.min_encounter_count,
+		config.max_encounter_count
+	)
+	var typed_encounter_pool := encounter_pool as Resource
+	var available_encounters: Array = []
+	if typed_encounter_pool != null:
+		available_encounters = typed_encounter_pool.call("available_for_floor", floor_layer)
+	if typed_encounter_pool == null or available_encounters.is_empty():
+		encounter_count = 0
+	var typed_combat_encounter_pool := combat_encounter_pool as Resource
+	return {
+		"floor_layer": floor_layer,
+		"grid_size": Vector2i(max(width, 9), max(height, 3)),
+		"fight_count": fight_count,
+		"encounter_count": encounter_count,
+		"encounter_pool": typed_encounter_pool,
+		"combat_encounter_pool": typed_combat_encounter_pool,
+		"enemy_level_range": _enemy_level_range_for_floor(config, floor_layer),
+		"branch_chance": clampf(config.base_branch_chance + layer_offset * config.branch_chance_per_layer + difficulty_index * config.branch_chance_per_difficulty, 0.0, 1.0),
+		"extra_connection_chance": clampf(config.base_extra_connection_chance + layer_offset * config.extra_connection_chance_per_layer + difficulty_index * config.extra_connection_chance_per_difficulty, 0.0, 1.0),
+		"path_noise": clampf(config.base_path_noise + layer_offset * config.path_noise_per_layer + difficulty_index * config.path_noise_per_difficulty, 0.0, 1.0),
+		"room_padding": max(config.room_padding, 0),
+		"max_room_placement_attempts": max(config.max_room_placement_attempts, 1),
+		"max_generation_retries": max(config.max_generation_retries, 1),
+	}
+
+static func _place_fights(settings: Dictionary, grid_size: Vector2i, large_occupied: Dictionary) -> Array:
+	return _place_major_nodes(
+		settings,
+		grid_size,
+		large_occupied,
+		DungeonNodeDataScript.TYPE_FIGHT,
+		"fight",
+		int(settings.fight_count)
+	)
+
+static func _place_major_nodes(
+	settings: Dictionary,
+	grid_size: Vector2i,
+	large_occupied: Dictionary,
+	node_type: String,
+	uid_prefix: String,
+	node_count: int
+) -> Array:
+	var placed_nodes := []
+	var candidates := []
+	for x in range(LARGE_SIZE.x + 1, grid_size.x - LARGE_SIZE.x - LARGE_SIZE.x):
+		for y in range(0, grid_size.y - LARGE_SIZE.y + 1):
+			candidates.append(Vector2i(x, y))
+	_shuffle(candidates, settings.get("rng", null) as RandomNumberGenerator)
+
+	var attempts := 0
+	var candidate_index := 0
+	while placed_nodes.size() < node_count and attempts < int(settings.max_room_placement_attempts) and candidate_index < candidates.size():
+		attempts += 1
+		var position: Vector2i = candidates[candidate_index]
+		candidate_index += 1
+		if not _can_place_major(position, LARGE_SIZE, grid_size, large_occupied, int(settings.room_padding)):
+			continue
+		var placed_node := _make_major("%s_%s" % [uid_prefix, placed_nodes.size()], node_type, position, false)
+		placed_nodes.append(placed_node)
+		_reserve_large_node(placed_node, large_occupied)
+
+	return placed_nodes
+
+static func _assign_encounter_ids(encounter_nodes: Array, settings: Dictionary) -> bool:
+	var encounter_pool := settings.get("encounter_pool", null) as Resource
+	if encounter_nodes.is_empty():
+		return true
+	if encounter_pool == null:
+		return false
+
+	for encounter_node in encounter_nodes:
+		var encounter_data := encounter_pool.call("pick_for_floor", int(settings.floor_layer), settings.get("rng", null)) as Resource
+		if encounter_data == null or String(encounter_data.get("id")).is_empty():
+			return false
+		encounter_node["encounter_id"] = String(encounter_data.get("id"))
+
+	return true
+
+static func _assign_combat_encounters(combat_nodes: Array, settings: Dictionary) -> bool:
+	for combat_node in combat_nodes:
+		if not (combat_node is Dictionary):
+			return false
+
+		var encounter_data := _pick_combat_encounter(settings)
+		if encounter_data == null:
+			return false
+
+		var encounter_id := String(encounter_data.get("id")).strip_edges()
+		var encounter_profile_path := _combat_encounter_profile_path(encounter_data, settings)
+		if encounter_id.is_empty() or encounter_profile_path.is_empty():
+			return false
+
+		combat_node["combat_encounter_id"] = encounter_id
+		combat_node["combat_encounter_profile_path"] = encounter_profile_path
+		combat_node["enemy_instances"] = _build_enemy_instances(encounter_data, settings, bool(combat_node.get("is_boss", false)))
+		if not _has_valid_combat_descriptor_payload(combat_node):
+			return false
+
+	return true
+
+static func _pick_combat_encounter(settings: Dictionary) -> Resource:
+	var combat_encounter_pool := settings.get("combat_encounter_pool", null) as Resource
+	if combat_encounter_pool == null:
+		return null
+	if not combat_encounter_pool.has_method("pick_for_floor"):
+		return null
+
+	return combat_encounter_pool.call("pick_for_floor", int(settings.floor_layer), settings.get("rng", null)) as Resource
+
+static func _combat_encounter_profile_path(encounter_data: Resource, settings: Dictionary) -> String:
+	if encounter_data == null:
+		return ""
+
+	var combat_encounter_pool := settings.get("combat_encounter_pool", null) as Resource
+	if combat_encounter_pool != null and combat_encounter_pool.has_method("profile_path_for_id"):
+		var pool_path := str(combat_encounter_pool.call("profile_path_for_id", StringName(str(encounter_data.get("id"))))).strip_edges()
+		if not pool_path.is_empty():
+			return pool_path
+
+	return str(encounter_data.resource_path).strip_edges()
+
+static func _build_enemy_instances(encounter_data: Resource, settings: Dictionary, is_boss: bool) -> Array[Dictionary]:
+	var enemy_instances: Array[Dictionary] = []
+	var rng := settings.get("rng", null) as RandomNumberGenerator
+	if rng == null:
+		return enemy_instances
+	var enemy_slots := _enemy_slots(encounter_data)
+	if enemy_slots.is_empty():
+		return enemy_instances
+
+	var min_count := _encounter_count_value(encounter_data, "min_enemy_count", 1)
+	var max_count := _encounter_count_value(encounter_data, "max_enemy_count", min_count)
+	min_count = clamp(min_count, 1, enemy_slots.size())
+	max_count = clamp(max(max_count, min_count), min_count, enemy_slots.size())
+	var enemy_count := rng.randi_range(min_count, max_count)
+	var enemy_level_range: Vector2i = settings.get("enemy_level_range", Vector2i(0, 5))
+	for index in range(enemy_count):
+		var slot_data: Dictionary = enemy_slots[index]
+		var profile_path := str(slot_data.get(DungeonCombatEncounterData.SLOT_COMBATANT_PROFILE_PATH, "")).strip_edges()
+		if profile_path.is_empty():
+			continue
+
+		var enemy_level := enemy_level_range.y if is_boss else rng.randi_range(enemy_level_range.x, enemy_level_range.y)
+		enemy_instances.append({
+			ENEMY_INSTANCE_ID: "enemy_%s" % (index + 1),
+			ENEMY_INSTANCE_PROFILE_PATH: profile_path,
+			ENEMY_INSTANCE_SLOT_ID: StringName(str(slot_data.get(DungeonCombatEncounterData.SLOT_POSITION_ID, "EnemySlot%s" % (index + 1)))),
+			ENEMY_INSTANCE_LEVEL: enemy_level,
+			ENEMY_INSTANCE_STAT_SEED: int(rng.randi()),
+		})
+
+	return enemy_instances
+
+static func _enemy_slots(encounter_data: Resource) -> Array[Dictionary]:
+	var slots: Array[Dictionary] = []
+	if encounter_data == null:
+		return slots
+
+	var enemy_slots_value: Variant = encounter_data.get("enemy_slots")
+	if not (enemy_slots_value is Array):
+		return slots
+
+	for slot in enemy_slots_value:
+		if slot is Dictionary:
+			slots.append(slot)
+
+	return slots
+
+static func _encounter_count_value(encounter_data: Resource, field_name: String, default_value: int) -> int:
+	if encounter_data == null:
+		return default_value
+
+	var value: Variant = encounter_data.get(field_name)
+	if value is int or value is float:
+		return int(value)
+
+	return default_value
+
+static func _connect_nodes_with_path(
+	from_node: Dictionary,
+	to_node: Dictionary,
+	grid_size: Vector2i,
+	blocked_cells: Dictionary,
+	connector_nodes: Dictionary,
+	edges: Dictionary,
+	path_noise: float,
+	rng: RandomNumberGenerator
+) -> bool:
+	var start := _edge_connector_cell(from_node, to_node, grid_size, blocked_cells)
+	var target := _edge_connector_cell(to_node, from_node, grid_size, blocked_cells)
+	if start == Vector2i(-1, -1) or target == Vector2i(-1, -1):
+		return false
+
+	var path := _find_path(start, target, grid_size, blocked_cells, path_noise, rng)
+	if path.is_empty():
+		return false
+
+	var previous_uid: String = from_node.uid
+	for cell in path:
+		var connector_uid := _connector_uid(cell)
+		if not connector_nodes.has(connector_uid):
+			connector_nodes[connector_uid] = {
+				"uid": connector_uid,
+				"type": DungeonNodeDataScript.TYPE_EMPTY,
+				"grid": cell,
+				"size": EMPTY_SIZE,
+				"is_boss": false,
+			}
+			edges[connector_uid] = []
+		_add_edge(edges, previous_uid, connector_uid)
+		previous_uid = connector_uid
+
+	_add_edge(edges, previous_uid, to_node.uid)
+	return true
+
+static func _find_path(start: Vector2i, target: Vector2i, grid_size: Vector2i, blocked_cells: Dictionary, path_noise: float, rng: RandomNumberGenerator) -> Array:
+	if start == target:
+		return [start]
+	if rng == null:
+		return []
+
+	var open := []
+	var came_from := {}
+	var g_score := {start: 0.0}
+	var f_score := {start: float(_manhattan(start, target))}
+	var closed := {}
+	_heap_push(open, start, float(f_score[start]))
+	while not open.is_empty():
+		var current := _heap_pop(open)
+		if closed.has(current):
+			continue
+		if current == target:
+			return _reconstruct_path(came_from, current)
+		closed[current] = true
+
+		var directions := [Vector2i.RIGHT, Vector2i.LEFT, Vector2i.DOWN, Vector2i.UP]
+		_shuffle(directions, rng)
+		for direction in directions:
+			var neighbor: Vector2i = current + direction
+			if not _is_in_bounds(neighbor, grid_size) or (blocked_cells.has(neighbor) and neighbor != target) or closed.has(neighbor):
+				continue
+			var random_cost := rng.randf() * path_noise
+			var directness_cost := float(_manhattan(neighbor, target)) * 0.10
+			var tentative_g := float(g_score[current]) + 1.0 + random_cost + directness_cost
+			if not g_score.has(neighbor) or tentative_g < float(g_score[neighbor]):
+				came_from[neighbor] = current
+				g_score[neighbor] = tentative_g
+				f_score[neighbor] = tentative_g + float(_manhattan(neighbor, target))
+				_heap_push(open, neighbor, float(f_score[neighbor]))
+
+	return []
+
+static func _edge_connector_cell(from_node: Dictionary, to_node: Dictionary, grid_size: Vector2i, blocked_cells: Dictionary) -> Vector2i:
+	var candidates := _edge_connector_candidates(from_node, to_node)
+	for candidate in candidates:
+		if _is_in_bounds(candidate, grid_size) and not blocked_cells.has(candidate):
+			return candidate
+	return Vector2i(-1, -1)
+
+static func _edge_connector_candidates(from_node: Dictionary, to_node: Dictionary) -> Array:
+	var from_center := _node_center(from_node)
+	var to_center := _node_center(to_node)
+	var candidates := []
+	if abs(to_center.x - from_center.x) >= abs(to_center.y - from_center.y):
+		if to_center.x >= from_center.x:
+			candidates.append(Vector2i(from_node.grid.x + from_node.size.x, from_center.y))
+		else:
+			candidates.append(Vector2i(from_node.grid.x - 1, from_center.y))
+		if to_center.y >= from_center.y:
+			candidates.append(Vector2i(from_center.x, from_node.grid.y + from_node.size.y))
+		else:
+			candidates.append(Vector2i(from_center.x, from_node.grid.y - 1))
+	else:
+		if to_center.y >= from_center.y:
+			candidates.append(Vector2i(from_center.x, from_node.grid.y + from_node.size.y))
+		else:
+			candidates.append(Vector2i(from_center.x, from_node.grid.y - 1))
+		if to_center.x >= from_center.x:
+			candidates.append(Vector2i(from_node.grid.x + from_node.size.x, from_center.y))
+		else:
+			candidates.append(Vector2i(from_node.grid.x - 1, from_center.y))
+
+	for x in range(from_node.grid.x, from_node.grid.x + from_node.size.x):
+		candidates.append(Vector2i(x, from_node.grid.y - 1))
+		candidates.append(Vector2i(x, from_node.grid.y + from_node.size.y))
+	for y in range(from_node.grid.y, from_node.grid.y + from_node.size.y):
+		candidates.append(Vector2i(from_node.grid.x - 1, y))
+		candidates.append(Vector2i(from_node.grid.x + from_node.size.x, y))
+	candidates.sort_custom(_sort_positions_by_target.bind(to_center))
+	return _unique_positions(candidates)
+
+static func _export_descriptors(nodes: Array, edges: Dictionary) -> Array:
+	var haven := {}
+	var boss := {}
+	var middle := []
+	for node in nodes:
+		match str(node.type):
+			DungeonNodeDataScript.TYPE_HAVEN:
+				haven = node
+			DungeonNodeDataScript.TYPE_BOSS:
+				boss = node
+			_:
+				middle.append(node)
+
+	if haven.is_empty() or boss.is_empty():
+		return []
+
+	middle.sort_custom(_sort_export_nodes)
+	var export_nodes := [haven]
+	export_nodes.append_array(middle)
+	export_nodes.append(boss)
+
+	var id_by_uid := {}
+	for index in export_nodes.size():
+		id_by_uid[export_nodes[index].uid] = index
+
+	var descriptors := []
+	for index in export_nodes.size():
+		var node: Dictionary = export_nodes[index]
+		var descriptor := {
+			"id": index,
+			"type": str(node.type),
+			"grid": node.grid,
+			"size": node.size,
+		}
+		if bool(node.get("is_boss", false)):
+			descriptor["is_boss"] = true
+		if str(node.type) == DungeonNodeDataScript.TYPE_ENCOUNTER:
+			descriptor["encounter_id"] = str(node.get("encounter_id", ""))
+		if _is_combat_node_type(str(node.type)):
+			descriptor["combat_encounter_id"] = str(node.get("combat_encounter_id", ""))
+			descriptor["combat_encounter_profile_path"] = str(node.get("combat_encounter_profile_path", ""))
+			descriptor["enemy_instances"] = _duplicate_enemy_instances(node.get("enemy_instances", []))
+
+		var connections: Array[int] = []
+		for connected_uid in edges.get(node.uid, []):
+			if id_by_uid.has(connected_uid):
+				connections.append(int(id_by_uid[connected_uid]))
+		connections.sort()
+		descriptor["connections"] = connections
+		descriptors.append(descriptor)
+
+	return descriptors
+
+static func _is_combat_node_type(node_type: String) -> bool:
+	return node_type == DungeonNodeDataScript.TYPE_FIGHT or node_type == DungeonNodeDataScript.TYPE_BOSS
+
+static func _connection_cells_touch(first: Dictionary, second: Dictionary) -> bool:
+	var first_type := str(first.get("type", ""))
+	var second_type := str(second.get("type", ""))
+	if first_type == DungeonNodeDataScript.TYPE_EMPTY and second_type == DungeonNodeDataScript.TYPE_EMPTY:
+		return _manhattan(first.get("grid", Vector2i.ZERO), second.get("grid", Vector2i.ZERO)) == 1
+	if first_type == DungeonNodeDataScript.TYPE_EMPTY:
+		return _cell_touches_node(first.get("grid", Vector2i.ZERO), second)
+	if second_type == DungeonNodeDataScript.TYPE_EMPTY:
+		return _cell_touches_node(second.get("grid", Vector2i.ZERO), first)
+	return false
+
+static func _cell_touches_node(cell: Vector2i, node: Dictionary) -> bool:
+	var grid_position: Vector2i = node.get("grid", Vector2i.ZERO)
+	var grid_node_size: Vector2i = node.get("size", LARGE_SIZE)
+	if cell.x >= grid_position.x and cell.x < grid_position.x + grid_node_size.x:
+		return cell.y == grid_position.y - 1 or cell.y == grid_position.y + grid_node_size.y
+	if cell.y >= grid_position.y and cell.y < grid_position.y + grid_node_size.y:
+		return cell.x == grid_position.x - 1 or cell.x == grid_position.x + grid_node_size.x
+	return false
+
+static func _make_major(uid: String, node_type: String, grid_position: Vector2i, is_boss: bool) -> Dictionary:
+	return {
+		"uid": uid,
+		"type": node_type,
+		"grid": grid_position,
+		"size": LARGE_SIZE,
+		"is_boss": is_boss,
+	}
+
+static func _reserve_large_node(node: Dictionary, occupied_cells: Dictionary) -> void:
+	for cell in _cells_for_rect(node.grid, node.size):
+		occupied_cells[cell] = node.uid
+
+static func _can_place_major(position: Vector2i, node_size: Vector2i, grid_size: Vector2i, occupied_cells: Dictionary, padding: int) -> bool:
+	if position.x < 0 or position.y < 0 or position.x + node_size.x > grid_size.x or position.y + node_size.y > grid_size.y:
+		return false
+	for x in range(position.x - padding, position.x + node_size.x + padding):
+		for y in range(position.y - padding, position.y + node_size.y + padding):
+			if occupied_cells.has(Vector2i(x, y)):
+				return false
+	return true
+
+static func _large_node_cells(nodes: Array) -> Dictionary:
+	var blocked := {}
+	for node in nodes:
+		if str(node.type) == DungeonNodeDataScript.TYPE_EMPTY:
+			continue
+		for cell in _cells_for_rect(node.grid, node.size):
+			blocked[cell] = true
+	return blocked
+
+static func _cells_for_rect(position: Vector2i, node_size: Vector2i) -> Array:
+	var cells := []
+	for x in range(position.x, position.x + node_size.x):
+		for y in range(position.y, position.y + node_size.y):
+			cells.append(Vector2i(x, y))
+	return cells
+
+static func _node_center(node: Dictionary) -> Vector2i:
+	var grid_position: Vector2i = node.grid
+	var grid_node_size: Vector2i = node.size
+	return Vector2i(
+		grid_position.x + floori(float(grid_node_size.x) / 2.0),
+		grid_position.y + floori(float(grid_node_size.y) / 2.0)
+	)
+
+static func _nearest_major(source: Dictionary, candidates: Array, excluded_uid: String = "") -> Variant:
+	var nearest: Variant = null
+	var nearest_distance := 999999
+	for candidate in candidates:
+		if str(candidate.uid) == excluded_uid:
+			continue
+		var distance := _manhattan(_node_center(source), _node_center(candidate))
+		if nearest == null or distance < nearest_distance:
+			nearest = candidate
+			nearest_distance = distance
+	return nearest
+
+static func _sort_middle_route(route: Array) -> void:
+	if route.size() <= 2:
+		return
+	var start = route[0]
+	var end = route[route.size() - 1]
+	var middle := route.slice(1, route.size() - 1)
+	_sort_major_nodes_by_position(middle)
+	route.clear()
+	route.append(start)
+	route.append_array(middle)
+	route.append(end)
+
+static func _sort_major_nodes_by_position(nodes: Array) -> void:
+	nodes.sort_custom(_sort_export_nodes)
+
+static func _sort_export_nodes(first: Dictionary, second: Dictionary) -> bool:
+	var first_grid: Vector2i = first.grid
+	var second_grid: Vector2i = second.grid
+	if first_grid.x != second_grid.x:
+		return first_grid.x < second_grid.x
+	if first_grid.y != second_grid.y:
+		return first_grid.y < second_grid.y
+	return int(TYPE_SORT_ORDER.get(str(first.type), 99)) < int(TYPE_SORT_ORDER.get(str(second.type), 99))
+
+static func _sort_positions_by_target(first: Vector2i, second: Vector2i, target: Vector2i) -> bool:
+	var first_distance := _manhattan(first, target)
+	var second_distance := _manhattan(second, target)
+	if first_distance != second_distance:
+		return first_distance < second_distance
+	if first.x != second.x:
+		return first.x < second.x
+	return first.y < second.y
+
+static func _unique_positions(positions: Array) -> Array:
+	var unique := []
+	var seen := {}
+	for position in positions:
+		if seen.has(position):
+			continue
+		seen[position] = true
+		unique.append(position)
+	return unique
+
+static func _add_edge(edges: Dictionary, first_uid: String, second_uid: String) -> void:
+	if first_uid == second_uid:
+		return
+	if not edges.has(first_uid):
+		edges[first_uid] = []
+	if not edges.has(second_uid):
+		edges[second_uid] = []
+	if not edges[first_uid].has(second_uid):
+		edges[first_uid].append(second_uid)
+	if not edges[second_uid].has(first_uid):
+		edges[second_uid].append(first_uid)
+
+static func _connector_uid(cell: Vector2i) -> String:
+	return "empty_%s_%s" % [cell.x, cell.y]
+
+static func _heap_push(heap: Array, position: Vector2i, score: float) -> void:
+	heap.append({
+		"position": position,
+		"score": score,
+	})
+	var index := heap.size() - 1
+	while index > 0:
+		var parent_index := int((index - 1) / 2)
+		if not _heap_entry_less(heap[index], heap[parent_index]):
+			break
+		var parent = heap[parent_index]
+		heap[parent_index] = heap[index]
+		heap[index] = parent
+		index = parent_index
+
+static func _heap_pop(heap: Array) -> Vector2i:
+	if heap.is_empty():
+		return Vector2i.ZERO
+
+	var best_entry: Dictionary = heap[0]
+	var last_entry = heap.pop_back()
+	if not heap.is_empty():
+		heap[0] = last_entry
+		_heap_sift_down(heap, 0)
+
+	return best_entry.get("position", Vector2i.ZERO)
+
+static func _heap_sift_down(heap: Array, start_index: int) -> void:
+	var index := start_index
+	while true:
+		var left_index := index * 2 + 1
+		var right_index := left_index + 1
+		var best_index := index
+		if left_index < heap.size() and _heap_entry_less(heap[left_index], heap[best_index]):
+			best_index = left_index
+		if right_index < heap.size() and _heap_entry_less(heap[right_index], heap[best_index]):
+			best_index = right_index
+		if best_index == index:
+			return
+		var current = heap[index]
+		heap[index] = heap[best_index]
+		heap[best_index] = current
+		index = best_index
+
+static func _heap_entry_less(first: Dictionary, second: Dictionary) -> bool:
+	var first_score := float(first.get("score", INF))
+	var second_score := float(second.get("score", INF))
+	if not is_equal_approx(first_score, second_score):
+		return first_score < second_score
+
+	var first_position: Vector2i = first.get("position", Vector2i.ZERO)
+	var second_position: Vector2i = second.get("position", Vector2i.ZERO)
+	return first_position.x < second_position.x \
+		or (first_position.x == second_position.x and first_position.y < second_position.y)
+
+static func _reconstruct_path(came_from: Dictionary, current: Vector2i) -> Array:
+	var path := [current]
+	while came_from.has(current):
+		current = came_from[current]
+		path.push_front(current)
+	return path
+
+static func _reachable_ids(graph: Dictionary, start_id: int) -> Dictionary:
+	var reachable := {}
+	var queue := [start_id]
+	while not queue.is_empty():
+		var node_id: int = queue.pop_front()
+		if reachable.has(node_id):
+			continue
+		reachable[node_id] = true
+		for connected_id in graph.get(node_id, []):
+			if not reachable.has(connected_id):
+				queue.append(connected_id)
+	return reachable
+
+static func _shuffle(values: Array, rng: RandomNumberGenerator) -> void:
+	if rng == null:
+		return
+	for index in range(values.size() - 1, 0, -1):
+		var swap_index := rng.randi_range(0, index)
+		var value = values[index]
+		values[index] = values[swap_index]
+		values[swap_index] = value
+
+static func _difficulty_index(difficulty_id: String) -> int:
+	match difficulty_id:
+		"easy":
+			return 0
+		"hard":
+			return 2
+		_:
+			return 1
+
+static func _enemy_level_range_for_floor(config: Resource, floor_layer: int) -> Vector2i:
+	if config != null and config.has_method("enemy_level_range_for_floor"):
+		return config.call("enemy_level_range_for_floor", floor_layer)
+
+	return Vector2i(0, 5)
+
+static func _duplicate_enemy_instances(raw_enemy_instances: Variant) -> Array[Dictionary]:
+	var enemy_instances: Array[Dictionary] = []
+	if not (raw_enemy_instances is Array):
+		return enemy_instances
+
+	for raw_enemy_instance in raw_enemy_instances:
+		if raw_enemy_instance is Dictionary:
+			enemy_instances.append(raw_enemy_instance.duplicate(true))
+
+	return enemy_instances
+
+static func _has_valid_combat_descriptor_payload(descriptor: Dictionary) -> bool:
+	if String(descriptor.get("combat_encounter_id", "")).strip_edges().is_empty():
+		return false
+
+	var raw_enemy_instances: Variant = descriptor.get("enemy_instances", [])
+	if not (raw_enemy_instances is Array) or raw_enemy_instances.is_empty():
+		return false
+
+	for raw_enemy_instance in raw_enemy_instances:
+		if not (raw_enemy_instance is Dictionary):
+			return false
+		var enemy_instance: Dictionary = raw_enemy_instance
+		if not CombatPayloadValidatorScript.is_valid_enemy_instance(enemy_instance):
+			return false
+
+	return true
+
+static func _is_in_bounds(cell: Vector2i, grid_size: Vector2i) -> bool:
+	return cell.x >= 0 and cell.y >= 0 and cell.x < grid_size.x and cell.y < grid_size.y
+
+static func _manhattan(first: Vector2i, second: Vector2i) -> int:
+	return abs(first.x - second.x) + abs(first.y - second.y)

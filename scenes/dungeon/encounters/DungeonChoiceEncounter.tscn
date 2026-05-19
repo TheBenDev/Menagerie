@@ -1,0 +1,71 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scenes/dungeon/encounters/dungeon_choice_encounter.gd" id="1_script"]
+[ext_resource type="Theme" path="res://assets/ui/menagerie_theme.tres" id="2_theme"]
+
+[node name="DungeonChoiceEncounter" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+theme = ExtResource("2_theme")
+script = ExtResource("1_script")
+
+[node name="DimOverlay" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+color = Color(0, 0, 0, 0.55)
+
+[node name="EncounterPanel" type="PanelContainer" parent="."]
+custom_minimum_size = Vector2(720, 420)
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -360.0
+offset_top = -210.0
+offset_right = 360.0
+offset_bottom = 210.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+
+[node name="PanelMargin" type="MarginContainer" parent="EncounterPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 28
+theme_override_constants/margin_top = 24
+theme_override_constants/margin_right = 28
+theme_override_constants/margin_bottom = 24
+
+[node name="Layout" type="VBoxContainer" parent="EncounterPanel/PanelMargin"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 16
+
+[node name="TitleLabel" type="Label" parent="EncounterPanel/PanelMargin/Layout"]
+layout_mode = 2
+theme_type_variation = &"HeaderLabel"
+text = "Encounter"
+horizontal_alignment = 1
+
+[node name="DescriptionLabel" type="Label" parent="EncounterPanel/PanelMargin/Layout"]
+layout_mode = 2
+size_flags_vertical = 3
+text = "The path bends toward something unusual."
+autowrap_mode = 3
+
+[node name="ChoicesContainer" type="VBoxContainer" parent="EncounterPanel/PanelMargin/Layout"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 10

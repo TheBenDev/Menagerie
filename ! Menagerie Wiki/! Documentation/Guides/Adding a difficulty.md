@@ -12,6 +12,7 @@ Use this guide to add a new difficulty profile and expose it to run setup.
 2. Set:
    - `id`
    - `display_name`
+   - enemy stat budgets
    - enemy multipliers
    - reward multiplier
    - AI tuning weights
@@ -25,6 +26,12 @@ Use this guide to add a new difficulty profile and expose it to run setup.
 
 ## Runtime effects
 
+`CombatantStatAllocator.allocate_enemy_stats()` applies:
+
+- `enemy_stat_budget`
+- `enemy_baseline_stat_budget`
+- `enemy_stat_points_per_level`
+
 `BattleController._apply_difficulty_profile()` applies:
 
 - `enemy_health_multiplier`
@@ -35,7 +42,7 @@ Use this guide to add a new difficulty profile and expose it to run setup.
 
 - `reward_multiplier`
 
-`EnemyBrain` reads AI tuning values:
+`CombatBrain` reads AI tuning values:
 
 - `ai_randomness`
 - `ai_score_strength`
@@ -48,7 +55,7 @@ Use this guide to add a new difficulty profile and expose it to run setup.
 
 - Start a run with the new difficulty.
 - Confirm `GlobalHUD` and dungeon header show the display name.
-- Confirm enemy HP/damage/time and rewards use the new values.
+- Confirm enemy rolled stats, HP/damage/time, and rewards use the new values.
 - Confirm invalid/missing profile paths do not appear in Godot load warnings.
 - Run the headless load command after script/resource changes.
 

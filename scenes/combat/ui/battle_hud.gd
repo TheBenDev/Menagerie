@@ -5,6 +5,7 @@ extends Control
 const BattleActionBarScript := preload("res://scenes/combat/ui/action_bar.gd")
 const NumberFontHelper := preload("res://scenes/ui/common/number_font.gd")
 const ResourceBarScript := preload("res://scenes/ui/common/resource_bar.gd")
+const StatusEntrySorterScript := preload("res://core/statuses/status_entry_sorter.gd")
 const StatusIconViewScene := preload("res://scenes/combat/ui/StatusIconView.tscn")
 
 @export var preview_status_atlas: bool = false
@@ -36,10 +37,13 @@ signal pause_requested()
 var battle: BattleController = null
 var player: Combatant = null
 var enemy: Combatant = null
+var player_group: Variant = null
+var enemy_group: Variant = null
 var health_bar_config: Resource = null
 var class_resource_config: Resource = null
 var status_buttons: Array[Control] = []
 var status_entries: Array[Dictionary] = []
+var is_targeting_active: bool = false
 
 func _ready() -> void:
 	speed_button.pressed.connect(_on_speed_button_pressed)
@@ -59,13 +63,26 @@ func _ready() -> void:
 	_configure_static_hover_sources()
 	_clear_hover_info()
 
-func setup(new_battle: BattleController, new_player: Combatant, new_enemy: Combatant) -> void:
+func setup(
+	new_battle: BattleController,
+	new_player: Combatant,
+	new_enemy: Combatant,
+	new_player_group: Variant = null,
+	new_enemy_group: Variant = null
+) -> void:
 	battle = new_battle
 	player = new_player
 	enemy = new_enemy
+	player_group = new_player_group
+	enemy_group = new_enemy_group
 
 	action_bar.set_actions(player.actions)
 	_configure_resource_bars()
+	refresh()
+
+## Gates action-slot selection while the battle scene is waiting for target confirmation.
+func set_targeting_active(new_is_targeting_active: bool) -> void:
+	is_targeting_active = new_is_targeting_active
 	refresh()
 
 func refresh() -> void:
@@ -84,7 +101,7 @@ func refresh() -> void:
 	pause_button.text = ">" if battle.is_paused else "||"
 	pause_button.disabled = battle.battle_over
 
-	action_bar.set_can_choose(battle.waiting_for_player_input and not battle.battle_over)
+	action_bar.set_can_choose(battle.waiting_for_player_input and not battle.battle_over and not is_targeting_active)
 	_update_resource_bars()
 	_update_status_bar()
 
@@ -93,6 +110,12 @@ func choose_action_index(index: int) -> void:
 
 func choose_hotbar_slot_index(index: int) -> void:
 	action_bar.choose_slot_index(index)
+
+func choose_hotbar_keycode(keycode: int) -> void:
+	action_bar.choose_hotkey_keycode(keycode)
+
+func set_hotbar_keybindings(new_hotkey_bindings: Array[Dictionary]) -> void:
+	action_bar.set_hotkey_bindings(new_hotkey_bindings)
 
 func set_hotbar_slots(slot_entries: Array[Dictionary]) -> void:
 	action_bar.set_hotbar_slots(slot_entries)
@@ -192,7 +215,7 @@ func _update_memory_bar() -> void:
 	var goal: int = max(memory_goal, 1)
 	memory_bar.set_values(memories, goal, 0)
 	if memory_label != null:
-		memory_label.text = "Memories %s/%s" % [memories, goal]
+		memory_label.text = "%s/%s" % [memories, goal]
 
 func _update_health_and_block_bars() -> void:
 	if player == null or health_bar == null or block_bar == null:
@@ -203,10 +226,10 @@ func _update_health_and_block_bars() -> void:
 	block_bar.set_segment_values(0, player.block, max_hp)
 	block_bar.visible = player.block > 0
 	if health_label != null:
-		health_label.text = "HP %s/%s" % [player.hp, max_hp]
+		health_label.text = "%s/%s" % [player.hp, max_hp]
 	if block_label != null:
 		block_label.visible = player.block > 0
-		block_label.text = "Block %s" % player.block
+		block_label.text = "%s" % player.block
 
 func _update_class_resource_bar() -> void:
 	if class_resource_bar == null:
@@ -229,15 +252,15 @@ func _update_class_resource_bar() -> void:
 		class_resource_label.text = _class_resource_text(current_value, reference_value)
 
 func _class_resource_text(current_value: int, reference_value: int) -> String:
-	var label: String = str(class_resource_config.get("label"))
 	if bool(class_resource_config.get("display_reference_value")):
-		return "%s %s/%s" % [label, current_value, reference_value]
+		return "%s/%s" % [current_value, reference_value]
 
-	return "%s %s" % [label, current_value]
+	return "%s" % current_value
 
 func _current_run_memories() -> int:
-	if _has_game_manager() and GameManager.current_run_data != null:
-		return max(int(GameManager.current_run_data.memories), 0)
+	if _has_game_manager():
+		var currency_snapshot: Dictionary = GameManager.get_currency_snapshot()
+		return int(currency_snapshot.get("memories", 0))
 
 	return 0
 
@@ -342,7 +365,7 @@ func _active_player_status_entries() -> Array[Dictionary]:
 			"data": status_data,
 		})
 
-	entries.sort_custom(_sort_status_entries)
+	StatusEntrySorterScript.sort_entries(entries)
 	return entries
 
 func _preview_status_entries() -> Array[Dictionary]:
@@ -375,11 +398,6 @@ func _ensure_status_button_count(count: int) -> void:
 		status_icons.add_child(button)
 		status_buttons.append(button)
 		_bind_hover_source(button)
-
-func _sort_status_entries(a: Dictionary, b: Dictionary) -> bool:
-	var a_name: String = str(a.get("display_name", ""))
-	var b_name: String = str(b.get("display_name", ""))
-	return a_name.naturalnocasecmp_to(b_name) < 0
 
 func _configure_static_hover_sources() -> void:
 	_bind_hover_source(speed_button)

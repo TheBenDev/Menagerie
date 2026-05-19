@@ -51,7 +51,6 @@ time_cost = 8.0
 [sub_resource type="Resource" id="EnemyMove_guard"]
 script = ExtResource("2_enemy_move_data")
 weight = 2.0
-target_rule = "Self"
 ai_role = "Defense"
 id = "guard"
 display_name = "Guard"
@@ -59,12 +58,11 @@ effect_data = Array[Dictionary]([{
 "amount": 12,
 "id": &"combat.block"
 }])
-target_enemy = false
+target_rule = "Self"
 
 [sub_resource type="Resource" id="EnemyMove_grave_strength"]
 script = ExtResource("2_enemy_move_data")
 weight = 1.2
-target_rule = "Self"
 ai_role = "Setup"
 id = "grave_strength"
 display_name = "Grave Strength"
@@ -72,7 +70,7 @@ effect_data = Array[Dictionary]([{
 "amount": 1,
 "id": &"stat.strength.add"
 }])
-target_enemy = false
+target_rule = "Self"
 
 [resource]
 script = ExtResource("1_enemy_ai_profile")

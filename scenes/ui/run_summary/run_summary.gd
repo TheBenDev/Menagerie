@@ -35,26 +35,27 @@ func _apply_number_fonts() -> void:
 		NumberFontHelper.apply_to_label(label)
 
 func _refresh_summary() -> void:
-	var run_data: Variant = GameManager.current_run_data
-	if run_data == null:
+	var snapshot: Dictionary = GameManager.get_run_summary_snapshot()
+	if snapshot.is_empty():
 		title_label.text = "Run Summary"
 		_set_empty_values()
 		return
 
 	GameManager.export_current_run_memories()
 
-	title_label.text = _title_for(run_data)
-	character_value.text = run_data.selected_character
-	difficulty_value.text = GameManager.get_selected_difficulty_display_name()
-	fights_value.text = str(run_data.fights_completed)
-	boss_value.text = "Yes" if run_data.boss_defeated else "No"
-	damage_dealt_value.text = str(run_data.damage_dealt)
-	damage_taken_value.text = str(run_data.damage_taken)
-	actions_value.text = str(run_data.actions_used)
-	time_value.text = "%ss" % int(round(run_data.time_elapsed))
-	memories_value.text = str(run_data.memories)
-	gold_value.text = str(run_data.gold)
-	reason_value.text = _reason_text(run_data.run_end_reason)
+	snapshot = GameManager.get_run_summary_snapshot()
+	title_label.text = _title_for(snapshot)
+	character_value.text = str(snapshot.get("character", "-"))
+	difficulty_value.text = str(snapshot.get("difficulty", "-"))
+	fights_value.text = str(int(snapshot.get("fights_completed", 0)))
+	boss_value.text = "Yes" if bool(snapshot.get("boss_defeated", false)) else "No"
+	damage_dealt_value.text = str(int(snapshot.get("damage_dealt", 0)))
+	damage_taken_value.text = str(int(snapshot.get("damage_taken", 0)))
+	actions_value.text = str(int(snapshot.get("actions_used", 0)))
+	time_value.text = "%ss" % int(round(float(snapshot.get("time_elapsed", 0.0))))
+	memories_value.text = str(int(snapshot.get("memories", 0)))
+	gold_value.text = str(int(snapshot.get("gold", 0)))
+	reason_value.text = _reason_text(str(snapshot.get("run_end_reason", "-")))
 
 func _set_empty_values() -> void:
 	character_value.text = "-"
@@ -69,15 +70,17 @@ func _set_empty_values() -> void:
 	gold_value.text = "0"
 	reason_value.text = "-"
 
-func _title_for(run_data: Variant) -> String:
-	if run_data.run_victory:
+func _title_for(snapshot: Dictionary) -> String:
+	if bool(snapshot.get("run_victory", false)):
 		return "Run Complete"
-	if run_data.run_end_reason == RunData.END_REASON_TIMEOUT:
+	if str(snapshot.get("run_end_reason", "")) == RunData.END_REASON_TIMEOUT:
 		return "Time Expired"
 
 	return "Run Ended"
 
 func _reason_text(reason: String) -> String:
+	if reason.is_empty():
+		return "-"
 	match reason:
 		RunData.END_REASON_VICTORY:
 			return "Victory"
@@ -85,6 +88,8 @@ func _reason_text(reason: String) -> String:
 			return "Time Out"
 		RunData.END_REASON_DEFEAT:
 			return "Defeat"
+		"-":
+			return "-"
 		_:
 			return reason.capitalize()
 

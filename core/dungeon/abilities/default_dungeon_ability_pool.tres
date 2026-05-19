@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="DungeonAbilityPool" format=3 uid="uid://43fu0mbpraty"]
+
+[ext_resource type="Script" uid="uid://d0oqu1jgwcsrv" path="res://core/dungeon/abilities/dungeon_ability_pool.gd" id="1_pool"]
+[ext_resource type="Script" uid="uid://c3b1024gja7gt" path="res://core/dungeon/abilities/dungeon_ability_data.gd" id="2_ability"]
+
+[sub_resource type="Resource" id="DungeonAbility_slot_1"]
+script = ExtResource("2_ability")
+id = &"dungeon_ability_1"
+display_name = "Dungeon Ability 1"
+hotbar_label = "1"
+description = "Class-agnostic dungeon ability slot."
+
+[sub_resource type="Resource" id="DungeonAbility_slot_2"]
+script = ExtResource("2_ability")
+id = &"dungeon_ability_2"
+display_name = "Dungeon Ability 2"
+hotbar_label = "2"
+description = "Class-agnostic dungeon ability slot."
+
+[sub_resource type="Resource" id="DungeonAbility_slot_3"]
+script = ExtResource("2_ability")
+id = &"dungeon_ability_3"
+display_name = "Dungeon Ability 3"
+hotbar_label = "3"
+description = "Class-agnostic dungeon ability slot."
+
+[resource]
+script = ExtResource("1_pool")
+abilities = Array[Resource]([SubResource("DungeonAbility_slot_1"), SubResource("DungeonAbility_slot_2"), SubResource("DungeonAbility_slot_3")])

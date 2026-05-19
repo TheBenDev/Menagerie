@@ -1,0 +1,32 @@
+[gd_resource type="Resource" script_class="DungeonEncounterData" format=3]
+
+[ext_resource type="Script" uid="uid://btaufeh8h6e34" path="res://core/dungeon/encounters/dungeon_encounter_data.gd" id="1_encounter"]
+
+[resource]
+script = ExtResource("1_encounter")
+id = &"forgotten_font"
+display_name = "Forgotten Font"
+description = "A cracked basin gathers clear water from nowhere."
+valid_floor_layers = Array[int]([1])
+choices = Array[Dictionary]([{
+"description": "The water is cold enough to ache.",
+"effects": [{
+"amount": 5,
+"id": &"damage"
+}, {
+"amount": 1,
+"duration": 180.0,
+"id": &"stat",
+"stat": "VIT"
+}],
+"label": "Drink deeply"
+}, {
+"description": "Watch the ripples until they teach your hands to move first.",
+"effects": [{
+"amount": 2,
+"duration": 90.0,
+"id": &"stat",
+"stat": "DEX"
+}],
+"label": "Study the reflection"
+}])

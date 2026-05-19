@@ -17,6 +17,23 @@ const LABEL_KEY: String = "label"
 const DISPLAY_NAME_KEY: String = "display_name"
 const DESCRIPTION_KEY: String = "description"
 const DETAILS_KEY: String = "details"
+const HOTKEY_KEYCODE_KEY: String = "keycode"
+const HOTKEY_LABEL_KEY: String = "hotkey_label"
+
+@export var hotkey_bindings: Array[Dictionary] = [
+	{"slot_id": &"strike", "hotkey_label": "1", "keycode": KEY_1},
+	{"slot_id": &"guard", "hotkey_label": "2", "keycode": KEY_2},
+	{"slot_id": &"ability_1", "hotkey_label": "3", "keycode": KEY_3},
+	{"slot_id": &"ability_2", "hotkey_label": "4", "keycode": KEY_4},
+	{"slot_id": &"ability_3", "hotkey_label": "5", "keycode": KEY_5},
+	{"slot_id": &"ability_4", "hotkey_label": "6", "keycode": KEY_6},
+	{"slot_id": &"ability_5", "hotkey_label": "7", "keycode": KEY_7},
+	{"slot_id": &"ability_6", "hotkey_label": "8", "keycode": KEY_8},
+	{"slot_id": &"consumable_1", "hotkey_label": "9", "keycode": KEY_9},
+	{"slot_id": &"consumable_2", "hotkey_label": "0", "keycode": KEY_0},
+	{"slot_id": &"consumable_3", "hotkey_label": "-", "keycode": KEY_MINUS},
+	{"slot_id": &"consumable_4", "hotkey_label": "=", "keycode": KEY_EQUAL},
+]
 
 signal slot_selected(slot_id: StringName)
 signal slot_hovered(source: Control)
@@ -25,11 +42,15 @@ signal slot_hover_ended()
 var actions: Array[CombatActionData] = []
 var buttons: Array[Button] = []
 var slot_ids: Array[StringName] = []
+var hotkey_slot_ids: Array[StringName] = []
+var hotkey_label_by_slot_id: Dictionary = {}
+var hotkey_slot_id_by_keycode: Dictionary = {}
 var slot_entries: Dictionary = {}
 var can_choose: bool = false
 
 func _ready() -> void:
 	_collect_buttons()
+	_refresh_hotkey_bindings()
 	_assign_default_action_slots()
 	_update_buttons()
 
@@ -47,6 +68,11 @@ func set_hotbar_slots(new_slot_entries: Array[Dictionary]) -> void:
 
 		slot_entries[slot_id] = _normalized_slot_entry(slot_id, entry)
 
+	_update_buttons()
+
+func set_hotkey_bindings(new_hotkey_bindings: Array[Dictionary]) -> void:
+	hotkey_bindings = new_hotkey_bindings.duplicate(true)
+	_refresh_hotkey_bindings()
 	_update_buttons()
 
 func set_slot_entry(slot_id: StringName, entry: Dictionary) -> void:
@@ -86,10 +112,17 @@ func choose_slot_id(slot_id: StringName) -> void:
 	slot_selected.emit(slot_id)
 
 func choose_slot_index(index: int) -> void:
-	if index < 0 or index >= slot_ids.size():
+	if index < 0 or index >= hotkey_slot_ids.size():
 		return
 
-	choose_slot_id(slot_ids[index])
+	choose_slot_id(hotkey_slot_ids[index])
+
+func choose_hotkey_keycode(keycode: int) -> void:
+	var slot_id: StringName = _hotkey_slot_id_for_keycode(keycode)
+	if slot_id == &"":
+		return
+
+	choose_slot_id(slot_id)
 
 func choose_action_index(index: int) -> void:
 	for slot_id in slot_ids:
@@ -108,6 +141,24 @@ func _collect_buttons() -> void:
 			buttons.append(button)
 			slot_ids.append(slot_id)
 			_connect_button(button)
+
+func _refresh_hotkey_bindings() -> void:
+	hotkey_slot_ids.clear()
+	hotkey_label_by_slot_id.clear()
+	hotkey_slot_id_by_keycode.clear()
+
+	for binding in hotkey_bindings:
+		var slot_id: StringName = _slot_id_from_entry(binding)
+		if slot_id == &"":
+			continue
+
+		var keycode: int = int(binding.get(HOTKEY_KEYCODE_KEY, 0))
+		if keycode == 0:
+			continue
+
+		hotkey_slot_ids.append(slot_id)
+		hotkey_label_by_slot_id[slot_id] = str(binding.get(HOTKEY_LABEL_KEY, ""))
+		hotkey_slot_id_by_keycode[keycode] = slot_id
 
 func _connect_button(button: Button) -> void:
 	if button.has_signal("slot_pressed"):
@@ -176,6 +227,7 @@ func _update_buttons() -> void:
 		button.disabled = not can_choose or not has_content
 		button.tooltip_text = ""
 		button.text = _button_label_for_slot(button, entry)
+		_apply_button_hotkey_label(button, slot_id)
 
 		if has_content:
 			_set_slot_hover_info(button, entry)
@@ -284,6 +336,17 @@ func _string_name_value(value: Variant) -> StringName:
 		return value
 
 	return StringName(str(value))
+
+func _hotkey_slot_id_for_keycode(keycode: int) -> StringName:
+	var slot_id_value: Variant = hotkey_slot_id_by_keycode.get(keycode, &"")
+	return _string_name_value(slot_id_value)
+
+func _apply_button_hotkey_label(button: Button, slot_id: StringName) -> void:
+	if not button.has_method("set_hotkey_label"):
+		return
+
+	var hotkey_label: String = str(hotkey_label_by_slot_id.get(slot_id, ""))
+	button.call("set_hotkey_label", hotkey_label)
 
 func _button_label_for_slot(button: Button, entry: Dictionary) -> String:
 	var label: String = str(entry.get(LABEL_KEY, ""))

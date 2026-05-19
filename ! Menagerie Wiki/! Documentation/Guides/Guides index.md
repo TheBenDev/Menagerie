@@ -12,6 +12,7 @@ This index links task-focused developer guides.
 | --- | --- |
 | [[Adding a combat action]] | Adding player actions or enemy moves. |
 | [[Adding an enemy]] | Adding an enemy profile, AI profile, rewards, dungeon node, or visual. |
+| [[Adding a dungeon encounter]] | Adding resource-authored random encounter events for generated dungeon maps. |
 | [[Adding a status or effect]] | Adding status data or new combat effect behavior. |
 | [[Adding a difficulty]] | Adding or exposing difficulty profiles. |
 | [[Adding a scene route]] | Adding a routed scene through `GameManager`. |

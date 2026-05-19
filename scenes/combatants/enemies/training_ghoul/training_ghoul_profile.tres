@@ -20,10 +20,12 @@ placeholder_color = Color(0.32, 0.48, 0.28, 1)
 timeline_initial = "G"
 timeline_color = Color(0.68, 0.9, 0.52, 1)
 battle_visual_scene = ExtResource("4_visual")
-strength = 4
-dexterity = 5
-intelligence = 5
-vitality = 7
+stat_weights = {
+"DEX": 1.0,
+"INT": 0.25,
+"STR": 3.0,
+"VIT": 4.0
+}
 enemy_ai_profile = ExtResource("5_ai_profile")
 reward_profile = ExtResource("3_rewards")
 health_bar = SubResource("ResourceBarConfig_health")

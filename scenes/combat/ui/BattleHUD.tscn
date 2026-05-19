@@ -66,6 +66,7 @@ offset_left = -172.0
 offset_top = -24.0
 offset_right = -117.0
 offset_bottom = 28.0
+theme_type_variation = &"CombatHotbarButton"
 script = ExtResource("10_slot_button")
 slot_id = &"stance_1"
 
@@ -75,6 +76,7 @@ offset_left = -171.0
 offset_top = 36.0
 offset_right = -118.0
 offset_bottom = 84.0
+theme_type_variation = &"CombatHotbarButton"
 script = ExtResource("10_slot_button")
 slot_id = &"stance_2"
 
@@ -84,6 +86,7 @@ offset_left = -171.0
 offset_top = 94.0
 offset_right = -118.0
 offset_bottom = 141.0
+theme_type_variation = &"CombatHotbarButton"
 script = ExtResource("10_slot_button")
 slot_id = &"stance_3"
 
@@ -94,7 +97,7 @@ offset_left = -102.0
 offset_top = -21.0
 offset_right = -24.0
 offset_bottom = 57.0
-theme_override_font_sizes/font_size = 36
+theme_type_variation = &"CombatHotbarButton"
 text = "S"
 script = ExtResource("10_slot_button")
 slot_id = &"strike"
@@ -107,7 +110,7 @@ offset_left = -102.0
 offset_top = 67.0
 offset_right = -27.0
 offset_bottom = 139.0
-theme_override_font_sizes/font_size = 36
+theme_type_variation = &"CombatHotbarButton"
 text = "G"
 script = ExtResource("10_slot_button")
 slot_id = &"guard"
@@ -120,7 +123,7 @@ offset_left = -3.0
 offset_top = 2.0
 offset_right = 87.0
 offset_bottom = 92.0
-theme_override_font_sizes/font_size = 36
+theme_type_variation = &"CombatHotbarButton"
 text = "H"
 script = ExtResource("10_slot_button")
 slot_id = &"ability_1"
@@ -133,7 +136,7 @@ offset_left = 95.0
 offset_top = 2.0
 offset_right = 185.0
 offset_bottom = 92.0
-theme_override_font_sizes/font_size = 36
+theme_type_variation = &"CombatHotbarButton"
 script = ExtResource("10_slot_button")
 slot_id = &"ability_2"
 
@@ -144,7 +147,7 @@ offset_left = 195.0
 offset_top = 2.0
 offset_right = 285.0
 offset_bottom = 92.0
-theme_override_font_sizes/font_size = 36
+theme_type_variation = &"CombatHotbarButton"
 script = ExtResource("10_slot_button")
 slot_id = &"ability_3"
 
@@ -155,7 +158,7 @@ offset_left = 295.0
 offset_top = 2.0
 offset_right = 385.0
 offset_bottom = 92.0
-theme_override_font_sizes/font_size = 36
+theme_type_variation = &"CombatHotbarButton"
 script = ExtResource("10_slot_button")
 slot_id = &"ability_4"
 
@@ -166,7 +169,7 @@ offset_left = 394.0
 offset_top = 2.0
 offset_right = 484.0
 offset_bottom = 92.0
-theme_override_font_sizes/font_size = 36
+theme_type_variation = &"CombatHotbarButton"
 script = ExtResource("10_slot_button")
 slot_id = &"ability_5"
 
@@ -177,7 +180,7 @@ offset_left = 493.0
 offset_top = 2.0
 offset_right = 583.0
 offset_bottom = 92.0
-theme_override_font_sizes/font_size = 36
+theme_type_variation = &"CombatHotbarButton"
 script = ExtResource("10_slot_button")
 slot_id = &"ability_6"
 
@@ -187,6 +190,7 @@ offset_left = 631.0
 offset_top = -22.0
 offset_right = 707.0
 offset_bottom = 53.0
+theme_type_variation = &"CombatHotbarButton"
 script = ExtResource("10_slot_button")
 slot_id = &"consumable_1"
 
@@ -196,6 +200,7 @@ offset_left = 631.0
 offset_top = 64.0
 offset_right = 707.0
 offset_bottom = 139.0
+theme_type_variation = &"CombatHotbarButton"
 script = ExtResource("10_slot_button")
 slot_id = &"consumable_2"
 
@@ -205,6 +210,7 @@ offset_left = 715.0
 offset_top = -22.0
 offset_right = 791.0
 offset_bottom = 53.0
+theme_type_variation = &"CombatHotbarButton"
 script = ExtResource("10_slot_button")
 slot_id = &"consumable_3"
 
@@ -214,6 +220,7 @@ offset_left = 715.0
 offset_top = 64.0
 offset_right = 791.0
 offset_bottom = 139.0
+theme_type_variation = &"CombatHotbarButton"
 script = ExtResource("10_slot_button")
 slot_id = &"consumable_4"
 
@@ -256,13 +263,12 @@ resource_name = "HP"
 draw_text = false
 
 [node name="BlockBar" type="Control" parent="Hotbar/ResourceBars" unique_id=1530553608]
-visible = false
 z_index = 1
 anchors_preset = 0
 offset_left = 188.0
-offset_top = 242.0
+offset_top = 241.0
 offset_right = 775.0
-offset_bottom = 254.0
+offset_bottom = 253.0
 mouse_filter = 2
 script = ExtResource("2_resource")
 resource_name = ""
@@ -311,36 +317,34 @@ mouse_filter = 2
 
 [node name="MemoryLabel" type="Label" parent="Hotbar/ResourceLabels" unique_id=1280599844]
 layout_mode = 0
-offset_left = 165.0
-offset_top = 102.0
-offset_right = 754.0
-offset_bottom = 119.0
-theme_override_font_sizes/font_size = 14
-text = "Memories 0/100"
+offset_left = 178.0
+offset_top = 100.0
+offset_right = 767.0
+offset_bottom = 122.0
+theme_type_variation = &"CombatHotbarLabel"
+text = "0/100"
 horizontal_alignment = 1
 vertical_alignment = 1
 
 [node name="HealthLabel" type="Label" parent="Hotbar/ResourceLabels" unique_id=233159039]
 layout_mode = 0
 offset_left = 187.0
-offset_top = 238.0
+offset_top = 237.0
 offset_right = 774.0
-offset_bottom = 257.0
-theme_override_font_sizes/font_size = 14
-text = "HP 0/0"
+offset_bottom = 259.0
+theme_type_variation = &"CombatHotbarLabel"
+text = "0/0"
 horizontal_alignment = 1
 vertical_alignment = 1
 
 [node name="BlockLabel" type="Label" parent="Hotbar/ResourceLabels" unique_id=1031294214]
-visible = false
 layout_mode = 0
 offset_left = 188.0
-offset_top = 232.0
-offset_right = 775.0
-offset_bottom = 257.0
-theme_override_font_sizes/font_size = 14
-text = "Block 0"
-horizontal_alignment = 2
+offset_top = 235.0
+offset_right = 232.0
+offset_bottom = 260.0
+theme_type_variation = &"CombatHotbarLabel"
+text = "0"
 vertical_alignment = 1
 
 [node name="ClassResourceLabel" type="Label" parent="Hotbar/ResourceLabels" unique_id=301086623]
@@ -348,9 +352,9 @@ layout_mode = 0
 offset_left = 187.0
 offset_top = 258.0
 offset_right = 774.0
-offset_bottom = 275.0
-theme_override_font_sizes/font_size = 14
-text = "Resource 0"
+offset_bottom = 280.0
+theme_type_variation = &"CombatHotbarLabel"
+text = "0"
 horizontal_alignment = 1
 vertical_alignment = 1
 
@@ -481,7 +485,6 @@ theme_override_constants/margin_bottom = 28
 [node name="InfoText" type="RichTextLabel" parent="HoverInfoPanel/PanelMargin" unique_id=895638877]
 layout_mode = 2
 mouse_filter = 2
-theme_override_font_sizes/normal_font_size = 18
 scroll_active = false
 
 [node name="GlobalHUD" parent="." unique_id=539725267 instance=ExtResource("8_hiocs")]

@@ -9,6 +9,7 @@ const DIFFICULTY_HARD := "hard"
 @onready var easy_button: Button = $MarginContainer/Layout/SetupPanel/PanelMargin/SetupLayout/DifficultyRow/EasyButton
 @onready var normal_button: Button = $MarginContainer/Layout/SetupPanel/PanelMargin/SetupLayout/DifficultyRow/NormalButton
 @onready var hard_button: Button = $MarginContainer/Layout/SetupPanel/PanelMargin/SetupLayout/DifficultyRow/HardButton
+@onready var seed_edit: LineEdit = $MarginContainer/Layout/SetupPanel/PanelMargin/SetupLayout/SeedRow/SeedEdit
 @onready var start_run_button: Button = $MarginContainer/Layout/ActionRow/StartRunButton
 @onready var back_button: Button = $MarginContainer/Layout/ActionRow/BackButton
 
@@ -47,7 +48,7 @@ func _refresh_difficulty_buttons() -> void:
 	hard_button.button_pressed = selected_difficulty == DIFFICULTY_HARD
 
 func _on_start_run_pressed() -> void:
-	GameManager.start_new_run(selected_character, selected_difficulty)
+	GameManager.start_new_run(selected_character, selected_difficulty, seed_edit.text.strip_edges())
 	GameManager.go_to_scene("dungeon")
 
 func _on_back_pressed() -> void:

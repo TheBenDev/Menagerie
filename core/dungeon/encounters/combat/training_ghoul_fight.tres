@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="DungeonCombatEncounterData" format=3]
+
+[ext_resource type="Script" path="res://core/dungeon/encounters/dungeon_combat_encounter_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = &"training_ghoul_fight"
+display_name = "Training Ghoul Fight"
+description = "A baseline seeded combat encounter that rolls one to three Training Ghoul enemies."
+max_enemy_count = 3
+enemy_slots = Array[Dictionary]([{
+"combatant_profile_path": "res://scenes/combatants/enemies/training_ghoul/training_ghoul_profile.tres",
+"position_id": "EnemySlot1"
+}, {
+"combatant_profile_path": "res://scenes/combatants/enemies/training_ghoul/training_ghoul_profile.tres",
+"position_id": "EnemySlot2"
+}, {
+"combatant_profile_path": "res://scenes/combatants/enemies/training_ghoul/training_ghoul_profile.tres",
+"position_id": "EnemySlot3"
+}])

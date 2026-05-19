@@ -4,8 +4,11 @@
 [ext_resource type="PackedScene" uid="uid://dk60mirr4sj2m" path="res://scenes/ui/global_hud/GlobalHUD.tscn" id="2_global_hud"]
 [ext_resource type="Theme" uid="uid://blcilhxj3ejys" path="res://assets/ui/menagerie_theme.tres" id="3_theme"]
 [ext_resource type="Texture2D" uid="uid://d3ovr4oae0nno" path="res://assets/ui/global/background/textured_background.png" id="4_background"]
-[ext_resource type="Script" path="res://scenes/dungeon/dungeon_grid_view.gd" id="5_grid_view"]
-[ext_resource type="Script" path="res://scenes/dungeon/dungeon_map_input_connector.gd" id="6_input_connector"]
+[ext_resource type="Script" uid="uid://6vm80ena5pok" path="res://scenes/dungeon/dungeon_grid_view.gd" id="5_grid_view"]
+[ext_resource type="Script" uid="uid://d5mkmr0rq5n5" path="res://scenes/dungeon/dungeon_map_input_connector.gd" id="6_input_connector"]
+[ext_resource type="Texture2D" uid="uid://c15yfpuoxiaqd" path="res://assets/ui/dungeon/dungeon_hotbar_solid.png" id="7_mnowe"]
+[ext_resource type="Script" uid="uid://co4mpwaos6ev4" path="res://scenes/ui/common/resource_bar.gd" id="8_iffs1"]
+[ext_resource type="Texture2D" uid="uid://dxb7iw36mstn8" path="res://assets/ui/dungeon/dungeon_hotbar_transparent.png" id="9_npk24"]
 
 [node name="DungeonMap" type="Control" unique_id=1721247295]
 layout_mode = 3
@@ -44,10 +47,6 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 42.0
-offset_top = 148.0
-offset_right = -42.0
-offset_bottom = -168.0
 grow_horizontal = 2
 grow_vertical = 2
 
@@ -72,12 +71,30 @@ offset_right = 1656.0
 offset_bottom = 216.0
 mouse_filter = 2
 
+[node name="PawnLayer" type="Control" parent="MapViewport/MapContent" unique_id=1586885601]
+z_index = 1
+anchors_preset = 0
+offset_right = 1656.0
+offset_bottom = 216.0
+mouse_filter = 2
+
+[node name="EncounterLayer" type="Control" parent="." unique_id=1460772312]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
 [node name="DungeonController" type="Node" parent="." unique_id=811380347]
 script = ExtResource("1_controller")
 map_viewport_path = NodePath("../MapViewport")
 map_content_path = NodePath("../MapViewport/MapContent")
 grid_view_path = NodePath("../MapViewport/MapContent/GridView")
 node_layer_path = NodePath("../MapViewport/MapContent/NodeLayer")
+encounter_layer_path = NodePath("../EncounterLayer")
 
 [node name="DungeonMapInputConnector" type="Node" parent="." unique_id=891375204]
 script = ExtResource("6_input_connector")
@@ -92,8 +109,8 @@ anchors_preset = 12
 anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 42.0
-offset_top = -136.0
+offset_left = 1578.0
+offset_top = -166.0
 offset_right = -42.0
 offset_bottom = -36.0
 grow_horizontal = 2
@@ -112,28 +129,125 @@ layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 6
 
-[node name="HeaderRow" type="HBoxContainer" parent="InfoPanel/PanelMargin/InfoLayout" unique_id=2053562056]
+[node name="DifficultyLabel" type="Label" parent="InfoPanel/PanelMargin/InfoLayout" unique_id=858669521]
 layout_mode = 2
-theme_override_constants/separation = 18
-
-[node name="TitleLabel" type="Label" parent="InfoPanel/PanelMargin/InfoLayout/HeaderRow" unique_id=980320065]
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 30
-text = "Dungeon Map"
-
-[node name="DifficultyLabel" type="Label" parent="InfoPanel/PanelMargin/InfoLayout/HeaderRow" unique_id=858669521]
-layout_mode = 2
-theme_override_font_sizes/font_size = 18
 text = "Difficulty: Normal"
 vertical_alignment = 1
 
-[node name="StatusLabel" type="Label" parent="InfoPanel/PanelMargin/InfoLayout" unique_id=1892133864]
+[node name="SeedLabel" type="Label" parent="InfoPanel/PanelMargin/InfoLayout" unique_id=730749500]
 layout_mode = 2
-theme_override_font_sizes/font_size = 18
-text = "Progress: 0 / 4 fights complete"
+size_flags_horizontal = 3
+text = "Seed: -"
+vertical_alignment = 1
+clip_text = true
+text_overrun_behavior = 3
 
-[node name="DetailLabel" type="Label" parent="InfoPanel/PanelMargin/InfoLayout" unique_id=1204011812]
+[node name="CopySeedButton" type="Button" parent="InfoPanel/PanelMargin/InfoLayout" unique_id=995653737]
 layout_mode = 2
-theme_override_font_sizes/font_size = 18
-text = "Reachable: Haven"
+size_flags_horizontal = 3
+tooltip_text = "Copy run seed"
+text = "Copy Seed"
+
+[node name="DungeonHotbar" type="Control" parent="." unique_id=395474287]
+z_index = 2
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -260.0
+offset_top = -250.0
+offset_right = 240.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 1
+
+[node name="HotbarSolid" type="TextureRect" parent="DungeonHotbar" unique_id=1876748784]
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+texture = ExtResource("7_mnowe")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="ResourceBars" type="Control" parent="DungeonHotbar" unique_id=1009251771]
+z_index = 1
+anchors_preset = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="HealthBar" type="Control" parent="DungeonHotbar/ResourceBars" unique_id=1932245191]
+anchors_preset = 0
+offset_left = 33.0
+offset_top = 186.0
+offset_right = 466.0
+offset_bottom = 216.0
+script = ExtResource("8_iffs1")
+resource_name = "HP"
+reference_value = 100
+background_color = Color(0.04, 0.02, 0.02, 0.72)
+border_color = Color(0, 0, 0, 0)
+draw_text = false
+
+[node name="HealthValueLabel" type="Label" parent="DungeonHotbar/ResourceBars/HealthBar" unique_id=1669188406]
+visible = false
+z_index = 2
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_type_variation = &"CombatantTextLabel"
+text = "0/0"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="AbilitySlots" type="Control" parent="DungeonHotbar" unique_id=1493257676]
+z_index = 2
+anchors_preset = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+
+[node name="AbilityButton1" type="Button" parent="DungeonHotbar/AbilitySlots" unique_id=156460210]
+layout_mode = 0
+offset_left = 34.0
+offset_top = 35.0
+offset_right = 163.0
+offset_bottom = 161.0
+focus_mode = 0
+theme_type_variation = &"CombatHotbarButton"
+text = "1"
+
+[node name="AbilityButton2" type="Button" parent="DungeonHotbar/AbilitySlots" unique_id=1442683961]
+layout_mode = 0
+offset_left = 186.0
+offset_top = 36.0
+offset_right = 314.0
+offset_bottom = 161.0
+focus_mode = 0
+theme_type_variation = &"CombatHotbarButton"
+text = "2"
+
+[node name="AbilityButton3" type="Button" parent="DungeonHotbar/AbilitySlots" unique_id=2025167155]
+layout_mode = 0
+offset_left = 337.0
+offset_top = 35.0
+offset_right = 465.0
+offset_bottom = 160.0
+focus_mode = 0
+theme_type_variation = &"CombatHotbarButton"
+text = "3"
+
+[node name="HotbarTransparent" type="TextureRect" parent="DungeonHotbar" unique_id=1039069743]
+z_index = 3
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+texture = ExtResource("9_npk24")
+expand_mode = 1
+stretch_mode = 5

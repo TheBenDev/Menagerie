@@ -4,39 +4,70 @@ extends Control
 
 const NumberFontHelper := preload("res://scenes/ui/common/number_font.gd")
 const ResourceBarScript := preload("res://scenes/ui/common/resource_bar.gd")
+const StatusEntrySorterScript := preload("res://core/statuses/status_entry_sorter.gd")
 const StatusIconViewScene := preload("res://scenes/combat/ui/StatusIconView.tscn")
+
+const TARGET_HIGHLIGHT_FILL := Color(1.0, 0.82, 0.24, 0.12)
+const TARGET_HIGHLIGHT_BORDER := Color(1.0, 0.82, 0.24, 0.95)
+const TARGET_HIGHLIGHT_BORDER_WIDTH := 4
+
+signal target_selected(combatant: Combatant)
 
 @export var status_icon_size: Vector2 = Vector2(32.0, 32.0)
 
-@onready var name_label: Label = $NameLabel
-@onready var visual_root: Control = $VisualRoot
-@onready var visual_placeholder: ColorRect = $VisualRoot/VisualPlaceholder
-@onready var health_bar: ResourceBarScript = $ResourceBars/HealthBar
-@onready var block_bar: ResourceBarScript = $ResourceBars/BlockBar
-@onready var class_resource_bar: ResourceBarScript = $ResourceBars/ClassResourceBar
-@onready var health_label: Label = $ResourceLabels/HealthLabel
-@onready var block_label: Label = $ResourceLabels/BlockLabel
-@onready var class_resource_label: Label = $ResourceLabels/ClassResourceLabel
-@onready var status_bar: Control = $StatusBar
-@onready var status_icons: HBoxContainer = $StatusBar/StatusIcons
+@onready var visual_root: Control = $DisplayColumn/VisualFrame/VisualRoot
+@onready var visual_placeholder: ColorRect = $DisplayColumn/VisualFrame/VisualRoot/VisualPlaceholder
+@onready var health_resource_row: Control = $DisplayColumn/HealthResourceRow
+@onready var health_bar: ResourceBarScript = $DisplayColumn/HealthResourceRow/HealthBar
+@onready var block_bar: ResourceBarScript = $DisplayColumn/HealthResourceRow/BlockBar
+@onready var health_label: Label = $DisplayColumn/HealthResourceRow/HealthLabel
+@onready var block_label: Label = $DisplayColumn/HealthResourceRow/BlockLabel
+@onready var name_panel: Control = $DisplayColumn/NamePanel
+@onready var name_plate: Control = $DisplayColumn/NamePanel/NamePlate
+@onready var name_label: Label = $DisplayColumn/NamePanel/NamePlate/NameLabel
+@onready var status_bar: Control = $DisplayColumn/StatusBar
+@onready var status_icons: Control = $DisplayColumn/StatusBar/StatusIcons
 
 var combatant: Combatant = null
 var visual_instance: Node = null
 var health_bar_config: Resource = null
-var class_resource_config: Resource = null
 var status_buttons: Array[Control] = []
+var is_hovering_display: bool = false
+var can_select_as_target: bool = false
+var is_target_highlighted: bool = false
+var target_highlight_overlay: Panel = null
 
 func _ready() -> void:
+	mouse_filter = Control.MOUSE_FILTER_PASS
+	mouse_entered.connect(_on_mouse_entered)
+	mouse_exited.connect(_on_mouse_exited)
+	_ensure_target_highlight_overlay()
 	NumberFontHelper.apply_to_label(health_label)
 	NumberFontHelper.apply_to_label(block_label)
-	NumberFontHelper.apply_to_label(class_resource_label)
 	_configure_empty_state()
 
 func setup(new_combatant: Combatant) -> void:
 	combatant = new_combatant
+	clear_targeting_state()
 	_connect_combatant_signals()
 	_apply_profile()
 	refresh()
+
+## Enables or clears this display as an explicit combat target candidate.
+func set_targeting_state(can_select: bool, highlighted: bool = true) -> void:
+	can_select_as_target = can_select and combatant != null and combatant.hp > 0
+	is_target_highlighted = highlighted and can_select_as_target
+	mouse_filter = Control.MOUSE_FILTER_STOP if can_select_as_target else Control.MOUSE_FILTER_PASS
+	mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND if can_select_as_target else Control.CURSOR_ARROW
+	_update_target_highlight()
+
+## Clears any targeting highlight or click-selection state from this display.
+func clear_targeting_state() -> void:
+	can_select_as_target = false
+	is_target_highlighted = false
+	mouse_filter = Control.MOUSE_FILTER_PASS
+	mouse_default_cursor_shape = Control.CURSOR_ARROW
+	_update_target_highlight()
 
 func refresh(_arg_a: Variant = null, _arg_b: Variant = null) -> void:
 	if combatant == null:
@@ -44,20 +75,62 @@ func refresh(_arg_a: Variant = null, _arg_b: Variant = null) -> void:
 		return
 
 	name_label.text = combatant.display_name
+	name_panel.visible = true
+	_sync_nameplate_visibility()
 	_update_health_and_block_bars()
-	_update_class_resource_bar()
 	_update_status_bar()
+
+func _gui_input(event: InputEvent) -> void:
+	if not can_select_as_target or combatant == null:
+		return
+
+	if event is InputEventMouseButton:
+		var mouse_button := event as InputEventMouseButton
+		if mouse_button.button_index == MOUSE_BUTTON_LEFT and mouse_button.pressed:
+			accept_event()
+			target_selected.emit(combatant)
 
 func _configure_empty_state() -> void:
 	name_label.text = ""
+	name_panel.visible = false
+	name_plate.visible = true
+	name_plate.modulate.a = 0.0
 	visual_placeholder.visible = true
+	health_resource_row.visible = false
 	health_bar.visible = false
 	block_bar.visible = false
-	class_resource_bar.visible = false
 	health_label.visible = false
 	block_label.visible = false
-	class_resource_label.visible = false
-	status_bar.visible = false
+	status_bar.visible = true
+
+func _ensure_target_highlight_overlay() -> void:
+	if target_highlight_overlay != null and is_instance_valid(target_highlight_overlay):
+		return
+
+	target_highlight_overlay = Panel.new()
+	target_highlight_overlay.name = "TargetHighlight"
+	target_highlight_overlay.visible = false
+	target_highlight_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	target_highlight_overlay.z_index = 100
+	target_highlight_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+	target_highlight_overlay.offset_left = 0.0
+	target_highlight_overlay.offset_top = 0.0
+	target_highlight_overlay.offset_right = 0.0
+	target_highlight_overlay.offset_bottom = 0.0
+	target_highlight_overlay.add_theme_stylebox_override("panel", _target_highlight_stylebox())
+	add_child(target_highlight_overlay)
+
+func _target_highlight_stylebox() -> StyleBoxFlat:
+	var stylebox := StyleBoxFlat.new()
+	stylebox.bg_color = TARGET_HIGHLIGHT_FILL
+	stylebox.border_color = TARGET_HIGHLIGHT_BORDER
+	stylebox.set_border_width_all(TARGET_HIGHLIGHT_BORDER_WIDTH)
+	stylebox.corner_detail = 2
+	return stylebox
+
+func _update_target_highlight() -> void:
+	_ensure_target_highlight_overlay()
+	target_highlight_overlay.visible = is_target_highlighted
 
 func _connect_combatant_signals() -> void:
 	if combatant == null:
@@ -75,21 +148,19 @@ func _connect_combatant_signals() -> void:
 		combatant.action_resolved.connect(refresh)
 	if not combatant.died.is_connected(refresh):
 		combatant.died.connect(refresh)
-	if combatant.has_signal("rage_changed") and not combatant.is_connected("rage_changed", Callable(self, "refresh")):
-		combatant.connect("rage_changed", Callable(self, "refresh"))
 
 func _apply_profile() -> void:
 	if combatant == null:
 		return
 
 	health_bar_config = combatant.get_health_bar_config()
-	class_resource_config = _first_class_resource_config()
 	name_label.text = combatant.display_name
+	name_panel.visible = true
+	_sync_nameplate_visibility()
 	visual_placeholder.color = combatant.get_placeholder_color()
 	_apply_visual_scene()
 	_configure_health_bar()
 	_configure_block_bar()
-	_configure_class_resource_bar()
 
 func _apply_visual_scene() -> void:
 	_clear_visual_instance()
@@ -115,7 +186,20 @@ func _clear_visual_instance() -> void:
 		visual_instance.queue_free()
 	visual_instance = null
 
+func _sync_nameplate_visibility() -> void:
+	name_plate.visible = combatant != null
+	name_plate.modulate.a = 1.0 if is_hovering_display else 0.0
+
+func _on_mouse_entered() -> void:
+	is_hovering_display = true
+	_sync_nameplate_visibility()
+
+func _on_mouse_exited() -> void:
+	is_hovering_display = false
+	_sync_nameplate_visibility()
+
 func _configure_health_bar() -> void:
+	health_resource_row.visible = true
 	health_bar.visible = true
 	if health_bar_config != null:
 		health_bar.configure_from_config(health_bar_config)
@@ -140,55 +224,18 @@ func _configure_block_bar() -> void:
 	block_bar.fill_start_value = 0
 	block_bar.draw_text = false
 
-func _configure_class_resource_bar() -> void:
-	class_resource_bar.visible = class_resource_config != null
-	class_resource_label.visible = class_resource_config != null
-	if class_resource_config == null:
-		return
-
-	class_resource_bar.configure_from_config(class_resource_config)
-	class_resource_bar.fill_start_value = 0
-	class_resource_bar.draw_text = false
-
-func _first_class_resource_config() -> Resource:
-	var configs: Array[Resource] = combatant.get_resource_bar_configs()
-	if configs.is_empty():
-		return null
-
-	return configs[0]
-
 func _update_health_and_block_bars() -> void:
 	var max_hp: int = max(combatant.max_hp, 1)
 	health_bar.set_values(combatant.hp, max_hp, 0)
 	block_bar.set_segment_values(0, combatant.block, max_hp)
 	block_bar.visible = combatant.block > 0
 	block_label.visible = combatant.block > 0
-	health_label.text = "HP %s/%s" % [combatant.hp, max_hp]
-	block_label.text = "Block %s" % combatant.block
-
-func _update_class_resource_bar() -> void:
-	class_resource_bar.visible = class_resource_config != null
-	class_resource_label.visible = class_resource_config != null
-	if class_resource_config == null:
-		return
-
-	var resource_id: String = str(class_resource_config.get("resource_id"))
-	var snapshot: Dictionary = combatant.get_resource_snapshot(resource_id)
-	var current_value: int = int(snapshot.get("current", 0))
-	var reference_value: int = int(snapshot.get("reference", int(class_resource_config.get("reference_value"))))
-	class_resource_bar.set_values(current_value, reference_value, int(snapshot.get("bonus", 0)))
-	class_resource_label.text = _class_resource_text(current_value, reference_value)
-
-func _class_resource_text(current_value: int, reference_value: int) -> String:
-	var label: String = str(class_resource_config.get("label"))
-	if bool(class_resource_config.get("display_reference_value")):
-		return "%s %s/%s" % [label, current_value, reference_value]
-
-	return "%s %s" % [label, current_value]
+	health_label.text = "%s/%s" % [combatant.hp, max_hp]
+	block_label.text = "%s" % combatant.block
 
 func _update_status_bar() -> void:
 	var status_entries: Array[Dictionary] = _active_status_entries()
-	status_bar.visible = not status_entries.is_empty()
+	status_bar.visible = true
 	_ensure_status_button_count(status_entries.size())
 
 	for index in status_buttons.size():
@@ -224,7 +271,7 @@ func _active_status_entries() -> Array[Dictionary]:
 			"data": status_data,
 		})
 
-	entries.sort_custom(_sort_status_entries)
+	StatusEntrySorterScript.sort_entries(entries)
 	return entries
 
 func _ensure_status_button_count(count: int) -> void:
@@ -234,8 +281,3 @@ func _ensure_status_button_count(count: int) -> void:
 		button.custom_minimum_size = status_icon_size
 		status_icons.add_child(button)
 		status_buttons.append(button)
-
-func _sort_status_entries(a: Dictionary, b: Dictionary) -> bool:
-	var a_name: String = str(a.get("display_name", ""))
-	var b_name: String = str(b.get("display_name", ""))
-	return a_name.naturalnocasecmp_to(b_name) < 0

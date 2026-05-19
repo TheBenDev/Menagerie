@@ -2,6 +2,7 @@
 extends CanvasLayer
 
 const NumberFontHelper := preload("res://scenes/ui/common/number_font.gd")
+const ValueReaderScript := preload("res://core/utils/value_reader.gd")
 
 @onready var player_button: TextureButton = $HUDRoot/TopLeftPanel/PlayerButton
 @onready var timer_bar: TimeProgressBar = $HUDRoot/TopMargin/BarMargin/BarRow/TimerStack/TimerProgress
@@ -14,6 +15,7 @@ const NumberFontHelper := preload("res://scenes/ui/common/number_font.gd")
 @onready var dexterity_value: Label = $HUDRoot/TopLeftPanel/PlayerButton/PlayerPanel/PanelMargin/PanelLayout/StatsRow/DexterityStat/DexterityValue
 @onready var intelligence_value: Label = $HUDRoot/TopLeftPanel/PlayerButton/PlayerPanel/PanelMargin/PanelLayout/StatsRow/IntelligenceStat/IntelligenceValue
 @onready var vitality_value: Label = $HUDRoot/TopLeftPanel/PlayerButton/PlayerPanel/PanelMargin/PanelLayout/StatsRow/VitalityStat/VitalityValue
+@onready var hp_value: Label = $HUDRoot/TopLeftPanel/PlayerButton/PlayerPanel/PanelMargin/PanelLayout/HealthRow/HealthValue
 
 func _ready() -> void:
 	player_button.pressed.connect(_on_player_button_pressed)
@@ -31,6 +33,7 @@ func _apply_number_fonts() -> void:
 		dexterity_value,
 		intelligence_value,
 		vitality_value,
+		hp_value,
 	]:
 		NumberFontHelper.apply_to_label(label)
 
@@ -46,18 +49,26 @@ func _connect_game_manager_signals() -> void:
 func _refresh_all() -> void:
 	_refresh_player_panel()
 
-	if not _has_game_manager() or GameManager.current_run_data == null:
+	if not _has_game_manager() or not GameManager.has_active_run():
 		_on_run_time_changed(0.0, 300.0)
 		_on_run_currencies_changed(0, 0)
 		return
 
-	var run_data: Variant = GameManager.current_run_data
-	_on_run_time_changed(run_data.remaining_run_time_seconds, run_data.max_run_time_seconds)
-	_on_run_currencies_changed(run_data.memories, run_data.gold)
+	var timer_snapshot: Dictionary = GameManager.get_timer_snapshot()
+	var currency_snapshot: Dictionary = GameManager.get_currency_snapshot()
+	_on_run_time_changed(
+		float(timer_snapshot.get("remaining_time_seconds", 0.0)),
+		float(timer_snapshot.get("max_time_seconds", 300.0))
+	)
+	_on_run_currencies_changed(
+		int(currency_snapshot.get("memories", 0)),
+		int(currency_snapshot.get("gold", 0))
+	)
 
 func _on_run_time_changed(remaining_time_seconds: float, max_time_seconds: float) -> void:
 	timer_bar.set_timer_values(remaining_time_seconds, max_time_seconds)
 	timer_label.text = _format_time(remaining_time_seconds)
+	_refresh_player_panel()
 
 func _on_run_currencies_changed(memories: int, gold: int) -> void:
 	memories_value.text = str(max(memories, 0))
@@ -70,39 +81,48 @@ func _refresh_player_panel() -> void:
 	if not _has_game_manager():
 		character_value.text = "Warrior"
 		_set_stat_values(null)
+		_set_hp_values(0, 0)
 		return
 
 	var profile: CombatantProfile = GameManager.get_selected_character_profile()
 	if profile == null:
 		character_value.text = GameManager.get_selected_character_id()
 		_set_stat_values(null)
+		_set_hp_values(0, 0)
 		return
 
 	var display_name := profile.display_name
 	character_value.text = display_name if not display_name.is_empty() else GameManager.get_selected_character_id()
 	_set_stat_values(profile)
+	var hp_snapshot: Dictionary = GameManager.get_run_player_hp_snapshot()
+	_set_hp_values(int(hp_snapshot.get("current", 0)), int(hp_snapshot.get("max", 0)))
 
 func _set_stat_values(profile: CombatantProfile) -> void:
-	strength_value.text = _profile_stat(profile, "strength")
-	dexterity_value.text = _profile_stat(profile, "dexterity")
-	intelligence_value.text = _profile_stat(profile, "intelligence")
-	vitality_value.text = _profile_stat(profile, "vitality")
+	if _has_game_manager() and GameManager.has_active_run():
+		var effective_stats: Dictionary = GameManager.get_effective_player_stats()
+		strength_value.text = str(int(effective_stats.get(StatId.STR, 0)))
+		dexterity_value.text = str(int(effective_stats.get(StatId.DEX, 0)))
+		intelligence_value.text = str(int(effective_stats.get(StatId.INT, 0)))
+		vitality_value.text = str(int(effective_stats.get(StatId.VIT, 0)))
+		return
 
-func _profile_stat(profile: CombatantProfile, field_name: String) -> String:
+	strength_value.text = _profile_stat_text(profile, "strength")
+	dexterity_value.text = _profile_stat_text(profile, "dexterity")
+	intelligence_value.text = _profile_stat_text(profile, "intelligence")
+	vitality_value.text = _profile_stat_text(profile, "vitality")
+
+func _set_hp_values(current_hp: int, max_hp: int) -> void:
+	if current_hp <= 0 and max_hp <= 0:
+		hp_value.text = "-/-"
+		return
+
+	hp_value.text = "%s/%s" % [max(current_hp, 0), max(max_hp, 1)]
+
+func _profile_stat_text(profile: CombatantProfile, field_name: String) -> String:
 	if profile == null:
 		return "-"
 
-	match field_name:
-		"strength":
-			return str(profile.strength)
-		"dexterity":
-			return str(profile.dexterity)
-		"intelligence":
-			return str(profile.intelligence)
-		"vitality":
-			return str(profile.vitality)
-		_:
-			return "-"
+	return str(ValueReaderScript.resource_int(profile, field_name, 0))
 
 func _format_time(value: float) -> String:
 	var total_seconds: int = max(int(ceil(value)), 0)

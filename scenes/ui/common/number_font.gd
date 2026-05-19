@@ -1,11 +1,12 @@
-## Static helper for applying and drawing a monospaced font for numeric spans inside UI text.
+## Static helper for applying and drawing the shared numeric font for number spans inside UI text.
 class_name NumberFont
 extends RefCounted
 
+const DEFAULT_NUMBER_FONT: Font = preload("res://assets/fonts/germania-one/GermaniaOne-Regular.ttf")
 const NUMBER_CHARACTERS := "0123456789+-.,:%/#"
 
 static func default_number_font() -> Font:
-	return ThemeDB.fallback_font
+	return DEFAULT_NUMBER_FONT
 
 static func apply_to_label(label: Label) -> void:
 	if label == null:

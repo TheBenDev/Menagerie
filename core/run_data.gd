@@ -1,4 +1,4 @@
-## Stores all mutable state for a run, including selection, timer, encounters, rewards, and combat totals.
+## Stores mutable run state only; gameplay decisions live in managers and services.
 class_name RunData
 extends RefCounted
 
@@ -8,55 +8,71 @@ const END_REASON_DEFEAT := "defeat"
 const END_REASON_TIMEOUT := "timeout"
 const DEFAULT_CHARACTER := "Warrior"
 const DEFAULT_DIFFICULTY := "normal"
-const DEFAULT_RUN_TIME_SECONDS := 500.0
-const NODE_TRAVEL_TIME_SECONDS := 30.0
+const DEFAULT_RUN_TIME_SECONDS := 1000.0
+const START_DUNGEON_NODE_ID := 0
 
 var selected_character: String = DEFAULT_CHARACTER
-var selected_difficulty: String = DEFAULT_DIFFICULTY
+var dungeon_seed: String = ""
+var dungeon_floor_layer: int = 1
+var dungeon_node_descriptors: Array = []
+var dungeon_map_pawns: Dictionary = {}
+var active_dungeon_pawn_ids: Array[String] = []
+var revealed_dungeon_node_ids: Array[int] = []
+var resolved_dungeon_node_ids: Array[int] = []
+var visited_dungeon_node_ids: Array[int] = []
 
 var max_run_time_seconds: float = DEFAULT_RUN_TIME_SECONDS
 var remaining_run_time_seconds: float = DEFAULT_RUN_TIME_SECONDS
+var time_elapsed: float = 0.0
 var gold: int = 0
 var memories: int = 0
 var run_end_reason: String = END_REASON_IN_PROGRESS
 var memories_exported: bool = false
+var player_party_state: Variant = null
+var run_stat_modifiers: Array[Dictionary] = []
 
 var current_node_index: int = 0
+var current_dungeon_node_id: int = -1
 var total_nodes: int = 5
 var boss_node_index: int = 4
-var visited_dungeon_node_ids: Array[int] = []
 
 var fights_completed: int = 0
 var regular_fights_completed: int = 0
 var boss_defeated: bool = false
-
 var damage_dealt: int = 0
 var damage_taken: int = 0
 var actions_used: int = 0
-var time_elapsed: float = 0.0
-
 var run_victory: bool = false
-var pending_combat_result = null
-var current_encounter_node_id: int = -1
-var current_encounter_node_type: String = ""
-var current_encounter_enemy_profile_path: String = ""
-var current_encounter_is_boss: bool = false
 
-func configure_selection(character: String, difficulty: String) -> void:
+func configure_selection(character: String) -> void:
 	selected_character = character if not character.is_empty() else DEFAULT_CHARACTER
-	selected_difficulty = difficulty if not difficulty.is_empty() else DEFAULT_DIFFICULTY
 
-func start_run(character: String, difficulty: String, run_time_seconds: float, default_enemy_profile_path: String) -> void:
-	configure_selection(character, difficulty)
+## Resets state for a new run without generating gameplay content.
+func start_run(
+	character: String,
+	run_time_seconds: float,
+	new_dungeon_seed: String = "",
+	new_dungeon_floor_layer: int = 1
+) -> void:
+	configure_selection(character)
+	dungeon_seed = new_dungeon_seed.strip_edges()
+	dungeon_floor_layer = max(new_dungeon_floor_layer, 1)
+	dungeon_node_descriptors.clear()
+	dungeon_map_pawns.clear()
+	active_dungeon_pawn_ids.clear()
+	revealed_dungeon_node_ids.clear()
+	resolved_dungeon_node_ids.clear()
+	visited_dungeon_node_ids.clear()
 	gold = 0
 	memories = 0
 	run_end_reason = END_REASON_IN_PROGRESS
 	memories_exported = false
-	pending_combat_result = null
+	player_party_state = null
+	run_stat_modifiers.clear()
 	current_node_index = 0
+	current_dungeon_node_id = -1
 	total_nodes = 5
 	boss_node_index = 4
-	visited_dungeon_node_ids.clear()
 	fights_completed = 0
 	regular_fights_completed = 0
 	boss_defeated = false
@@ -64,7 +80,6 @@ func start_run(character: String, difficulty: String, run_time_seconds: float, d
 	damage_taken = 0
 	actions_used = 0
 	run_victory = false
-	reset_encounter(default_enemy_profile_path)
 	reset_run_timer(run_time_seconds)
 
 func reset_run_timer(new_max_run_time_seconds: float) -> void:
@@ -81,7 +96,7 @@ func advance_time(seconds: float) -> float:
 	time_elapsed += applied_seconds
 	return applied_seconds
 
-func grant_rewards(new_memories: int, new_gold: int) -> void:
+func add_currencies(new_memories: int, new_gold: int) -> void:
 	memories += max(new_memories, 0)
 	gold += max(new_gold, 0)
 
@@ -95,97 +110,17 @@ func end_run(reason: String) -> void:
 func has_ended() -> bool:
 	return run_end_reason != END_REASON_IN_PROGRESS
 
-func reset_encounter(default_enemy_profile_path: String) -> void:
-	current_encounter_node_id = -1
-	current_encounter_node_type = ""
-	current_encounter_enemy_profile_path = default_enemy_profile_path
-	current_encounter_is_boss = false
+func has_dungeon_map_pawns() -> bool:
+	return not dungeon_map_pawns.is_empty()
 
-func set_encounter(
-	node_id: int,
-	node_type: String,
-	enemy_profile_path: String,
-	is_boss: bool,
-	default_enemy_profile_path: String
-) -> void:
-	current_encounter_node_id = node_id
-	current_encounter_node_type = node_type
-	current_encounter_enemy_profile_path = enemy_profile_path if not enemy_profile_path.is_empty() else default_enemy_profile_path
-	current_encounter_is_boss = is_boss
-	pending_combat_result = null
-
-func get_current_encounter(default_enemy_profile_path: String) -> Dictionary:
-	return {
-		"node_id": current_encounter_node_id,
-		"node_type": current_encounter_node_type,
-		"enemy_profile_path": current_encounter_enemy_profile_path if not current_encounter_enemy_profile_path.is_empty() else default_enemy_profile_path,
-		"is_boss": current_encounter_is_boss,
-	}
-
-func store_combat_result(result: Variant) -> void:
-	pending_combat_result = result
-
-func has_pending_combat_result() -> bool:
-	return pending_combat_result != null
-
-func consume_pending_combat_result() -> Variant:
-	var result = pending_combat_result
-	pending_combat_result = null
-	return result
-
-func mark_dungeon_node_visited(node_id: int) -> void:
-	if node_id < 0:
-		return
-
-	if not visited_dungeon_node_ids.has(node_id):
-		visited_dungeon_node_ids.append(node_id)
-		visited_dungeon_node_ids.sort()
-
-	current_node_index = max(current_node_index, node_id)
-
-func is_dungeon_node_visited(node_id: int) -> bool:
-	return visited_dungeon_node_ids.has(node_id)
+func get_dungeon_map_pawn(pawn_id: String) -> Variant:
+	return dungeon_map_pawns.get(pawn_id, null)
 
 func get_visited_dungeon_node_ids() -> Array[int]:
 	return visited_dungeon_node_ids.duplicate()
 
-func get_last_visited_dungeon_node_id() -> int:
-	if visited_dungeon_node_ids.is_empty():
-		return -1
+func get_revealed_dungeon_node_ids() -> Array[int]:
+	return revealed_dungeon_node_ids.duplicate()
 
-	return int(visited_dungeon_node_ids[visited_dungeon_node_ids.size() - 1])
-
-func export_memories_to(class_memory_awards: Dictionary) -> int:
-	if memories_exported:
-		return 0
-
-	memories_exported = true
-	var awarded_memories: int = max(memories, 0)
-	if awarded_memories <= 0:
-		return 0
-
-	var current_total: int = int(class_memory_awards.get(selected_character, 0))
-	class_memory_awards[selected_character] = current_total + awarded_memories
-	return awarded_memories
-
-func register_combat_result(result: Variant) -> void:
-	if result == null:
-		return
-
-	damage_dealt += max(result.damage_dealt, 0)
-	damage_taken += max(result.damage_taken, 0)
-	actions_used += max(result.actions_used, 0)
-
-	if not result.victory:
-		end_run(result.end_reason if not str(result.end_reason).is_empty() else END_REASON_DEFEAT)
-		return
-
-	grant_rewards(result.memories_awarded, result.gold_awarded)
-	fights_completed += 1
-	mark_dungeon_node_visited(result.node_id)
-
-	if result.is_boss:
-		boss_defeated = true
-		end_run(END_REASON_VICTORY)
-	else:
-		regular_fights_completed += 1
+func get_resolved_dungeon_node_ids() -> Array[int]:
+	return resolved_dungeon_node_ids.duplicate()
