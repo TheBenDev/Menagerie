@@ -5,6 +5,9 @@ extends Resource
 @export var abilities: Array[Resource] = []
 
 func get_hotbar_abilities(slot_count: int = 3) -> Array[Resource]:
+	if slot_count <= 0:
+		return [] as Array[Resource]
+
 	var hotbar_abilities: Array[Resource] = []
 	for ability in abilities:
 		if ability == null:

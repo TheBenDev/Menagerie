@@ -53,7 +53,10 @@ func get_active_display_name() -> String:
 	if profile == null:
 		return String(_active_difficulty_id).capitalize()
 
-	return str(profile.get("display_name"))
+	var display_name := str(profile.get("display_name")).strip_edges()
+	if display_name.is_empty():
+		return String(_active_difficulty_id).capitalize()
+	return display_name
 
 func _has_difficulty_id(difficulty_id: StringName) -> bool:
 	return PROFILE_PATHS.has(difficulty_id)

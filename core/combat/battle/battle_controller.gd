@@ -164,6 +164,8 @@ func _tick_group_time(group: CombatantGroup, delta_seconds: float) -> void:
 			combatant.tick_time(delta_seconds)
 
 func _apply_player_hp_override() -> void:
+	if player == null:
+		return
 	if player_starting_max_hp_override <= 0:
 		return
 

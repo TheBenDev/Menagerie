@@ -55,7 +55,7 @@ func _refresh_summary() -> void:
 	time_value.text = "%ss" % int(round(float(snapshot.get("time_elapsed", 0.0))))
 	memories_value.text = str(int(snapshot.get("memories", 0)))
 	gold_value.text = str(int(snapshot.get("gold", 0)))
-	reason_value.text = _reason_text(str(snapshot.get("run_end_reason", "")))
+	reason_value.text = _reason_text(str(snapshot.get("run_end_reason", "-")))
 
 func _set_empty_values() -> void:
 	character_value.text = "-"
@@ -79,6 +79,8 @@ func _title_for(snapshot: Dictionary) -> String:
 	return "Run Ended"
 
 func _reason_text(reason: String) -> String:
+	if reason.is_empty():
+		return "-"
 	match reason:
 		RunData.END_REASON_VICTORY:
 			return "Victory"
@@ -86,6 +88,8 @@ func _reason_text(reason: String) -> String:
 			return "Time Out"
 		RunData.END_REASON_DEFEAT:
 			return "Defeat"
+		"-":
+			return "-"
 		_:
 			return reason.capitalize()
 

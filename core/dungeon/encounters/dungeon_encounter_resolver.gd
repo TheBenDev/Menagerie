@@ -5,6 +5,8 @@ extends RefCounted
 static func encounter_for_id(encounter_pool: Resource, encounter_id: StringName) -> Resource:
 	if encounter_pool == null or String(encounter_id).is_empty():
 		return null
+	if not encounter_pool.has_method("get_encounter"):
+		return null
 
 	return encounter_pool.call("get_encounter", encounter_id) as Resource
 
@@ -22,7 +24,10 @@ static func choice_for_index(encounter_data: Resource, choice_index: int) -> Dic
 	if encounter_data == null or choice_index < 0:
 		return {}
 
-	var choices: Array = encounter_data.get("choices")
+	var raw_choices: Variant = encounter_data.get("choices")
+	if not (raw_choices is Array):
+		return {}
+	var choices: Array = raw_choices
 	if choice_index >= choices.size():
 		return {}
 	var choice: Variant = choices[choice_index]

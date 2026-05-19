@@ -87,7 +87,12 @@ func get_member_for_combatant_id(combatant_id: String) -> Variant:
 	return null
 
 func has_active_member(party_member_id: String) -> bool:
-	return active_member_ids.has(party_member_id)
+	if not active_member_ids.has(party_member_id):
+		return false
+	var member: Variant = get_member(party_member_id)
+	if member == null:
+		return false
+	return not member.is_inactive()
 
 static func _normalized_id(value: String) -> String:
 	var normalized := value.strip_edges().to_lower().replace(" ", "_")

@@ -526,6 +526,8 @@ func _finish_combat(victory: bool) -> void:
 		return
 
 	await get_tree().create_timer(1.0).timeout
+	if not is_instance_valid(self) or not is_instance_valid(_game_manager):
+		return
 	_game_manager.complete_combat(result)
 
 func _build_combat_result(victory: bool) -> Variant:

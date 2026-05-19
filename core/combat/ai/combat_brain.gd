@@ -201,12 +201,20 @@ static func _score_targets_for_move(
 	match target_rule:
 		CombatTargetingScript.TARGET_SELF, CombatTargetingScript.TARGET_ALL_ALLIES, CombatTargetingScript.TARGET_ALL_ENEMIES:
 			return CombatTargetingScript.targets_for_action(action, actor, opponents, allies)
+		CombatTargetingScript.TARGET_SINGLE_ENEMY:
+			var target := _best_target_for_score(opponents)
+			var opponent_targets: Array[Combatant] = []
+			if target != null:
+				opponent_targets.append(target)
+			return opponent_targets
+		CombatTargetingScript.TARGET_SINGLE_ALLY:
+			var target := _best_target_for_score(allies)
+			var ally_targets: Array[Combatant] = []
+			if target != null:
+				ally_targets.append(target)
+			return ally_targets
 
-	var target := _best_target_for_score(opponents)
-	var opponent_targets: Array[Combatant] = []
-	if target != null:
-		opponent_targets.append(target)
-	return opponent_targets
+	return CombatTargetingScript.targets_for_action(action, actor, opponents, allies)
 
 static func _estimate_action_power(action: CombatActionData, actor: Combatant, targets: Array[Combatant]) -> float:
 	var total_power := 0.0

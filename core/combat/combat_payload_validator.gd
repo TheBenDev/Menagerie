@@ -23,8 +23,12 @@ static func enemy_instance_error(instance: Dictionary) -> String:
 		return "missing enemy slot_id"
 	if not instance.has(FIELD_ENEMY_LEVEL):
 		return "missing enemy level"
+	if not (typeof(instance.get(FIELD_ENEMY_LEVEL)) == TYPE_INT):
+		return "enemy level must be integer"
 	if not instance.has(FIELD_ENEMY_STAT_SEED):
 		return "missing enemy stat_seed"
+	if not (typeof(instance.get(FIELD_ENEMY_STAT_SEED)) == TYPE_INT):
+		return "enemy stat_seed must be integer"
 
 	return ""
 
@@ -32,6 +36,10 @@ static func is_valid_combat_payload(payload: Dictionary) -> bool:
 	return combat_payload_error(payload).is_empty()
 
 static func combat_payload_error(payload: Dictionary) -> String:
+	if not payload.has(FIELD_NODE_ID):
+		return "invalid node_id"
+	if not (typeof(payload.get(FIELD_NODE_ID)) == TYPE_INT):
+		return "node_id must be integer"
 	if int(payload.get(FIELD_NODE_ID, -1)) < 0:
 		return "invalid node_id"
 	if String(payload.get(FIELD_COMBAT_ENCOUNTER_ID, "")).strip_edges().is_empty():

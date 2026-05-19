@@ -48,7 +48,7 @@ func _refresh_difficulty_buttons() -> void:
 	hard_button.button_pressed = selected_difficulty == DIFFICULTY_HARD
 
 func _on_start_run_pressed() -> void:
-	GameManager.start_new_run(selected_character, selected_difficulty, seed_edit.text)
+	GameManager.start_new_run(selected_character, selected_difficulty, seed_edit.text.strip_edges())
 	GameManager.go_to_scene("dungeon")
 
 func _on_back_pressed() -> void:

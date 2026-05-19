@@ -62,7 +62,6 @@ static func export_run_memories_to_class_awards(run_data: Variant, class_memory_
 	if run_data == null or run_data.memories_exported:
 		return 0
 
-	run_data.memories_exported = true
 	var awarded_memories: int = max(int(run_data.memories), 0)
 	if awarded_memories <= 0:
 		return 0
@@ -70,6 +69,7 @@ static func export_run_memories_to_class_awards(run_data: Variant, class_memory_
 	var character_id: String = str(run_data.selected_character)
 	var current_total: int = int(class_memory_awards.get(character_id, 0))
 	class_memory_awards[character_id] = current_total + awarded_memories
+	run_data.memories_exported = true
 	return awarded_memories
 
 static func normalized_reward_package(reward_package: Variant) -> Dictionary:

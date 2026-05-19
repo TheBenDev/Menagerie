@@ -14,7 +14,25 @@ static func connection_graph_from_descriptors(descriptors: Array) -> Dictionary:
 			return {}
 
 		var descriptor: Dictionary = raw_descriptor
-		var node_id: int = int(descriptor.get("id", -1))
+		var raw_id: Variant = descriptor.get("id", -1)
+		var node_id: int = -1
+		if typeof(raw_id) == TYPE_INT:
+			node_id = int(raw_id)
+		elif typeof(raw_id) == TYPE_FLOAT:
+			if is_equal_approx(raw_id, floor(raw_id)):
+				node_id = int(raw_id)
+			else:
+				push_error("Dungeon connection graph descriptor has non-integer id: %s" % raw_id)
+				return {}
+		elif typeof(raw_id) == TYPE_STRING:
+			if raw_id.is_valid_int():
+				node_id = int(raw_id)
+			else:
+				push_error("Dungeon connection graph descriptor has invalid string id: %s" % raw_id)
+				return {}
+		else:
+			push_error("Dungeon connection graph descriptor has invalid id type: %s" % typeof(raw_id))
+			return {}
 		if node_id < 0:
 			push_error("Dungeon connection graph descriptor is missing a valid id.")
 			return {}
@@ -27,9 +45,33 @@ static func connection_graph_from_descriptors(descriptors: Array) -> Dictionary:
 
 	for raw_descriptor in descriptors:
 		var descriptor: Dictionary = raw_descriptor
-		var node_id: int = int(descriptor.get("id", -1))
+		var raw_id: Variant = descriptor.get("id", -1)
+		var node_id: int = -1
+		if typeof(raw_id) == TYPE_INT:
+			node_id = int(raw_id)
+		elif typeof(raw_id) == TYPE_FLOAT and is_equal_approx(raw_id, floor(raw_id)):
+			node_id = int(raw_id)
+		elif typeof(raw_id) == TYPE_STRING and raw_id.is_valid_int():
+			node_id = int(raw_id)
 		for raw_connected_id in descriptor.get("connections", []):
-			var connected_id: int = int(raw_connected_id)
+			var connected_id: int = -1
+			if typeof(raw_connected_id) == TYPE_INT:
+				connected_id = int(raw_connected_id)
+			elif typeof(raw_connected_id) == TYPE_FLOAT:
+				if is_equal_approx(raw_connected_id, floor(raw_connected_id)):
+					connected_id = int(raw_connected_id)
+				else:
+					push_error("Dungeon node %s has non-integer connection id: %s" % [node_id, raw_connected_id])
+					return {}
+			elif typeof(raw_connected_id) == TYPE_STRING:
+				if raw_connected_id.is_valid_int():
+					connected_id = int(raw_connected_id)
+				else:
+					push_error("Dungeon node %s has invalid string connection id: %s" % [node_id, raw_connected_id])
+					return {}
+			else:
+				push_error("Dungeon node %s has invalid connection id type: %s" % [node_id, typeof(raw_connected_id)])
+				return {}
 			if not graph.has(connected_id):
 				push_error("Dungeon node %s references missing connection %s." % [node_id, connected_id])
 				return {}

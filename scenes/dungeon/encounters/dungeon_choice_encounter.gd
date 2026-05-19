@@ -32,8 +32,16 @@ func _rebuild_choice_buttons() -> void:
 	for child in choices_container.get_children():
 		child.queue_free()
 
-	var choices: Array = encounter_data.get("choices")
-	if encounter_data == null or choices.is_empty():
+	if encounter_data == null:
+		_create_continue_button()
+		return
+
+	var raw_choices: Variant = encounter_data.get("choices", [])
+	if not (raw_choices is Array):
+		_create_continue_button()
+		return
+	var choices: Array = raw_choices
+	if choices.is_empty():
 		_create_continue_button()
 		return
 

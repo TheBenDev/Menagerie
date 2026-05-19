@@ -36,4 +36,4 @@ func can_act_on_dungeon_map() -> bool:
 	return is_unlocked and is_active and PartyControlModeScript.can_act_on_dungeon_map(control_mode)
 
 func is_inactive() -> bool:
-	return not is_active or control_mode == PartyControlModeScript.INACTIVE
+	return not is_active or not PartyControlModeScript.is_active_mode(control_mode)

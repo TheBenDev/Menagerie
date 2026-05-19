@@ -65,6 +65,9 @@ func start_combat(
 	if not _validate_combat_payload(node_id, combat_encounter_id, enemy_instances):
 		return
 
+	if charge_travel_time and not advance_run_time(DungeonManager.NODE_TRAVEL_TIME):
+		return
+
 	CombatManager.start_combat_from_dungeon(current_run_data, node_id, {
 		"node_type": node_type,
 		"is_boss": is_boss,
@@ -72,9 +75,6 @@ func start_combat(
 		"combat_encounter_profile_path": combat_encounter_profile_path,
 		"enemy_instances": enemy_instances,
 	})
-
-	if charge_travel_time and not advance_run_time(DungeonManager.NODE_TRAVEL_TIME):
-		return
 
 	MusicDirector.on_combat_started({"is_boss": is_boss})
 	go_to_scene("combat/BattleScene")
