@@ -35,6 +35,13 @@ reviews:
   enable_prompt_for_ai_agents: true
   path_filters: 
     - "!**/! Menagerie Wiki/**"
+    - "!**/*.uid"
+    - "!**/*.import"
+    - "!**/*.ttf"
+    - "!**/*.otf"
+    - "!**/*.woff"
+    - "!**/*.woff2"
+    - "!**/*.fnt"
   path_instructions: []
   abort_on_close: true
   disable_cache: false
