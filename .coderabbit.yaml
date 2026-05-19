@@ -34,7 +34,7 @@ reviews:
   poem: true
   enable_prompt_for_ai_agents: true
   path_filters: 
-    - "!**/ Menagerie Wiki/**"
+    - "!**/! Menagerie Wiki/**"
   path_instructions: []
   abort_on_close: true
   disable_cache: false
