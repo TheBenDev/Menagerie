@@ -63,6 +63,9 @@ func _ready() -> void:
 	_configure_static_hover_sources()
 	_clear_hover_info()
 
+func _exit_tree() -> void:
+	_disconnect_run_currency_signal()
+
 func setup(
 	new_battle: BattleController,
 	new_player: Combatant,
@@ -275,11 +278,17 @@ func _connect_run_currency_signal() -> void:
 	if not GameManager.run_currencies_changed.is_connected(_on_run_currencies_changed):
 		GameManager.run_currencies_changed.connect(_on_run_currencies_changed)
 
+func _disconnect_run_currency_signal() -> void:
+	if not is_instance_valid(GameManager):
+		return
+	if GameManager.run_currencies_changed.is_connected(_on_run_currencies_changed):
+		GameManager.run_currencies_changed.disconnect(_on_run_currencies_changed)
+
 func _has_game_manager() -> bool:
-	return get_node_or_null("/root/GameManager") != null
+	return is_inside_tree() and get_tree().root.get_node_or_null("GameManager") != null
 
 func _has_network_manager() -> bool:
-	return get_node_or_null("/root/NetworkManager") != null
+	return is_inside_tree() and get_tree().root.get_node_or_null("NetworkManager") != null
 
 func _timeline_markers() -> Array[Dictionary]:
 	var active_markers: Array[Dictionary] = []

@@ -119,9 +119,8 @@ default_action_id = "guard"
 [node name="AbilityButton1" type="Button" parent="Hotbar/ActionBar" unique_id=1414850936]
 custom_minimum_size = Vector2(64, 64)
 layout_mode = 0
-offset_left = -3.0
 offset_top = 2.0
-offset_right = 87.0
+offset_right = 90.0
 offset_bottom = 92.0
 theme_type_variation = &"CombatHotbarButton"
 text = "H"

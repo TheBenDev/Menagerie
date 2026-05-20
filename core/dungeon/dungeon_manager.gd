@@ -592,9 +592,9 @@ func _has_available_travel_destination(run_data: Variant, pawn: Variant) -> bool
 		return false
 
 	var pawn_id := str(pawn.pawn_id)
-	var current_node_id := int(pawn.current_node_id)
+	var pawn_current_node_id := int(pawn.current_node_id)
 	for node_id: int in _allowed_path_node_ids(run_data):
-		if node_id == current_node_id:
+		if node_id == pawn_current_node_id:
 			continue
 		if not get_pawn_travel_path(run_data, pawn_id, node_id).is_empty():
 			return true

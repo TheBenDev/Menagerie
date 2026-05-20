@@ -25,6 +25,10 @@ func _ready() -> void:
 	player_panel.visible = false
 	_refresh_all()
 
+func _exit_tree() -> void:
+	_disconnect_game_manager_signals()
+	_disconnect_network_manager_signals()
+
 func _apply_number_fonts() -> void:
 	for label in [
 		timer_label,
@@ -47,11 +51,27 @@ func _connect_game_manager_signals() -> void:
 	if not GameManager.run_currencies_changed.is_connected(_on_run_currencies_changed):
 		GameManager.run_currencies_changed.connect(_on_run_currencies_changed)
 
+func _disconnect_game_manager_signals() -> void:
+	if not is_instance_valid(GameManager):
+		return
+
+	if GameManager.run_time_changed.is_connected(_on_run_time_changed):
+		GameManager.run_time_changed.disconnect(_on_run_time_changed)
+	if GameManager.run_currencies_changed.is_connected(_on_run_currencies_changed):
+		GameManager.run_currencies_changed.disconnect(_on_run_currencies_changed)
+
 func _connect_network_manager_signals() -> void:
 	if not _has_network_manager():
 		return
 	if not NetworkManager.authoritative_snapshot_received.is_connected(_on_authoritative_snapshot_received):
 		NetworkManager.authoritative_snapshot_received.connect(_on_authoritative_snapshot_received)
+
+func _disconnect_network_manager_signals() -> void:
+	if not is_instance_valid(NetworkManager):
+		return
+
+	if NetworkManager.authoritative_snapshot_received.is_connected(_on_authoritative_snapshot_received):
+		NetworkManager.authoritative_snapshot_received.disconnect(_on_authoritative_snapshot_received)
 
 func _refresh_all() -> void:
 	_refresh_player_panel()
@@ -86,15 +106,15 @@ func _refresh_player_panel() -> void:
 	var member_snapshot: Dictionary = _local_party_member_snapshot()
 	if not member_snapshot.is_empty():
 		var profile_path := str(member_snapshot.get("profile_path", "")).strip_edges()
-		var profile := load(profile_path) as CombatantProfile if not profile_path.is_empty() else null
+		var snapshot_profile := load(profile_path) as CombatantProfile if not profile_path.is_empty() else null
 		var character_id := str(member_snapshot.get("character_id", "Warrior"))
-		if profile != null and not profile.display_name.is_empty():
-			character_value.text = profile.display_name
+		if snapshot_profile != null and not snapshot_profile.display_name.is_empty():
+			character_value.text = snapshot_profile.display_name
 		else:
 			character_value.text = character_id
-		_set_stat_values_from_snapshot(member_snapshot.get("effective_stats", {}), profile)
-		var hp_snapshot: Dictionary = member_snapshot.get("hp", {})
-		_set_hp_values(int(hp_snapshot.get("current", 0)), int(hp_snapshot.get("max", 0)))
+		_set_stat_values_from_snapshot(member_snapshot.get("effective_stats", {}), snapshot_profile)
+		var snapshot_hp: Dictionary = member_snapshot.get("hp", {})
+		_set_hp_values(int(snapshot_hp.get("current", 0)), int(snapshot_hp.get("max", 0)))
 		return
 
 	if not _has_game_manager():
@@ -103,18 +123,18 @@ func _refresh_player_panel() -> void:
 		_set_hp_values(0, 0)
 		return
 
-	var profile: CombatantProfile = GameManager.get_selected_character_profile()
-	if profile == null:
+	var selected_profile: CombatantProfile = GameManager.get_selected_character_profile()
+	if selected_profile == null:
 		character_value.text = GameManager.get_selected_character_id()
 		_set_stat_values(null)
 		_set_hp_values(0, 0)
 		return
 
-	var display_name := profile.display_name
+	var display_name := selected_profile.display_name
 	character_value.text = display_name if not display_name.is_empty() else GameManager.get_selected_character_id()
-	_set_stat_values(profile)
-	var hp_snapshot: Dictionary = GameManager.get_run_player_hp_snapshot()
-	_set_hp_values(int(hp_snapshot.get("current", 0)), int(hp_snapshot.get("max", 0)))
+	_set_stat_values(selected_profile)
+	var run_hp_snapshot: Dictionary = GameManager.get_run_player_hp_snapshot()
+	_set_hp_values(int(run_hp_snapshot.get("current", 0)), int(run_hp_snapshot.get("max", 0)))
 
 func _set_stat_values(profile: CombatantProfile) -> void:
 	if _has_game_manager() and GameManager.has_active_run():
@@ -158,7 +178,7 @@ func _format_time(value: float) -> String:
 	return "%02d:%02d" % [minutes, seconds]
 
 func _has_game_manager() -> bool:
-	return get_node_or_null("/root/GameManager") != null
+	return is_inside_tree() and get_tree().root.get_node_or_null("GameManager") != null
 
 func _timer_snapshot_for_view() -> Dictionary:
 	var snapshot := _authoritative_snapshot_for_view()
@@ -226,4 +246,4 @@ func _authoritative_snapshot_for_view() -> Dictionary:
 	return NetworkManager.last_authoritative_snapshot
 
 func _has_network_manager() -> bool:
-	return get_node_or_null("/root/NetworkManager") != null
+	return is_inside_tree() and get_tree().root.get_node_or_null("NetworkManager") != null

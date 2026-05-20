@@ -2,6 +2,7 @@
 .godot/
 /android/
 .obsidian/
+.vscode/
 addons/
 /!IGNORE/
 AGENTS.md
