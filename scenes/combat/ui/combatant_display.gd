@@ -36,6 +36,7 @@ var is_hovering_display: bool = false
 var can_select_as_target: bool = false
 var is_target_highlighted: bool = false
 var target_highlight_overlay: Panel = null
+var hover_tooltip_layer: Node = null
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_PASS
@@ -68,6 +69,18 @@ func clear_targeting_state() -> void:
 	mouse_filter = Control.MOUSE_FILTER_PASS
 	mouse_default_cursor_shape = Control.CURSOR_ARROW
 	_update_target_highlight()
+
+func set_hover_tooltip_layer(new_hover_tooltip_layer: Node) -> void:
+	hover_tooltip_layer = new_hover_tooltip_layer
+	_bind_hover_source(self)
+	for button in status_buttons:
+		_bind_hover_source(button)
+
+func get_hover_info() -> Resource:
+	if combatant == null or not combatant.has_method("get_hover_info"):
+		return null
+
+	return combatant.get_hover_info()
 
 func refresh(_arg_a: Variant = null, _arg_b: Variant = null) -> void:
 	if combatant == null:
@@ -281,3 +294,10 @@ func _ensure_status_button_count(count: int) -> void:
 		button.custom_minimum_size = status_icon_size
 		status_icons.add_child(button)
 		status_buttons.append(button)
+		_bind_hover_source(button)
+
+func _bind_hover_source(source: Control) -> void:
+	if hover_tooltip_layer == null or source == null:
+		return
+
+	hover_tooltip_layer.call("bind_source", source)

@@ -240,12 +240,22 @@ func _setup_combatant_display(
 
 	_apply_display_slot(display, slot_parent, slot_id, fallback_slot_id)
 	display.setup(combatant)
+	_bind_combatant_display_hover(display)
 	if not display.target_selected.is_connected(_on_target_display_selected):
 		display.target_selected.connect(_on_target_display_selected)
 	combatant_display_entries.append({
 		"combatant": combatant,
 		"display": display,
 	})
+
+func _bind_combatant_display_hover(display: Control) -> void:
+	if display == null or hud == null:
+		return
+
+	if display.has_method("set_hover_tooltip_layer") and hud.has_method("get_hover_tooltip_layer"):
+		display.call("set_hover_tooltip_layer", hud.call("get_hover_tooltip_layer"))
+	elif hud.has_method("bind_hover_source"):
+		hud.call("bind_hover_source", display)
 
 func _connect_battle_signals() -> void:
 	battle.time_changed.connect(_refresh_hud)

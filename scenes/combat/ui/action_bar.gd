@@ -2,11 +2,10 @@
 class_name BattleActionBar
 extends Control
 
-const HoverInfoPanelScript := preload("res://scenes/combat/ui/hover_info_panel.gd")
-
 const SLOT_KIND_EMPTY: StringName = &"empty"
 const SLOT_KIND_ACTION: StringName = &"action"
 const SLOT_KIND_CONSUMABLE: StringName = &"consumable"
+const HOVER_INFO_META := &"hover_info_data"
 
 const SLOT_ID_KEY: String = "slot_id"
 const KIND_KEY: String = "kind"
@@ -17,6 +16,10 @@ const LABEL_KEY: String = "label"
 const DISPLAY_NAME_KEY: String = "display_name"
 const DESCRIPTION_KEY: String = "description"
 const DETAILS_KEY: String = "details"
+const HOVER_INFO_KEY: String = "hover_info"
+const RESOURCE_KEY: String = "resource"
+const KEYWORD_IDS_KEY: String = "keyword_ids"
+const FOOTER_KEY: String = "footer"
 const HOTKEY_KEYCODE_KEY: String = "keycode"
 const HOTKEY_LABEL_KEY: String = "hotkey_label"
 
@@ -47,6 +50,7 @@ var hotkey_label_by_slot_id: Dictionary = {}
 var hotkey_slot_id_by_keycode: Dictionary = {}
 var slot_entries: Dictionary = {}
 var can_choose: bool = false
+var hover_actor: Combatant = null
 
 func _ready() -> void:
 	_collect_buttons()
@@ -57,6 +61,10 @@ func _ready() -> void:
 func set_actions(new_actions: Array[CombatActionData]) -> void:
 	actions = new_actions.duplicate()
 	_assign_default_action_slots()
+	_update_buttons()
+
+func set_hover_actor(new_hover_actor: Combatant) -> void:
+	hover_actor = new_hover_actor
 	_update_buttons()
 
 func set_hotbar_slots(new_slot_entries: Array[Dictionary]) -> void:
@@ -402,44 +410,86 @@ func _description_for_action(action: CombatActionData) -> String:
 	return description
 
 func _set_slot_hover_info(button: Button, entry: Dictionary) -> void:
+	if button.has_method("set_hover_info_provider"):
+		button.call("set_hover_info_provider", _hover_info_for_entry.bind(entry))
+		return
+
+	_set_button_hover_info(button, _hover_info_for_entry(entry))
+
+func _hover_info_for_entry(entry: Dictionary) -> Resource:
 	if _slot_kind(entry) == SLOT_KIND_ACTION:
 		var action: CombatActionData = _action_from_entry(entry)
 		if action != null:
-			_set_action_hover_info(button, action)
-			return
+			return action.get_hover_info(hover_actor, _is_formula_modifier_pressed())
 
+	var hover_info_value: Variant = entry.get(HOVER_INFO_KEY, null)
+	if hover_info_value is Resource:
+		return hover_info_value
+
+	var resource_value := entry.get(RESOURCE_KEY, null) as Resource
+	if resource_value != null and resource_value.has_method("get_hover_info"):
+		var resource_info := resource_value.call("get_hover_info") as Resource
+		if resource_info != null:
+			return resource_info
+
+	var info = load("res://core/hover_info/hover_info_data.gd").new()
 	var display_name: String = str(entry.get(DISPLAY_NAME_KEY, ""))
 	var description: String = str(entry.get(DESCRIPTION_KEY, ""))
+	info.title = display_name
+	info.description = description
+	info.footer = str(entry.get(FOOTER_KEY, "")).strip_edges()
+	info.keyword_ids.append_array(_keyword_ids_from_variant(entry.get(KEYWORD_IDS_KEY, [])))
+	info.panel_style = StringName(str(_slot_kind(entry)))
+
 	var details_value: Variant = entry.get(DETAILS_KEY, [])
-	var details: Array[String] = []
 	if details_value is Array:
 		for raw_detail in details_value:
-			details.append(str(raw_detail))
+			info.add_field("", str(raw_detail))
+	elif details_value is PackedStringArray:
+		for detail in details_value:
+			info.add_field("", str(detail))
 
-	button.set_meta(HoverInfoPanelScript.META_TITLE, display_name)
-	button.set_meta(HoverInfoPanelScript.META_DESCRIPTION, description)
-	button.set_meta(HoverInfoPanelScript.META_DETAILS, details)
+	return info
 
-func _set_action_hover_info(button: Button, action: CombatActionData) -> void:
-	var details: Array[String] = ["Time: %ss" % CombatTime.format_seconds(action.time_cost)]
-	if action.hp_cost > 0:
-		details.append("HP Cost: %s" % action.hp_cost)
-	if action.mana_cost > 0:
-		details.append("Mana Cost: %s" % action.mana_cost)
+func _keyword_ids_from_variant(value: Variant) -> Array[StringName]:
+	var keyword_ids: Array[StringName] = []
+	if value is Array:
+		for raw_keyword in value:
+			var keyword_id := _string_name_value(raw_keyword)
+			if keyword_id != &"":
+				keyword_ids.append(keyword_id)
+	elif value is PackedStringArray:
+		for raw_keyword in value:
+			var keyword_id := StringName(str(raw_keyword))
+			if keyword_id != &"":
+				keyword_ids.append(keyword_id)
+	elif value is StringName:
+		if value != &"":
+			keyword_ids.append(value)
+	elif value is String:
+		var keyword_id := StringName(str(value))
+		if keyword_id != &"":
+			keyword_ids.append(keyword_id)
 
-	button.set_meta(HoverInfoPanelScript.META_TITLE, action.display_name)
-	button.set_meta(HoverInfoPanelScript.META_DESCRIPTION, _description_for_action(action))
-	button.set_meta(HoverInfoPanelScript.META_DETAILS, details)
+	return keyword_ids
+
+func _set_button_hover_info(button: Button, info: Resource) -> void:
+	if button.has_method("set_hover_info"):
+		button.call("set_hover_info", info)
+		return
+
+	button.set_meta(HOVER_INFO_META, info)
 
 func _clear_hover_info(button: Button) -> void:
-	for meta_name in [
-		HoverInfoPanelScript.META_TITLE,
-		HoverInfoPanelScript.META_DESCRIPTION,
-		HoverInfoPanelScript.META_DETAILS,
-		HoverInfoPanelScript.META_TEXT,
-	]:
-		if button.has_meta(meta_name):
-			button.remove_meta(meta_name)
+	if button.has_method("set_hover_info_provider"):
+		button.call("set_hover_info_provider", Callable())
+	if button.has_method("set_hover_info"):
+		button.call("set_hover_info", null)
+	if button.has_meta(HOVER_INFO_META):
+		button.remove_meta(HOVER_INFO_META)
+
+func _is_formula_modifier_pressed() -> bool:
+	return Input.is_key_pressed(KEY_SHIFT)
 
 func _on_slot_button_pressed(slot_id: StringName) -> void:
 	choose_slot_id(slot_id)

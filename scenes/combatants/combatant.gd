@@ -112,6 +112,30 @@ func get_resource_bar_configs() -> Array[Resource]:
 
 	return configs
 
+func get_hover_info() -> Resource:
+	var info = null
+	if profile != null and profile.has_method("get_hover_info"):
+		info = profile.get_hover_info()
+	if info == null:
+		info = load("res://core/hover_info/hover_info_data.gd").new()
+
+	info.title = display_name if not display_name.strip_edges().is_empty() else info.title
+	if info.subtitle.strip_edges().is_empty():
+		info.subtitle = "Combatant"
+	info.panel_style = &"combatant"
+
+	var authored_fields: Array = info.get("fields").duplicate()
+	info.fields.clear()
+	info.add_field("HP", "%s/%s" % [hp, max(max_hp, 1)])
+	if block > 0:
+		info.add_field("Block", str(block))
+	info.add_field("STR", str(strength))
+	info.add_field("DEX", str(dexterity))
+	info.add_field("INT", str(intelligence))
+	info.add_field("VIT", str(vitality))
+	info.fields.append_array(authored_fields)
+	return info
+
 func get_resource_snapshot(resource_id: String) -> Dictionary:
 	if resource_id == "health":
 		return {

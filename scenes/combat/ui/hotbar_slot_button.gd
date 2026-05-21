@@ -15,6 +15,8 @@ signal slot_hover_ended(slot_id: StringName, source: Control)
 
 var hotkey_badge: PanelContainer = null
 var hotkey_badge_label: Label = null
+var hover_info: Resource = null
+var hover_info_provider: Callable = Callable()
 
 func _ready() -> void:
 	_ensure_hotkey_badge()
@@ -40,6 +42,22 @@ func set_hotkey_label(new_hotkey_label: String) -> void:
 		hotkey_badge_label.text = hotkey_label
 	if hotkey_badge != null:
 		hotkey_badge.visible = not hotkey_label.is_empty()
+
+func set_hover_info(new_hover_info: Resource) -> void:
+	hover_info = new_hover_info
+	hover_info_provider = Callable()
+
+func set_hover_info_provider(new_hover_info_provider: Callable) -> void:
+	hover_info_provider = new_hover_info_provider
+	hover_info = null
+
+func get_hover_info() -> Resource:
+	if hover_info_provider.is_valid():
+		var provided_info = hover_info_provider.call()
+		if provided_info is Resource:
+			return provided_info
+
+	return hover_info
 
 func _ensure_hotkey_badge() -> void:
 	if hotkey_badge != null and hotkey_badge_label != null:

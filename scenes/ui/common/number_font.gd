@@ -83,9 +83,15 @@ static func set_rich_text(rich_label: RichTextLabel, text: String) -> void:
 	if rich_label == null:
 		return
 
-	var number_font := default_number_font()
 	rich_label.text = ""
 	rich_label.clear()
+	append_rich_text(rich_label, text)
+
+static func append_rich_text(rich_label: RichTextLabel, text: String) -> void:
+	if rich_label == null:
+		return
+
+	var number_font := default_number_font()
 	for span in _number_spans(text):
 		var span_text := str(span.get("text", ""))
 		if bool(span.get("is_number", false)) and number_font != null:

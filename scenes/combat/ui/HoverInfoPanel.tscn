@@ -1,0 +1,108 @@
+[gd_scene format=3 uid="uid://dfsjn0cbmpbc2"]
+
+[ext_resource type="Script" uid="uid://d4cp8x3wxe2ld" path="res://scenes/combat/ui/hover_info_panel.gd" id="1_panel"]
+[ext_resource type="Theme" uid="uid://blcilhxj3ejys" path="res://assets/ui/menagerie_theme.tres" id="2_theme"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
+content_margin_left = 0.0
+content_margin_top = 0.0
+content_margin_right = 0.0
+content_margin_bottom = 0.0
+bg_color = Color(0.07, 0.06, 0.052, 0.95)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.72, 0.58, 0.28, 0.95)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+corner_detail = 2
+
+[node name="HoverInfoPanel" type="PanelContainer" unique_id=268743632]
+custom_minimum_size = Vector2(380, 0)
+mouse_filter = 2
+theme = ExtResource("2_theme")
+theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
+script = ExtResource("1_panel")
+
+[node name="Margin" type="MarginContainer" parent="." unique_id=1749918832]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 14
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 14
+theme_override_constants/margin_bottom = 12
+
+[node name="Layout" type="VBoxContainer" parent="Margin" unique_id=413476497]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 8
+
+[node name="HeaderRow" type="HBoxContainer" parent="Margin/Layout" unique_id=1215287809]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 10
+
+[node name="Icon" type="TextureRect" parent="Margin/Layout/HeaderRow" unique_id=85678853]
+visible = false
+custom_minimum_size = Vector2(42, 42)
+layout_mode = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="HeaderText" type="VBoxContainer" parent="Margin/Layout/HeaderRow" unique_id=1162225254]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+theme_override_constants/separation = 0
+
+[node name="Title" type="Label" parent="Margin/Layout/HeaderRow/HeaderText" unique_id=1026335065]
+layout_mode = 2
+theme_type_variation = &"CombatTooltipTitle"
+text = "Title"
+
+[node name="Subtitle" type="Label" parent="Margin/Layout/HeaderRow/HeaderText" unique_id=986407209]
+visible = false
+layout_mode = 2
+theme_type_variation = &"CombatTooltipSubtitle"
+text = "Subtitle"
+
+[node name="HeaderRightText" type="Label" parent="Margin/Layout/HeaderRow" unique_id=2025451968]
+custom_minimum_size = Vector2(72, 0)
+layout_mode = 2
+theme_type_variation = &"CombatTooltipHeaderMeta"
+text = "5s"
+horizontal_alignment = 2
+
+[node name="BodyText" type="RichTextLabel" parent="Margin/Layout" unique_id=1058063865]
+visible = false
+custom_minimum_size = Vector2(0, 1)
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"CombatTooltipBody"
+fit_content = true
+scroll_active = false
+
+[node name="FieldList" type="VBoxContainer" parent="Margin/Layout" unique_id=220522882]
+visible = false
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 3
+
+[node name="FooterText" type="RichTextLabel" parent="Margin/Layout" unique_id=1117924190]
+visible = false
+custom_minimum_size = Vector2(0, 1)
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"CombatTooltipFooter"
+fit_content = true
+scroll_active = false
+
+[node name="ExtraInfoContainer" type="VBoxContainer" parent="Margin/Layout" unique_id=901226656]
+visible = false
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 4

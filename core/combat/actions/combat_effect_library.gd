@@ -63,6 +63,30 @@ static func status_path_for_id(status_id: StringName) -> String:
 
 	return STATUS_ROOT_PATH.path_join("/".join(segments)) + ".tres"
 
+static func effect_id_for_data(effect_data: Dictionary) -> StringName:
+	return _canonical_effect_id(_effect_id(effect_data))
+
+static func damage_breakdown(effect_data: Dictionary, source: Combatant) -> Dictionary:
+	var stat_id := StatId.from_value(_data_string(effect_data, "scaling_stat", StatId.STR))
+	var stat_value := 0
+	if source != null:
+		stat_value = source.get_stat_value(stat_id)
+
+	var base_damage: int = _data_int(effect_data, "base_damage", _data_int(effect_data, "base_amount", 0))
+	var scaling_multiplier: float = _data_float(effect_data, "scaling_multiplier", 0.0)
+	var scaled_damage: int = int(floor(float(stat_value) * scaling_multiplier))
+	return {
+		"base_damage": base_damage,
+		"scaling_stat": stat_id,
+		"stat_value": stat_value,
+		"scaling_multiplier": scaling_multiplier,
+		"scaled_damage": scaled_damage,
+		"total_damage": max(base_damage + scaled_damage, 0),
+	}
+
+static func status_data_for_effect(effect_data: Dictionary) -> Resource:
+	return _status_data_for_effect(effect_data)
+
 
 static func _apply_damage(effect_data: Dictionary, source: Combatant, targets: Array[Combatant]) -> void:
 	var damage_amount: int = _calculate_damage(effect_data, source)
@@ -136,14 +160,7 @@ static func _estimate_damage_power(effect_data: Dictionary, source: Combatant, t
 
 
 static func _calculate_damage(effect_data: Dictionary, source: Combatant) -> int:
-	var stat_value := 0
-	if source != null:
-		stat_value = source.get_stat_value(StatId.from_value(_data_string(effect_data, "scaling_stat", StatId.STR)))
-
-	var base_damage: int = _data_int(effect_data, "base_damage", _data_int(effect_data, "base_amount", 0))
-	var scaling_multiplier: float = _data_float(effect_data, "scaling_multiplier", 0.0)
-	var scaled_damage: float = floor(float(stat_value) * scaling_multiplier)
-	return max(base_damage + int(scaled_damage), 0)
+	return int(damage_breakdown(effect_data, source).get("total_damage", 0))
 
 
 static func _estimate_damage(effect_data: Dictionary, source: Combatant, target: Combatant) -> int:

@@ -32,7 +32,7 @@ signal pause_requested()
 @onready var class_resource_label: Label = $Hotbar/ResourceLabels/ClassResourceLabel
 @onready var status_bar: Control = $StatusBar
 @onready var status_icons: HBoxContainer = $StatusBar/StatusIcons
-@onready var hover_info_panel: Node = $HoverInfoPanel
+@onready var hover_tooltip_layer: Node = $HoverTooltipLayer
 
 var battle: BattleController = null
 var player: Combatant = null
@@ -79,6 +79,7 @@ func setup(
 	player_group = new_player_group
 	enemy_group = new_enemy_group
 
+	action_bar.set_hover_actor(player)
 	action_bar.set_actions(player.actions)
 	_configure_resource_bars()
 	refresh()
@@ -92,6 +93,7 @@ func refresh() -> void:
 	if battle == null or player == null or enemy == null:
 		return
 
+	action_bar.set_hover_actor(player)
 	timeline_view.set_timeline_state(
 		battle.current_time,
 		_timeline_markers(),
@@ -414,20 +416,26 @@ func _ensure_status_button_count(count: int) -> void:
 		button.name = "StatusButton%s" % status_buttons.size()
 		status_icons.add_child(button)
 		status_buttons.append(button)
-		_bind_hover_source(button)
+		bind_hover_source(button)
 
 func _configure_static_hover_sources() -> void:
-	_bind_hover_source(speed_button)
-	_bind_hover_source(pause_button)
+	bind_hover_source(speed_button)
+	bind_hover_source(pause_button)
 
-func _bind_hover_source(source: Control) -> void:
-	hover_info_panel.call("bind_source", source)
+func bind_hover_source(source: Control) -> void:
+	if hover_tooltip_layer != null:
+		hover_tooltip_layer.call("bind_source", source)
+
+func get_hover_tooltip_layer() -> Node:
+	return hover_tooltip_layer
 
 func _show_hover_info_for_source(source: Control) -> void:
-	hover_info_panel.call("show_for_source", source)
+	if hover_tooltip_layer != null:
+		hover_tooltip_layer.call("show_for_source_delayed", source)
 
 func _clear_hover_info() -> void:
-	hover_info_panel.call("clear")
+	if hover_tooltip_layer != null:
+		hover_tooltip_layer.call("clear")
 
 func _on_speed_button_pressed() -> void:
 	speed_requested.emit()

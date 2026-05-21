@@ -1,0 +1,16 @@
+[gd_scene format=3 uid="uid://bnc0uqdsjftc1"]
+
+[ext_resource type="Script" uid="uid://g8kjxwjq5u1y" path="res://scenes/combat/ui/hover_tooltip_layer.gd" id="1_layer"]
+
+[node name="HoverTooltipLayer" type="CanvasLayer" unique_id=965974154]
+layer = 80
+script = ExtResource("1_layer")
+
+[node name="TooltipRoot" type="Control" parent="." unique_id=396327435]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2

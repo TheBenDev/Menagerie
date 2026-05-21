@@ -1,0 +1,54 @@
+[gd_scene format=3 uid="uid://yifcw4jrycku"]
+
+[ext_resource type="Script" path="res://scenes/combat/ui/hover_keyword_panel.gd" id="1_panel"]
+[ext_resource type="Theme" uid="uid://blcilhxj3ejys" path="res://assets/ui/menagerie_theme.tres" id="2_theme"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
+content_margin_left = 0.0
+content_margin_top = 0.0
+content_margin_right = 0.0
+content_margin_bottom = 0.0
+bg_color = Color(0.055, 0.055, 0.064, 0.96)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.48, 0.58, 0.74, 0.95)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+corner_detail = 2
+
+[node name="HoverKeywordPanel" type="PanelContainer" unique_id=1520201702]
+custom_minimum_size = Vector2(260, 0)
+mouse_filter = 2
+theme = ExtResource("2_theme")
+theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
+script = ExtResource("1_panel")
+
+[node name="Margin" type="MarginContainer" parent="." unique_id=1563919643]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 10
+
+[node name="Layout" type="VBoxContainer" parent="Margin" unique_id=1491010828]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 6
+
+[node name="KeywordTitle" type="Label" parent="Margin/Layout" unique_id=2085202157]
+layout_mode = 2
+theme_type_variation = &"CombatTooltipKeywordTitle"
+text = "Keyword"
+
+[node name="KeywordDescription" type="RichTextLabel" parent="Margin/Layout" unique_id=2021831103]
+custom_minimum_size = Vector2(0, 1)
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"CombatTooltipBody"
+fit_content = true
+scroll_active = false

@@ -5,7 +5,6 @@ extends Control
 
 const DEFAULT_STATUS_ATLAS: Texture2D = preload("res://assets/ui/global/icons/statuses/statuses_13.png")
 const FALLBACK_FONT: Font = preload("res://assets/fonts/germania-one/GermaniaOne-Regular.ttf")
-const HoverInfoPanelScript := preload("res://scenes/combat/ui/hover_info_panel.gd")
 
 @export var status_atlas: Texture2D = DEFAULT_STATUS_ATLAS:
 	set(value):
@@ -27,6 +26,11 @@ const HoverInfoPanelScript := preload("res://scenes/combat/ui/hover_info_panel.g
 		fallback_initial = value
 		_refresh_icon()
 
+var status_data: Resource = null
+var display_name: String = ""
+var description: String = ""
+var remaining_seconds: float = 0.0
+
 func _ready() -> void:
 	focus_mode = Control.FOCUS_NONE
 	mouse_filter = Control.MOUSE_FILTER_STOP
@@ -35,10 +39,11 @@ func _ready() -> void:
 	_refresh_icon()
 
 func set_status_entry(entry: Dictionary) -> void:
-	var display_name: String = str(entry.get("display_name", ""))
-	fallback_initial = _status_initial(display_name)
-	var status_data: Resource = entry.get("data", null) as Resource
-	var description: String = str(entry.get("description", "")).strip_edges()
+	display_name = str(entry.get("display_name", ""))
+	fallback_initial = _status_initial()
+	status_data = entry.get("data", null) as Resource
+	description = str(entry.get("description", "")).strip_edges()
+	remaining_seconds = float(entry.get("remaining_seconds", 0.0))
 	if status_data != null:
 		atlas_coords = _vector2i_value(status_data.get("icon_atlas_coords"), atlas_coords)
 		atlas_cell_size = _vector2i_value(status_data.get("icon_atlas_cell_size"), atlas_cell_size)
@@ -47,19 +52,31 @@ func set_status_entry(entry: Dictionary) -> void:
 		atlas_coords = _vector2i_value(entry.get("icon_atlas_coords"), atlas_coords)
 		atlas_cell_size = _vector2i_value(entry.get("icon_atlas_cell_size"), atlas_cell_size)
 
-	var details: Array[String] = []
-	var remaining_seconds: float = float(entry.get("remaining_seconds", 0.0))
-	if remaining_seconds > 0.0:
-		details.append("Remaining: %ss" % CombatTime.format_seconds(remaining_seconds))
-
-	set_meta(HoverInfoPanelScript.META_TITLE, display_name)
-	set_meta(HoverInfoPanelScript.META_DESCRIPTION, description)
-	set_meta(HoverInfoPanelScript.META_DETAILS, details)
+	_refresh_icon()
 
 func clear_status_entry() -> void:
+	status_data = null
+	display_name = ""
+	description = ""
+	remaining_seconds = 0.0
 	atlas_coords = Vector2i(-1, -1)
 	fallback_initial = ""
 	queue_redraw()
+
+func get_hover_info() -> Resource:
+	var info = null
+	if status_data != null and status_data.has_method("get_hover_info"):
+		info = status_data.call("get_hover_info", remaining_seconds)
+	if info == null:
+		info = load("res://core/hover_info/hover_info_data.gd").new()
+		info.title = display_name
+		info.description = description
+		info.panel_style = &"status"
+		if remaining_seconds > 0.0:
+			info.add_field("Remaining", "%ss" % CombatTime.format_seconds(remaining_seconds))
+
+	info.icon = _atlas_icon_texture()
+	return info
 
 func _refresh_icon() -> void:
 	queue_redraw()
@@ -88,7 +105,7 @@ func _draw() -> void:
 	)
 	draw_string(font, text_position, fallback_initial, HORIZONTAL_ALIGNMENT_LEFT, -1.0, font_size)
 
-func _status_initial(display_name: String) -> String:
+func _status_initial() -> String:
 	if display_name.is_empty():
 		return "?"
 
@@ -102,3 +119,15 @@ func _vector2i_value(value: Variant, default_value: Vector2i) -> Vector2i:
 		return Vector2i(int(vector_value.x), int(vector_value.y))
 
 	return default_value
+
+func _atlas_icon_texture() -> Texture2D:
+	if status_atlas == null or atlas_coords.x < 0 or atlas_coords.y < 0 or atlas_cell_size.x <= 0 or atlas_cell_size.y <= 0:
+		return null
+
+	var atlas_texture := AtlasTexture.new()
+	atlas_texture.atlas = status_atlas
+	atlas_texture.region = Rect2(
+		Vector2(float(atlas_coords.x * atlas_cell_size.x), float(atlas_coords.y * atlas_cell_size.y)),
+		Vector2(float(atlas_cell_size.x), float(atlas_cell_size.y))
+	)
+	return atlas_texture

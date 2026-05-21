@@ -8,9 +8,8 @@
 [ext_resource type="Texture2D" uid="uid://dstjkkrv5hnka" path="res://assets/ui/battle/hotbar_transparent.png" id="7_hiocs"]
 [ext_resource type="Script" uid="uid://dtqib0b2pxyft" path="res://scenes/combat/ui/hover_info_button.gd" id="7_qvlag"]
 [ext_resource type="Theme" uid="uid://blcilhxj3ejys" path="res://assets/ui/menagerie_theme.tres" id="7_theme"]
-[ext_resource type="Texture2D" uid="uid://0jhe7183ukhe" path="res://assets/ui/global/panel/default_panel_short.png" id="8_bdta7"]
 [ext_resource type="PackedScene" uid="uid://dk60mirr4sj2m" path="res://scenes/ui/global_hud/GlobalHUD.tscn" id="8_hiocs"]
-[ext_resource type="Script" uid="uid://d4cp8x3wxe2ld" path="res://scenes/combat/ui/hover_info_panel.gd" id="9_5tok5"]
+[ext_resource type="PackedScene" path="res://scenes/combat/ui/HoverTooltipLayer.tscn" id="9_tooltip"]
 [ext_resource type="Script" uid="uid://cc4mlywf41cwo" path="res://scenes/combat/ui/hotbar_slot_button.gd" id="10_slot_button"]
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_0mkba"]
@@ -403,11 +402,8 @@ layout_mode = 2
 size_flags_horizontal = 4
 text = "1x"
 script = ExtResource("7_qvlag")
-hover_info_title = "Combat Speed"
-hover_info_description = "Cycles how quickly combat time advances."
-metadata/hover_info_title = "Combat Speed"
-metadata/hover_info_description = "Cycles how quickly combat time advances."
-metadata/hover_info_details = Array[String]([])
+info_title = "Combat Speed"
+info_description = "Cycles how quickly combat time advances."
 
 [node name="PauseButton" type="Button" parent="TimelineRow/TimeControls" unique_id=568024443]
 custom_minimum_size = Vector2(68, 68)
@@ -415,11 +411,8 @@ layout_mode = 2
 size_flags_horizontal = 4
 text = "||"
 script = ExtResource("7_qvlag")
-hover_info_title = "Pause"
-hover_info_description = "Pauses or resumes combat time."
-metadata/hover_info_title = "Pause"
-metadata/hover_info_description = "Pauses or resumes combat time."
-metadata/hover_info_details = Array[String]([])
+info_title = "Pause"
+info_description = "Pauses or resumes combat time."
 
 [node name="StatusBar" type="Control" parent="." unique_id=200926680]
 custom_minimum_size = Vector2(1000, 32)
@@ -447,43 +440,6 @@ grow_vertical = 2
 mouse_filter = 2
 theme_override_constants/separation = -10
 
-[node name="HoverInfoPanel" type="NinePatchRect" parent="." unique_id=1548868480]
-custom_minimum_size = Vector2(420, 188)
-layout_mode = 1
-anchors_preset = 3
-anchor_left = 1.0
-anchor_top = 1.0
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = -444.0
-offset_top = -208.0
-offset_right = -24.0
-offset_bottom = 2.0
-grow_horizontal = 0
-grow_vertical = 0
-texture = ExtResource("8_bdta7")
-script = ExtResource("9_5tok5")
-
-[node name="PanelMargin" type="MarginContainer" parent="HoverInfoPanel" unique_id=1099258804]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = 9.0
-offset_top = 15.0
-offset_right = -10.0
-offset_bottom = -8.0
-grow_horizontal = 2
-grow_vertical = 2
-mouse_filter = 2
-theme_override_constants/margin_left = 34
-theme_override_constants/margin_top = 28
-theme_override_constants/margin_right = 34
-theme_override_constants/margin_bottom = 28
-
-[node name="InfoText" type="RichTextLabel" parent="HoverInfoPanel/PanelMargin" unique_id=895638877]
-layout_mode = 2
-mouse_filter = 2
-scroll_active = false
+[node name="HoverTooltipLayer" parent="." instance=ExtResource("9_tooltip")]
 
 [node name="GlobalHUD" parent="." unique_id=539725267 instance=ExtResource("8_hiocs")]

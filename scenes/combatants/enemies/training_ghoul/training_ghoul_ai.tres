@@ -22,6 +22,7 @@ ai_role = "Debuff"
 status_id = "weaken"
 id = "weakening_claw"
 display_name = "Weakening Claw"
+hover_keywords = Array[StringName]([&"weaken"])
 effect_data = Array[Dictionary]([{
 "base_damage": 3,
 "id": &"combat.damage",
@@ -38,6 +39,7 @@ ai_role = "HeavyDamage"
 status_id = "vulnerable"
 id = "slam"
 display_name = "Heavy Slam"
+hover_keywords = Array[StringName]([&"vulnerable"])
 effect_data = Array[Dictionary]([{
 "base_damage": 12,
 "id": &"combat.damage",

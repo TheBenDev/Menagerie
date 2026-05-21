@@ -16,6 +16,7 @@ bonus_label = "Block"
 [resource]
 script = ExtResource("1_profile")
 display_name = "Training Ghoul"
+hover_description = "A weak undead creature used for combat training."
 placeholder_color = Color(0.32, 0.48, 0.28, 1)
 timeline_initial = "G"
 timeline_color = Color(0.68, 0.9, 0.52, 1)

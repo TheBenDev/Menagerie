@@ -23,7 +23,8 @@ time_cost = 3.0
 script = ExtResource("2_player_action")
 id = "heavy_strike"
 display_name = "Heavy Strike"
-description = "A slower heavy attack that applies Vulnerable."
+description = "A slower heavy attack."
+hover_keywords = Array[StringName]([&"vulnerable"])
 effect_data = Array[Dictionary]([{
 "base_damage": 14,
 "id": &"combat.damage",

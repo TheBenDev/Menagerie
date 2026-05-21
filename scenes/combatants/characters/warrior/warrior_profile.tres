@@ -36,3 +36,4 @@ vitality = 9
 moveset = ExtResource("3_moveset")
 health_bar = SubResource("ResourceBarConfig_health")
 resource_bars = Array[Resource]([SubResource("ResourceBarConfig_rage")])
+hover_description = "A durable frontline fighter who builds rage through quick strikes and heavy blows."

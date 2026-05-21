@@ -1,80 +1,181 @@
-## Fixed combat HUD panel that renders hover information from any registered Control.
+## Scene-backed main hover tooltip panel populated from HoverInfoData.
 class_name HoverInfoPanel
-extends NinePatchRect
+extends PanelContainer
 
 const NumberFontHelper := preload("res://scenes/ui/common/number_font.gd")
 
-const META_TITLE := &"hover_info_title"
-const META_DESCRIPTION := &"hover_info_description"
-const META_DETAILS := &"hover_info_details"
-const META_TEXT := &"hover_info_text"
+@export var icon_path: NodePath = ^"Margin/Layout/HeaderRow/Icon"
+@export var title_path: NodePath = ^"Margin/Layout/HeaderRow/HeaderText/Title"
+@export var subtitle_path: NodePath = ^"Margin/Layout/HeaderRow/HeaderText/Subtitle"
+@export var header_right_path: NodePath = ^"Margin/Layout/HeaderRow/HeaderRightText"
+@export var body_path: NodePath = ^"Margin/Layout/BodyText"
+@export var field_list_path: NodePath = ^"Margin/Layout/FieldList"
+@export var footer_path: NodePath = ^"Margin/Layout/FooterText"
+@export var extra_info_path: NodePath = ^"Margin/Layout/ExtraInfoContainer"
 
-@export var info_text_path: NodePath = ^"PanelMargin/InfoText"
-
-@onready var info_text_label: RichTextLabel = get_node(info_text_path) as RichTextLabel
+@onready var icon_texture: TextureRect = get_node_or_null(icon_path) as TextureRect
+@onready var title_label: Label = get_node_or_null(title_path) as Label
+@onready var subtitle_label: Label = get_node_or_null(subtitle_path) as Label
+@onready var header_right_label: Label = get_node_or_null(header_right_path) as Label
+@onready var body_text: RichTextLabel = get_node_or_null(body_path) as RichTextLabel
+@onready var field_list: VBoxContainer = get_node_or_null(field_list_path) as VBoxContainer
+@onready var footer_text: RichTextLabel = get_node_or_null(footer_path) as RichTextLabel
+@onready var extra_info_container: Control = get_node_or_null(extra_info_path) as Control
 
 func _ready() -> void:
-	clear()
+	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_configure_rich_text(body_text)
+	_configure_rich_text(footer_text)
+	_apply_number_fonts()
 
-func bind_source(source: Control) -> void:
-	if source == null:
+func set_hover_info(info) -> void:
+	_clear_fields()
+	if info == null:
+		visible = false
 		return
 
-	var entered_callback: Callable = _on_source_mouse_entered.bind(source)
-	if not source.mouse_entered.is_connected(entered_callback):
-		source.mouse_entered.connect(entered_callback)
+	visible = true
+	_set_icon(info.icon)
+	_set_label_text(title_label, info.title)
+	_set_label_text(subtitle_label, info.subtitle)
+	_set_label_text(header_right_label, info.header_right_text)
+	_set_rich_content(body_text, info.description, info.description_segments)
+	_set_rich_text(footer_text, info.footer)
+	_populate_fields(info.fields)
 
-	if not source.mouse_exited.is_connected(clear):
-		source.mouse_exited.connect(clear)
+	if extra_info_container != null:
+		extra_info_container.visible = extra_info_container.get_child_count() > 0
 
-func set_source_info(source: Object, title: String, description: String = "", details: Array[String] = []) -> void:
-	if source == null:
+	reset_size()
+
+func _set_icon(texture: Texture2D) -> void:
+	if icon_texture == null:
 		return
 
-	source.set_meta(META_TITLE, title)
-	source.set_meta(META_DESCRIPTION, description)
-	source.set_meta(META_DETAILS, details)
+	icon_texture.texture = texture
+	icon_texture.visible = texture != null
 
-func show_for_source(source: Object) -> void:
-	if source == null:
-		clear()
+func _set_label_text(label: Label, text: String) -> void:
+	if label == null:
 		return
 
-	var full_text: String = str(source.get_meta(META_TEXT, "")).strip_edges()
-	if full_text.is_empty():
-		full_text = _compose_source_text(source)
+	var trimmed_text := text.strip_edges()
+	label.text = trimmed_text
+	label.visible = not trimmed_text.is_empty()
 
-	show_text(full_text)
+func _set_rich_text(label: RichTextLabel, text: String) -> void:
+	if label == null:
+		return
 
-func show_text(info_text: String) -> void:
-	NumberFontHelper.set_rich_text(info_text_label, info_text.strip_edges())
+	var trimmed_text := text.strip_edges()
+	NumberFontHelper.set_rich_text(label, trimmed_text)
+	label.visible = not trimmed_text.is_empty()
 
-func clear() -> void:
-	NumberFontHelper.set_rich_text(info_text_label, "")
+func _set_rich_content(label: RichTextLabel, text: String, segments: Array) -> void:
+	if label == null:
+		return
 
-func _compose_source_text(source: Object) -> String:
-	var lines: Array[String] = []
-	var title: String = str(source.get_meta(META_TITLE, "")).strip_edges()
-	var description: String = str(source.get_meta(META_DESCRIPTION, "")).strip_edges()
+	if segments.is_empty():
+		_set_rich_text(label, text)
+		return
 
-	if not title.is_empty():
-		lines.append(title)
-	if not description.is_empty():
-		lines.append(description)
+	label.text = ""
+	label.clear()
+	for segment in segments:
+		_append_rich_segment(label, segment)
+	label.visible = true
 
-	var details_value: Variant = source.get_meta(META_DETAILS, [])
-	if details_value is Array:
-		for raw_detail: Variant in details_value:
-			var detail: String = str(raw_detail).strip_edges()
-			if not detail.is_empty():
-				lines.append(detail)
-	elif details_value is PackedStringArray:
-		for detail in details_value:
-			var detail_text: String = str(detail).strip_edges()
-			if not detail_text.is_empty():
-				lines.append(detail_text)
+func _append_rich_segment(label: RichTextLabel, segment) -> void:
+	if segment == null:
+		return
 
-	return "\n".join(lines)
+	var icon := segment.get("icon") as Texture2D
+	if icon != null:
+		var icon_size: Vector2 = segment.get("icon_size")
+		label.add_image(icon, int(max(icon_size.x, 1.0)), int(max(icon_size.y, 1.0)))
 
-func _on_source_mouse_entered(source: Control) -> void:
-	show_for_source(source)
+	var text := str(segment.get("text"))
+	if text.is_empty():
+		return
+
+	if bool(segment.get("use_color")):
+		var text_color: Color = segment.get("color")
+		label.push_color(text_color)
+		NumberFontHelper.append_rich_text(label, text)
+		label.pop()
+	else:
+		NumberFontHelper.append_rich_text(label, text)
+
+func _populate_fields(fields: Array) -> void:
+	if field_list == null:
+		return
+
+	for field in fields:
+		if field == null:
+			continue
+
+		var row := _field_row(field)
+		if row != null:
+			field_list.add_child(row)
+
+	field_list.visible = field_list.get_child_count() > 0
+
+func _field_row(field) -> Control:
+	var label_text: String = str(field.get("label")).strip_edges()
+	var value_text: String = str(field.get("value")).strip_edges()
+	if label_text.is_empty() and value_text.is_empty():
+		return null
+
+	var row := HBoxContainer.new()
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_theme_constant_override("separation", 8)
+
+	var field_icon := field.get("icon") as Texture2D
+	if field_icon != null:
+		var icon := TextureRect.new()
+		icon.custom_minimum_size = Vector2(18.0, 18.0)
+		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		icon.texture = field_icon
+		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		row.add_child(icon)
+
+	if not label_text.is_empty():
+		var label := Label.new()
+		label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		label.theme_type_variation = &"CombatTooltipFieldLabel"
+		label.text = "%s:" % label_text
+		label.custom_minimum_size = Vector2(104.0, 0.0)
+		NumberFontHelper.apply_to_label(label)
+		row.add_child(label)
+
+	var value := Label.new()
+	value.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	value.theme_type_variation = &"CombatTooltipFieldValue"
+	value.text = value_text
+	value.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	value.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	NumberFontHelper.apply_to_label(value)
+	row.add_child(value)
+	return row
+
+func _clear_fields() -> void:
+	if field_list == null:
+		return
+
+	for child in field_list.get_children():
+		child.queue_free()
+	field_list.visible = false
+
+func _apply_number_fonts() -> void:
+	NumberFontHelper.apply_to_label(title_label)
+	NumberFontHelper.apply_to_label(subtitle_label)
+	NumberFontHelper.apply_to_label(header_right_label)
+
+func _configure_rich_text(label: RichTextLabel) -> void:
+	if label == null:
+		return
+
+	label.fit_content = true
+	label.scroll_active = false
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
