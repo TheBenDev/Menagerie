@@ -8,7 +8,7 @@
 script = ExtResource("2_player_action")
 id = "quick_strike"
 display_name = "Quick Strike"
-description = "A fast attack that generates rage."
+description = "A fast opening attack."
 effect_data = Array[Dictionary]([{
 "base_damage": 4,
 "id": &"combat.damage",
@@ -24,7 +24,6 @@ script = ExtResource("2_player_action")
 id = "heavy_strike"
 display_name = "Heavy Strike"
 description = "A slower heavy attack."
-hover_keywords = Array[StringName]([&"vulnerable"])
 effect_data = Array[Dictionary]([{
 "base_damage": 14,
 "id": &"combat.damage",
@@ -37,12 +36,12 @@ effect_data = Array[Dictionary]([{
 "id": &"resource.rage.gain"
 }])
 time_cost = 8.0
+hover_keywords = Array[StringName]([&"vulnerable"])
 
 [sub_resource type="Resource" id="PlayerAction_guard"]
 script = ExtResource("2_player_action")
 id = "guard"
 display_name = "Guard"
-description = "Gain block instead of attacking."
 effect_data = Array[Dictionary]([{
 "amount": 12,
 "id": &"combat.block"

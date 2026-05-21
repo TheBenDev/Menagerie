@@ -1,4 +1,4 @@
-## Texture button view for a dungeon map node that displays node art, visibility, visit state, and selection tooltip text.
+## Texture button view for a dungeon map node that displays node art, visibility, and visit state.
 class_name DungeonNodeView
 extends TextureButton
 
@@ -46,6 +46,7 @@ func configure(data: DungeonNodeData, cell_size: float) -> void:
 	texture_hover = load(str(NODE_HOVER_TEXTURE_PATHS.get(node_type, NODE_HOVER_TEXTURE_PATHS["Encounter"])))
 	texture_pressed = texture_hover
 	texture_disabled = texture_normal
+	tooltip_text = ""
 
 func apply_state(data: DungeonNodeData, is_current: bool, can_select: bool) -> void:
 	if data == null:
@@ -66,18 +67,3 @@ func apply_state(data: DungeonNodeData, is_current: bool, can_select: bool) -> v
 		modulate = Color.WHITE
 	else:
 		modulate = Color(0.48, 0.50, 0.54, 0.78)
-	tooltip_text = _tooltip_for(data, is_current, can_select)
-
-func _tooltip_for(data: DungeonNodeData, is_current: bool, can_select: bool) -> String:
-	if not data.revealed and not data.visited:
-		return "Hidden"
-	if is_current:
-		return "Current location"
-	if data.resolved and can_select:
-		return "Move to %s" % data.node_type
-	if data.visited:
-		return "Visited" if not can_select else "Return to %s" % data.node_type
-	if can_select:
-		return "Visit %s" % data.node_type
-
-	return "Not reachable yet"

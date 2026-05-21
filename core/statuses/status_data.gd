@@ -18,6 +18,7 @@ const HoverInfoDataScript := preload("res://core/hover_info/hover_info_data.gd")
 func get_hover_info(remaining_seconds: float = -1.0) -> Resource:
 	var info := HoverInfoDataScript.new()
 	info.title = display_name
+	info.subtitle = "Status"
 	info.description = description
 	info.panel_style = &"status"
 	info.use_accent_color = true

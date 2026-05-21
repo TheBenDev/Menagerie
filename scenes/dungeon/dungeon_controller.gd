@@ -14,6 +14,7 @@ const ValueReaderScript := preload("res://core/utils/value_reader.gd")
 
 const GRID_CELL_SIZE := 72.0
 const START_NODE_ID := 0
+const HOVER_INFO_META := &"hover_info_data"
 
 @export var map_viewport_path: NodePath
 @export var map_content_path: NodePath
@@ -39,6 +40,7 @@ const START_NODE_ID := 0
 @onready var node_layer: Control = get_node(node_layer_path)
 @onready var pawn_layer: Control = _resolve_pawn_layer()
 @onready var encounter_layer: Control = get_node(encounter_layer_path)
+@onready var hover_tooltip_layer: Node = get_node_or_null("../HoverTooltipLayer")
 
 var node_views_by_id: Dictionary = {}
 var pawn_views_by_id: Dictionary = {}
@@ -58,6 +60,7 @@ func _ready() -> void:
 	var copy_seed_callback := Callable(self, "_on_copy_seed_button_pressed")
 	if not copy_seed_button.pressed.is_connected(copy_seed_callback):
 		copy_seed_button.pressed.connect(copy_seed_callback)
+	copy_seed_button.tooltip_text = ""
 
 	_configure_dungeon_health_hover()
 	_configure_dungeon_hotbar()
@@ -346,6 +349,8 @@ func _configure_dungeon_hotbar() -> void:
 	dungeon_health_bar.border_color = Color.TRANSPARENT
 	dungeon_health_bar.mouse_filter = Control.MOUSE_FILTER_STOP
 	dungeon_ability_slots.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	for button in dungeon_ability_buttons:
+		_bind_hover_source(button)
 	_refresh_dungeon_hotbar()
 
 func _configure_dungeon_health_hover() -> void:
@@ -377,9 +382,10 @@ func _refresh_dungeon_ability_slots() -> void:
 	var abilities: Array = GameManager.get_dungeon_abilities(dungeon_ability_buttons.size())
 	for index in dungeon_ability_buttons.size():
 		var button: Button = dungeon_ability_buttons[index]
+		button.tooltip_text = ""
+		_clear_button_hover_info(button)
 		if index >= abilities.size():
 			button.text = ""
-			button.tooltip_text = ""
 			button.icon = null
 			button.disabled = true
 			continue
@@ -387,15 +393,14 @@ func _refresh_dungeon_ability_slots() -> void:
 		var ability := abilities[index] as Resource
 		if ability == null:
 			button.text = ""
-			button.tooltip_text = ""
 			button.icon = null
 			button.disabled = true
 			continue
 
 		button.text = _dungeon_ability_label(ability)
-		button.tooltip_text = _dungeon_ability_tooltip(ability)
 		button.icon = ability.get("icon") as Texture2D
 		button.disabled = not bool(ability.get("enabled"))
+		_set_button_hover_info(button, _dungeon_ability_hover_info(ability))
 
 func _dungeon_ability_label(ability: Resource) -> String:
 	if ability == null:
@@ -413,16 +418,34 @@ func _dungeon_ability_label(ability: Resource) -> String:
 
 	return "?"
 
-func _dungeon_ability_tooltip(ability: Resource) -> String:
+func _dungeon_ability_hover_info(ability: Resource) -> Resource:
 	if ability == null:
-		return ""
+		return null
+	if not ability.has_method("get_hover_info"):
+		return null
 
-	var display_name := str(ability.get("display_name")).strip_edges()
-	var description := str(ability.get("description")).strip_edges()
-	if description.is_empty():
-		return display_name
+	var info := ability.call("get_hover_info") as Resource
+	if info != null and info.has_method("has_content") and bool(info.call("has_content")):
+		return info
 
-	return "%s\n%s" % [display_name, description]
+	return null
+
+func _set_button_hover_info(button: Button, info: Resource) -> void:
+	if button == null:
+		return
+	if info == null:
+		_clear_button_hover_info(button)
+		return
+
+	button.set_meta(HOVER_INFO_META, info)
+
+func _clear_button_hover_info(button: Button) -> void:
+	if button != null and button.has_meta(HOVER_INFO_META):
+		button.remove_meta(HOVER_INFO_META)
+
+func _bind_hover_source(source: Control) -> void:
+	if hover_tooltip_layer != null and source != null:
+		hover_tooltip_layer.call("bind_source", source)
 
 func _on_node_pressed(node_id: int) -> void:
 	var node = nodes_by_id.get(node_id)
@@ -487,6 +510,9 @@ func _start_encounter_node(node: DungeonNodeData, charge_travel_time: bool = tru
 		active_encounter_scene.connect("encounter_finished", Callable(self, "_on_encounter_finished").bind(node.id))
 	else:
 		push_warning("Dungeon encounter scene %s does not emit encounter_finished." % active_encounter_scene.name)
+
+	if active_encounter_scene.has_method("set_hover_tooltip_layer"):
+		active_encounter_scene.call("set_hover_tooltip_layer", hover_tooltip_layer)
 
 	if active_encounter_scene.has_method("setup"):
 		active_encounter_scene.call("setup", encounter_data, {

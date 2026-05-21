@@ -9,6 +9,7 @@ id = &"dungeon_ability_1"
 display_name = "Dungeon Ability 1"
 hotbar_label = "1"
 description = "Class-agnostic dungeon ability slot."
+show_hover_info = false
 
 [sub_resource type="Resource" id="DungeonAbility_slot_2"]
 script = ExtResource("2_ability")
@@ -16,6 +17,7 @@ id = &"dungeon_ability_2"
 display_name = "Dungeon Ability 2"
 hotbar_label = "2"
 description = "Class-agnostic dungeon ability slot."
+show_hover_info = false
 
 [sub_resource type="Resource" id="DungeonAbility_slot_3"]
 script = ExtResource("2_ability")
@@ -23,6 +25,7 @@ id = &"dungeon_ability_3"
 display_name = "Dungeon Ability 3"
 hotbar_label = "3"
 description = "Class-agnostic dungeon ability slot."
+show_hover_info = false
 
 [resource]
 script = ExtResource("1_pool")

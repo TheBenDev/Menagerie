@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://yifcw4jrycku"]
 
-[ext_resource type="Script" path="res://scenes/combat/ui/hover_keyword_panel.gd" id="1_panel"]
+[ext_resource type="Script" uid="uid://brcanjlrvwlre" path="res://scenes/combat/ui/hover_keyword_panel.gd" id="1_panel"]
 [ext_resource type="Theme" uid="uid://blcilhxj3ejys" path="res://assets/ui/menagerie_theme.tres" id="2_theme"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
@@ -44,6 +44,12 @@ theme_override_constants/separation = 6
 layout_mode = 2
 theme_type_variation = &"CombatTooltipKeywordTitle"
 text = "Keyword"
+
+[node name="KeywordSubtitle" type="Label" parent="Margin/Layout" unique_id=703900875]
+visible = false
+layout_mode = 2
+theme_type_variation = &"CombatTooltipSubtitle"
+text = "Subtitle"
 
 [node name="KeywordDescription" type="RichTextLabel" parent="Margin/Layout" unique_id=2021831103]
 custom_minimum_size = Vector2(0, 1)

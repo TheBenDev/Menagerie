@@ -5,6 +5,7 @@ extends Resource
 const CombatEffectLibraryScript := preload("res://core/combat/actions/combat_effect_library.gd")
 const HoverInfoDataScript := preload("res://core/hover_info/hover_info_data.gd")
 const HoverInfoTextSegmentScript := preload("res://core/hover_info/hover_info_text_segment.gd")
+const HoverInfoKeywordResolverScript := preload("res://core/hover_info/hover_info_keyword_resolver.gd")
 const StrengthStatIcon: Texture2D = preload("res://assets/ui/global/icons/strength_stat_icon.tres")
 const DexterityStatIcon: Texture2D = preload("res://assets/ui/global/icons/dexterity_stat_icon.tres")
 const IntelligenceStatIcon: Texture2D = preload("res://assets/ui/global/icons/intelligence_stat_icon.tres")
@@ -17,6 +18,10 @@ const TARGET_SELF := "Self"
 const TARGET_ALL_ALLIES := "AllAllies"
 const TARGET_ALL_ENEMIES := "AllEnemies"
 const STATUS_TEXT_FALLBACK_COLOR := Color(0.88, 0.76, 0.42, 1.0)
+const BLOCK_KEYWORD_ID := &"resource.block"
+const RAGE_KEYWORD_ID := &"resource.rage"
+const BLOCK_TEXT_FALLBACK_COLOR := Color(0.32, 0.66, 1.0, 1.0)
+const RAGE_TEXT_FALLBACK_COLOR := Color(0.95, 0.42, 0.12, 1.0)
 const INLINE_STAT_ICON_SIZE := Vector2(15.0, 15.0)
 
 @export var id: String = ""
@@ -103,17 +108,22 @@ func _populate_keyword_ids(info: Resource) -> void:
 	for effect in effect_data:
 		if not (effect is Dictionary):
 			continue
-		if CombatEffectLibraryScript.effect_id_for_data(effect) != CombatEffectLibraryScript.EFFECT_APPLY_STATUS:
-			continue
-
-		var status_data := CombatEffectLibraryScript.status_data_for_effect(effect)
-		_append_unique_keyword_id(info.keyword_ids, _keyword_id_for_status_effect(effect, status_data))
+		match CombatEffectLibraryScript.effect_id_for_data(effect):
+			CombatEffectLibraryScript.EFFECT_APPLY_STATUS:
+				var status_data := CombatEffectLibraryScript.status_data_for_effect(effect)
+				_append_unique_keyword_id(info.keyword_ids, _keyword_id_for_status_effect(effect, status_data))
+			CombatEffectLibraryScript.EFFECT_BLOCK:
+				_append_unique_keyword_id(info.keyword_ids, BLOCK_KEYWORD_ID)
+			CombatEffectLibraryScript.EFFECT_RAGE_GAIN:
+				_append_unique_keyword_id(info.keyword_ids, RAGE_KEYWORD_ID)
 
 func _effect_description_segments(actor: Combatant, show_formula: bool) -> Array[Resource]:
 	var segments: Array[Resource] = []
 	var damage_breakdowns := _damage_breakdowns(actor)
 	var applied_statuses := _applied_statuses()
-	if damage_breakdowns.is_empty() and applied_statuses.is_empty():
+	var block_gain_amount := _block_gain_amount()
+	var rage_gain_amount := _rage_gain_amount()
+	if damage_breakdowns.is_empty() and applied_statuses.is_empty() and block_gain_amount <= 0 and rage_gain_amount <= 0:
 		return segments
 
 	if not damage_breakdowns.is_empty():
@@ -131,13 +141,25 @@ func _effect_description_segments(actor: Combatant, show_formula: bool) -> Array
 		segments.append(HoverInfoTextSegmentScript.from_text(" and applies " if not damage_breakdowns.is_empty() else "Applies "))
 		_append_status_segments(segments, applied_statuses)
 
-	segments.append(HoverInfoTextSegmentScript.from_text("."))
+	if not damage_breakdowns.is_empty() or not applied_statuses.is_empty():
+		segments.append(HoverInfoTextSegmentScript.from_text("."))
+
+	if block_gain_amount > 0:
+		_append_spaced_effect_sentence(segments)
+		_append_resource_gain_segments(segments, block_gain_amount, "Block", BLOCK_KEYWORD_ID, BLOCK_TEXT_FALLBACK_COLOR)
+
+	if rage_gain_amount > 0:
+		_append_spaced_effect_sentence(segments)
+		_append_resource_gain_segments(segments, rage_gain_amount, "Rage", RAGE_KEYWORD_ID, RAGE_TEXT_FALLBACK_COLOR)
+
 	return segments
 
 func _effect_description_text(actor: Combatant, show_formula: bool) -> String:
 	var damage_breakdowns := _damage_breakdowns(actor)
 	var applied_statuses := _applied_statuses()
-	if damage_breakdowns.is_empty() and applied_statuses.is_empty():
+	var block_gain_amount := _block_gain_amount()
+	var rage_gain_amount := _rage_gain_amount()
+	if damage_breakdowns.is_empty() and applied_statuses.is_empty() and block_gain_amount <= 0 and rage_gain_amount <= 0:
 		return ""
 
 	var text := ""
@@ -157,7 +179,15 @@ func _effect_description_text(actor: Combatant, show_formula: bool) -> String:
 		else:
 			text += " and applies %s" % status_text
 
-	return text + "."
+	var sentences: PackedStringArray = []
+	if not text.is_empty():
+		sentences.append(text + ".")
+	if block_gain_amount > 0:
+		sentences.append("Gain %s Block." % block_gain_amount)
+	if rage_gain_amount > 0:
+		sentences.append("Gain %s Rage." % rage_gain_amount)
+
+	return " ".join(sentences)
 
 func _damage_breakdowns(actor: Combatant) -> Array[Dictionary]:
 	var breakdowns: Array[Dictionary] = []
@@ -192,6 +222,26 @@ func _applied_statuses() -> Array[Dictionary]:
 
 	return statuses
 
+func _block_gain_amount() -> int:
+	var total_amount := 0
+	for effect in effect_data:
+		if not (effect is Dictionary):
+			continue
+		if CombatEffectLibraryScript.effect_id_for_data(effect) == CombatEffectLibraryScript.EFFECT_BLOCK:
+			total_amount += max(CombatEffectLibraryScript.block_amount(effect), 0)
+
+	return total_amount
+
+func _rage_gain_amount() -> int:
+	var total_amount := 0
+	for effect in effect_data:
+		if not (effect is Dictionary):
+			continue
+		if CombatEffectLibraryScript.effect_id_for_data(effect) == CombatEffectLibraryScript.EFFECT_RAGE_GAIN:
+			total_amount += max(CombatEffectLibraryScript.effect_amount(effect, 0), 0)
+
+	return total_amount
+
 func _append_damage_formula_segments(segments: Array[Resource], breakdown: Dictionary) -> void:
 	segments.append(HoverInfoTextSegmentScript.from_text(str(int(breakdown.get("base_damage", 0)))))
 	if not is_equal_approx(float(breakdown.get("scaling_multiplier", 0.0)), 0.0):
@@ -217,6 +267,25 @@ func _append_status_segments(segments: Array[Resource], statuses: Array[Dictiona
 			status_color,
 			true
 		))
+
+func _append_spaced_effect_sentence(segments: Array[Resource]) -> void:
+	if not segments.is_empty():
+		segments.append(HoverInfoTextSegmentScript.from_text(" "))
+
+func _append_resource_gain_segments(
+	segments: Array[Resource],
+	amount: int,
+	keyword_display_name: String,
+	keyword_id: StringName,
+	fallback_color: Color
+) -> void:
+	segments.append(HoverInfoTextSegmentScript.from_text("Gain %s " % amount))
+	segments.append(HoverInfoTextSegmentScript.from_text(
+		keyword_display_name,
+		HoverInfoKeywordResolverScript.keyword_color_for_id(keyword_id, fallback_color),
+		true
+	))
+	segments.append(HoverInfoTextSegmentScript.from_text("."))
 
 func _damage_formula_text(breakdown: Dictionary) -> String:
 	var base_damage := int(breakdown.get("base_damage", 0))

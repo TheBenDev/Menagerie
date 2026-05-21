@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="HoverInfoKeywordRegistry" format=3]
+
+[ext_resource type="Script" path="res://core/hover_info/hover_info_keyword_registry.gd" id="1_registry"]
+[ext_resource type="Script" path="res://core/hover_info/hover_info_keyword_data.gd" id="2_keyword"]
+
+[sub_resource type="Resource" id="HoverKeyword_block"]
+script = ExtResource("2_keyword")
+id = &"resource.block"
+aliases = Array[StringName]([&"block"])
+category = &"resource"
+display_name = "Block"
+description = "Prevents damage dealt."
+keyword_color = Color(0.32, 0.66, 1, 1)
+tags = Array[StringName]([&"resource", &"defense"])
+
+[sub_resource type="Resource" id="HoverKeyword_rage"]
+script = ExtResource("2_keyword")
+id = &"resource.rage"
+aliases = Array[StringName]([&"rage"])
+category = &"class_resource"
+display_name = "Rage"
+description = "Gained from taking or dealing damage. Depletes 1 per second."
+keyword_color = Color(0.95, 0.06, 0.02, 1)
+tags = Array[StringName]([&"resource", &"warrior"])
+
+[resource]
+script = ExtResource("1_registry")
+keywords = Array[Resource]([SubResource("HoverKeyword_block"), SubResource("HoverKeyword_rage")])

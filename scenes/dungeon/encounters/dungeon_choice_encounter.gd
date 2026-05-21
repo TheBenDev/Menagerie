@@ -4,6 +4,8 @@ extends Control
 
 signal encounter_finished(result: Dictionary)
 
+const HoverInfoDataScript := preload("res://core/hover_info/hover_info_data.gd")
+const HOVER_INFO_META := &"hover_info_data"
 
 @onready var title_label: Label = $EncounterPanel/PanelMargin/Layout/TitleLabel
 @onready var description_label: Label = $EncounterPanel/PanelMargin/Layout/DescriptionLabel
@@ -12,11 +14,16 @@ signal encounter_finished(result: Dictionary)
 var encounter_data: Resource = null
 var encounter_context: Dictionary = {}
 var is_interactive: bool = true
+var hover_tooltip_layer: Node = null
 
 func setup(new_encounter_data: Resource, context: Dictionary) -> void:
 	encounter_data = new_encounter_data
 	encounter_context = context.duplicate(true)
 	_refresh()
+
+func set_hover_tooltip_layer(new_hover_tooltip_layer: Node) -> void:
+	hover_tooltip_layer = new_hover_tooltip_layer
+	_bind_choice_buttons()
 
 func _refresh() -> void:
 	if encounter_data == null:
@@ -54,10 +61,11 @@ func _rebuild_choice_buttons() -> void:
 		var choice_data: Dictionary = choice
 		var button := Button.new()
 		button.text = str(choice_data.get("label", "Continue"))
-		button.tooltip_text = _choice_tooltip(choice_data)
+		button.tooltip_text = ""
 		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		button.disabled = not is_interactive
 		button.pressed.connect(_on_choice_pressed.bind(choice_index))
+		_set_choice_hover_info(button, _choice_hover_info(choice_data))
 		choices_container.add_child(button)
 
 func _create_continue_button() -> void:
@@ -66,6 +74,7 @@ func _create_continue_button() -> void:
 
 	var button := Button.new()
 	button.text = "Continue"
+	button.tooltip_text = ""
 	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	button.disabled = not is_interactive
 	button.pressed.connect(_on_choice_pressed.bind(-1))
@@ -78,7 +87,7 @@ func set_interactive(new_is_interactive: bool) -> void:
 		if button != null:
 			button.disabled = not is_interactive
 
-func _choice_tooltip(choice_data: Dictionary) -> String:
+func _choice_hover_info(choice_data: Dictionary) -> Resource:
 	var parts: Array[String] = []
 	var description := str(choice_data.get("description", ""))
 	if not description.is_empty():
@@ -86,8 +95,38 @@ func _choice_tooltip(choice_data: Dictionary) -> String:
 	var effect_summary := _effect_summary(choice_data)
 	if not effect_summary.is_empty():
 		parts.append(effect_summary)
+	if parts.is_empty():
+		return null
 
-	return "\n".join(parts)
+	var info := HoverInfoDataScript.new()
+	info.title = str(choice_data.get("label", "Choice")).strip_edges()
+	info.description = "\n".join(parts)
+	info.panel_style = &"encounter_choice"
+	return info
+
+func _set_choice_hover_info(button: Button, info: Resource) -> void:
+	if button == null:
+		return
+	if info == null:
+		if button.has_meta(HOVER_INFO_META):
+			button.remove_meta(HOVER_INFO_META)
+		return
+
+	button.set_meta(HOVER_INFO_META, info)
+	_bind_hover_source(button)
+
+func _bind_choice_buttons() -> void:
+	if choices_container == null:
+		return
+
+	for child in choices_container.get_children():
+		var button := child as Button
+		if button != null and button.has_meta(HOVER_INFO_META):
+			_bind_hover_source(button)
+
+func _bind_hover_source(source: Control) -> void:
+	if hover_tooltip_layer != null and source != null:
+		hover_tooltip_layer.call("bind_source", source)
 
 func _effect_summary(choice_data: Dictionary) -> String:
 	var summaries: Array[String] = []

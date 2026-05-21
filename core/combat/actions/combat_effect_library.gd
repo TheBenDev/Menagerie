@@ -84,6 +84,12 @@ static func damage_breakdown(effect_data: Dictionary, source: Combatant) -> Dict
 		"total_damage": max(base_damage + scaled_damage, 0),
 	}
 
+static func block_amount(effect_data: Dictionary) -> int:
+	return _block_amount(effect_data)
+
+static func effect_amount(effect_data: Dictionary, default_value: int = 0) -> int:
+	return _effect_amount(effect_data, default_value)
+
 static func status_data_for_effect(effect_data: Dictionary) -> Resource:
 	return _status_data_for_effect(effect_data)
 

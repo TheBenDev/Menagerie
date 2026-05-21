@@ -9,6 +9,7 @@
 [ext_resource type="Texture2D" uid="uid://c15yfpuoxiaqd" path="res://assets/ui/dungeon/dungeon_hotbar_solid.png" id="7_mnowe"]
 [ext_resource type="Script" uid="uid://co4mpwaos6ev4" path="res://scenes/ui/common/resource_bar.gd" id="8_iffs1"]
 [ext_resource type="Texture2D" uid="uid://dxb7iw36mstn8" path="res://assets/ui/dungeon/dungeon_hotbar_transparent.png" id="9_npk24"]
+[ext_resource type="PackedScene" uid="uid://bnc0uqdsjftc1" path="res://scenes/combat/ui/HoverTooltipLayer.tscn" id="10_iffs1"]
 
 [node name="DungeonMap" type="Control" unique_id=1721247295]
 layout_mode = 3
@@ -145,7 +146,6 @@ text_overrun_behavior = 3
 [node name="CopySeedButton" type="Button" parent="InfoPanel/PanelMargin/InfoLayout" unique_id=995653737]
 layout_mode = 2
 size_flags_horizontal = 3
-tooltip_text = "Copy run seed"
 text = "Copy Seed"
 
 [node name="DungeonHotbar" type="Control" parent="." unique_id=395474287]
@@ -247,7 +247,11 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 mouse_filter = 2
 texture = ExtResource("9_npk24")
 expand_mode = 1
 stretch_mode = 5
+
+[node name="HoverTooltipLayer" parent="." unique_id=965974154 instance=ExtResource("10_iffs1")]

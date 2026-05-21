@@ -5,9 +5,11 @@ extends PanelContainer
 const NumberFontHelper := preload("res://scenes/ui/common/number_font.gd")
 
 @export var title_path: NodePath = ^"Margin/Layout/KeywordTitle"
+@export var subtitle_path: NodePath = ^"Margin/Layout/KeywordSubtitle"
 @export var description_path: NodePath = ^"Margin/Layout/KeywordDescription"
 
 @onready var title_label: Label = get_node_or_null(title_path) as Label
+@onready var subtitle_label: Label = get_node_or_null(subtitle_path) as Label
 @onready var description_label: RichTextLabel = get_node_or_null(description_path) as RichTextLabel
 
 var base_panel_stylebox: StyleBox = null
@@ -16,6 +18,7 @@ func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	base_panel_stylebox = get_theme_stylebox("panel").duplicate()
 	NumberFontHelper.apply_to_label(title_label)
+	NumberFontHelper.apply_to_label(subtitle_label)
 	if description_label != null:
 		description_label.fit_content = true
 		description_label.scroll_active = false
@@ -30,6 +33,9 @@ func set_keyword_info(info) -> void:
 	if title_label != null:
 		title_label.text = info.title.strip_edges()
 		_apply_title_color(info)
+	if subtitle_label != null:
+		subtitle_label.text = str(info.get("subtitle")).strip_edges()
+		subtitle_label.visible = not subtitle_label.text.is_empty()
 	if description_label != null:
 		NumberFontHelper.set_rich_text(description_label, info.description.strip_edges())
 	_apply_panel_accent(info)
