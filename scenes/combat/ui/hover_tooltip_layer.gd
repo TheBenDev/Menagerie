@@ -71,11 +71,11 @@ func show_for_source_delayed(source: Object) -> void:
 	hover_request_id += 1
 	var request_id := hover_request_id
 	if hover_delay_seconds <= 0.0:
-		_on_hover_delay_elapsed(source, request_id)
+		_on_hover_delay_elapsed(request_id)
 		return
 
 	hover_delay_timer = get_tree().create_timer(hover_delay_seconds, true, false, true)
-	hover_delay_timer.timeout.connect(_on_hover_delay_elapsed.bind(source, request_id))
+	hover_delay_timer.timeout.connect(_on_hover_delay_elapsed.bind(request_id))
 
 func _show_for_source_now(source: Object) -> void:
 	var info := _hover_info_from_source(source)
@@ -235,10 +235,11 @@ func _cancel_pending_hover() -> void:
 	hover_delay_timer = null
 	hover_request_id += 1
 
-func _on_hover_delay_elapsed(source: Object, request_id: int) -> void:
+func _on_hover_delay_elapsed(request_id: int) -> void:
 	if request_id != hover_request_id:
 		return
-	if source == null or pending_source != source:
+	var source: Object = pending_source
+	if source == null:
 		return
 	if not is_instance_valid(source):
 		clear()

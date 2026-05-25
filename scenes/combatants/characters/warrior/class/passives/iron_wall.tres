@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ClassPassiveData" format=3]
+
+[ext_resource type="Script" path="res://core/combat/classes/class_passive_data.gd" id="1_passive"]
+
+[resource]
+script = ExtResource("1_passive")
+id = &"iron_wall"
+display_name = "Iron Wall"
+description = "A Warrior passive focused on stronger Block-based turns."
+rarity = &"uncommon"
+tags = Array[StringName]([&"warrior", &"guardian"])
+hover_keywords = Array[StringName]([&"resource.block", &"stance.guardian"])
+

@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="PlayerActionData" format=3 uid="uid://bcohxrb7u8ubs"]
+
+[ext_resource type="Script" uid="uid://bvhvlkmv0thup" path="res://core/combat/actions/player_action_data.gd" id="1_action"]
+
+[resource]
+script = ExtResource("1_action")
+id = "block"
+display_name = "Block"
+effect_data = Array[Dictionary]([{
+"amount": 12,
+"id": &"combat.block"
+}])
+time_cost = 4.0
+target_rule = "Self"
+hover_keywords = Array[StringName]([&"resource.block"])

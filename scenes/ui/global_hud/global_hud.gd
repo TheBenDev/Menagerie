@@ -5,6 +5,8 @@ const NumberFontHelper := preload("res://scenes/ui/common/number_font.gd")
 const ValueReaderScript := preload("res://core/utils/value_reader.gd")
 
 @onready var player_button: TextureButton = $HUDRoot/TopLeftPanel/PlayerButton
+@onready var memory_progress_bar: TimeProgressBar = get_node_or_null("HUDRoot/TopMargin/BarMargin/BarRow/TimerStack/MemoryProgress") as TimeProgressBar
+@onready var memory_progress_label: Label = get_node_or_null("HUDRoot/TopMargin/BarMargin/BarRow/TimerStack/MemoryProgressLabel") as Label
 @onready var timer_bar: TimeProgressBar = $HUDRoot/TopMargin/BarMargin/BarRow/TimerStack/TimerProgress
 @onready var timer_label: Label = $HUDRoot/TopMargin/BarMargin/BarRow/TimerStack/TimerLabel
 @onready var memories_value: Label = $HUDRoot/TopRightPanel/TopRightMargin/TopRightRow/VBoxContainer/MemoriesItem/MemoriesValue
@@ -32,6 +34,7 @@ func _exit_tree() -> void:
 func _apply_number_fonts() -> void:
 	for label in [
 		timer_label,
+		memory_progress_label,
 		memories_value,
 		gold_value,
 		strength_value,
@@ -86,6 +89,7 @@ func _refresh_all() -> void:
 		int(currency_snapshot.get("memories", 0)),
 		int(currency_snapshot.get("gold", 0))
 	)
+	_refresh_class_memory_progress()
 
 func _on_run_time_changed(remaining_time_seconds: float, max_time_seconds: float) -> void:
 	timer_bar.set_timer_values(remaining_time_seconds, max_time_seconds)
@@ -95,6 +99,7 @@ func _on_run_time_changed(remaining_time_seconds: float, max_time_seconds: float
 func _on_run_currencies_changed(memories: int, gold: int) -> void:
 	memories_value.text = str(max(memories, 0))
 	gold_value.text = str(max(gold, 0))
+	_refresh_class_memory_progress()
 
 func _on_authoritative_snapshot_received(_snapshot: Dictionary) -> void:
 	_refresh_all()
@@ -107,7 +112,7 @@ func _refresh_player_panel() -> void:
 	if not member_snapshot.is_empty():
 		var profile_path := str(member_snapshot.get("profile_path", "")).strip_edges()
 		var snapshot_profile := load(profile_path) as CombatantProfile if not profile_path.is_empty() else null
-		var character_id := str(member_snapshot.get("character_id", "Warrior"))
+		var character_id := str(member_snapshot.get("character_id", RunData.DEFAULT_CHARACTER))
 		if snapshot_profile != null and not snapshot_profile.display_name.is_empty():
 			character_value.text = snapshot_profile.display_name
 		else:
@@ -118,7 +123,7 @@ func _refresh_player_panel() -> void:
 		return
 
 	if not _has_game_manager():
-		character_value.text = "Warrior"
+		character_value.text = RunData.DEFAULT_CHARACTER
 		_set_stat_values(null)
 		_set_hp_values(0, 0)
 		return
@@ -209,6 +214,33 @@ func _currency_snapshot_for_view() -> Dictionary:
 		"memories": 0,
 		"gold": 0,
 	}
+
+func _refresh_class_memory_progress() -> void:
+	if memory_progress_bar == null or memory_progress_label == null:
+		return
+	var snapshot: Dictionary = _class_memory_snapshot_for_view()
+	if snapshot.is_empty():
+		memory_progress_bar.visible = false
+		memory_progress_label.visible = false
+		return
+	var current: int = max(int(snapshot.get("current", 0)), 0)
+	var next_cost: int = max(int(snapshot.get("next_cost", 10)), 1)
+	memory_progress_bar.visible = true
+	memory_progress_label.visible = true
+	memory_progress_bar.set_timer_values(float(min(current, next_cost)), float(next_cost))
+	memory_progress_label.text = "Memories %s/%s" % [current, next_cost]
+
+func _class_memory_snapshot_for_view() -> Dictionary:
+	var snapshot: Dictionary = _authoritative_snapshot_for_view()
+	if not snapshot.is_empty():
+		var class_memory_snapshot: Dictionary = snapshot.get("class_memory", {})
+		if not class_memory_snapshot.is_empty():
+			return class_memory_snapshot
+
+	if _has_game_manager() and GameManager.has_active_run():
+		return GameManager.get_class_memory_snapshot()
+
+	return {}
 
 func _local_party_member_snapshot() -> Dictionary:
 	var snapshot := _authoritative_snapshot_for_view()

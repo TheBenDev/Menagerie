@@ -13,6 +13,8 @@ var platform_user_id: String = ""
 var map_pawn_id: String = ""
 var is_unlocked: bool = true
 var is_active: bool = true
+var class_run_state: Variant = null
+var class_profile: Resource = null
 
 func _init(
 	new_party_member_id: String = "",

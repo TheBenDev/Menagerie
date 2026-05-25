@@ -2,8 +2,8 @@
 
 [ext_resource type="Script" uid="uid://pfsnfnt6ugqn" path="res://scenes/combatants/combatant_profile.gd" id="1_profile"]
 [ext_resource type="Script" uid="uid://cpn8kixh6g3yf" path="res://scenes/ui/common/resource_bar_config.gd" id="2_bar_config"]
-[ext_resource type="Resource" uid="uid://dmirfj36xyajo" path="res://scenes/combatants/characters/warrior/warrior_moveset.tres" id="3_moveset"]
 [ext_resource type="PackedScene" uid="uid://dgvhkii1e8r8j" path="res://scenes/combatants/characters/warrior/WarriorBattleVisual.tscn" id="4_visual"]
+[ext_resource type="Resource" uid="uid://chpd5ttbimpxe" path="res://scenes/combatants/characters/warrior/class/warrior_class_profile.tres" id="5_class_profile"]
 
 [sub_resource type="Resource" id="ResourceBarConfig_health"]
 script = ExtResource("2_bar_config")
@@ -33,7 +33,7 @@ strength = 12
 dexterity = 7
 intelligence = 5
 vitality = 9
-moveset = ExtResource("3_moveset")
+class_profile = ExtResource("5_class_profile")
 health_bar = SubResource("ResourceBarConfig_health")
 resource_bars = Array[Resource]([SubResource("ResourceBarConfig_rage")])
-hover_description = "A durable frontline fighter who builds rage through quick strikes and heavy blows."
+hover_description = "A durable frontline fighter whose stance kit changes Strike, fixed skills, and flex skills during a run."

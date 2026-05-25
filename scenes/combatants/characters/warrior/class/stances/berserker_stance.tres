@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="ClassStanceData" format=3]
+
+[ext_resource type="Script" path="res://core/combat/classes/class_stance_data.gd" id="1_stance"]
+
+[resource]
+script = ExtResource("1_stance")
+id = &"berserker"
+display_name = "Berserker"
+description = "A reckless stance focused on Rage pressure and burst damage. Entry bonus: gain 10 Rage."
+tags = Array[StringName]([&"warrior", &"berserker"])
+strike_replacement_action_id = &"flurry"
+fixed_skill_ids = Array[StringName]([&"blood_surge"])
+entry_bonus_effect_data = Array[Dictionary]([{
+"amount": 10,
+"id": &"resource.gain",
+"resource_id": &"rage"
+}])
+switch_time_cost = 1.0
+switch_description = "Enter Berserker stance."
+hover_keywords = Array[StringName]([&"stance.berserker", &"resource.rage"])

@@ -23,6 +23,46 @@ description = "Gained from taking or dealing damage. Depletes 1 per second."
 keyword_color = Color(0.95, 0.06, 0.02, 1)
 tags = Array[StringName]([&"resource", &"warrior"])
 
+[sub_resource type="Resource" id="HoverKeyword_berserker"]
+script = ExtResource("2_keyword")
+id = &"stance.berserker"
+aliases = Array[StringName]([&"berserker"])
+category = &"stance"
+display_name = "Berserker"
+description = "A Warrior stance focused on Rage pressure and burst damage."
+keyword_color = Color(0.95, 0.23, 0.12, 1)
+tags = Array[StringName]([&"stance", &"warrior"])
+
+[sub_resource type="Resource" id="HoverKeyword_guardian"]
+script = ExtResource("2_keyword")
+id = &"stance.guardian"
+aliases = Array[StringName]([&"guardian"])
+category = &"stance"
+display_name = "Guardian"
+description = "A Warrior stance focused on Block and durability."
+keyword_color = Color(0.34, 0.68, 1, 1)
+tags = Array[StringName]([&"stance", &"warrior", &"defense"])
+
+[sub_resource type="Resource" id="HoverKeyword_duelist"]
+script = ExtResource("2_keyword")
+id = &"stance.duelist"
+aliases = Array[StringName]([&"duelist"])
+category = &"stance"
+display_name = "Duelist"
+description = "A Warrior stance focused on tempo, control, and bypassing Block."
+keyword_color = Color(0.64, 0.9, 0.7, 1)
+tags = Array[StringName]([&"stance", &"warrior"])
+
+[sub_resource type="Resource" id="HoverKeyword_parry"]
+script = ExtResource("2_keyword")
+id = &"keyword.parry"
+aliases = Array[StringName]([&"parry"])
+category = &"keyword"
+display_name = "Parry"
+description = "Reduces incoming damage while the Parry status is active."
+keyword_color = Color(0.64, 0.9, 0.7, 1)
+tags = Array[StringName]([&"status", &"warrior", &"defense"])
+
 [resource]
 script = ExtResource("1_registry")
-keywords = Array[Resource]([SubResource("HoverKeyword_block"), SubResource("HoverKeyword_rage")])
+keywords = Array[Resource]([SubResource("HoverKeyword_block"), SubResource("HoverKeyword_rage"), SubResource("HoverKeyword_berserker"), SubResource("HoverKeyword_guardian"), SubResource("HoverKeyword_duelist"), SubResource("HoverKeyword_parry")])

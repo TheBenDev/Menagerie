@@ -1,53 +1,10 @@
 [gd_resource type="Resource" script_class="CombatMovesetData" format=3 uid="uid://dmirfj36xyajo"]
 
 [ext_resource type="Script" uid="uid://3btd2ryissk0" path="res://core/combat/actions/combat_moveset_data.gd" id="1_moveset"]
-[ext_resource type="Script" uid="uid://bvhvlkmv0thup" path="res://core/combat/actions/player_action_data.gd" id="2_player_action"]
+[ext_resource type="Resource" path="res://scenes/combatants/characters/warrior/class/actions/strike.tres" id="2_strike"]
+[ext_resource type="Resource" path="res://scenes/combatants/characters/warrior/class/actions/block.tres" id="3_block"]
 [ext_resource type="Script" uid="uid://did5gnthi0qvc" path="res://core/combat/actions/combat_action_data.gd" id="3_combat_action"]
-
-[sub_resource type="Resource" id="PlayerAction_quick_strike"]
-script = ExtResource("2_player_action")
-id = "quick_strike"
-display_name = "Quick Strike"
-description = "A fast opening attack."
-effect_data = Array[Dictionary]([{
-"base_damage": 4,
-"id": &"combat.damage",
-"scaling_multiplier": 1.0
-}, {
-"amount": 3,
-"id": &"resource.rage.gain"
-}])
-time_cost = 3.0
-
-[sub_resource type="Resource" id="PlayerAction_heavy_strike"]
-script = ExtResource("2_player_action")
-id = "heavy_strike"
-display_name = "Heavy Strike"
-description = "A slower heavy attack."
-effect_data = Array[Dictionary]([{
-"base_damage": 14,
-"id": &"combat.damage",
-"scaling_multiplier": 1.5
-}, {
-"id": &"status.apply",
-"status_id": &"status.vulnerable"
-}, {
-"amount": 6,
-"id": &"resource.rage.gain"
-}])
-time_cost = 8.0
-hover_keywords = Array[StringName]([&"vulnerable"])
-
-[sub_resource type="Resource" id="PlayerAction_guard"]
-script = ExtResource("2_player_action")
-id = "guard"
-display_name = "Guard"
-effect_data = Array[Dictionary]([{
-"amount": 12,
-"id": &"combat.block"
-}])
-target_rule = "Self"
 
 [resource]
 script = ExtResource("1_moveset")
-actions = Array[ExtResource("3_combat_action")]([SubResource("PlayerAction_quick_strike"), SubResource("PlayerAction_heavy_strike"), SubResource("PlayerAction_guard")])
+actions = Array[ExtResource("3_combat_action")]([ExtResource("2_strike"), ExtResource("3_block")])

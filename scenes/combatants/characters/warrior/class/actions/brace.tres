@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="PlayerActionData" format=3 uid="uid://dg6wg7r8mlmv8"]
+
+[ext_resource type="Script" uid="uid://bvhvlkmv0thup" path="res://core/combat/actions/player_action_data.gd" id="1_action"]
+
+[resource]
+script = ExtResource("1_action")
+class_skill_id = &"brace"
+skill_tags = Array[StringName]([&"neutral"])
+valid_as_stance_skill = false
+id = "brace"
+display_name = "Brace"
+description = "Quickly gain a small amount of Block."
+effect_data = Array[Dictionary]([{
+"amount": 8,
+"id": &"combat.block"
+}])
+time_cost = 3.0
+target_rule = "Self"
+hover_keywords = Array[StringName]([&"resource.block"])

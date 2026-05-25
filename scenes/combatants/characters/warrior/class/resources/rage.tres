@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ClassResourceData" format=3]
+
+[ext_resource type="Script" path="res://core/combat/classes/class_resource_data.gd" id="1_resource"]
+
+[resource]
+script = ExtResource("1_resource")
+id = &"rage"
+display_name = "Rage"
+keyword_id = &"resource.rage"
+keyword_color = Color(0.95, 0.42, 0.12, 1)
+reference_value = 100
+damage_dealt_gain_multiplier = 0.5
+damage_taken_gain_multiplier = 1.5
+decay_per_second = 1.0

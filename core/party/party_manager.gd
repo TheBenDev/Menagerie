@@ -3,10 +3,33 @@ extends Node
 
 const PlayerRunStateServiceScript := preload("res://core/party/player_run_state_service.gd")
 const PlayerPartyStateScript := preload("res://core/party/player_party_state.gd")
+const ClassRunStateScript := preload("res://core/combat/classes/class_run_state.gd")
+const ClassProfileDataScript := preload("res://core/combat/classes/class_profile_data.gd")
 
 const CHARACTER_PROFILE_PATHS := {
 	"Warrior": "res://scenes/combatants/characters/warrior/warrior_profile.tres",
 }
+
+func default_character_id() -> String:
+	return RunData.DEFAULT_CHARACTER
+
+func character_ids() -> Array[String]:
+	var ids: Array[String] = []
+	for raw_id in CHARACTER_PROFILE_PATHS.keys():
+		ids.append(str(raw_id))
+	ids.sort()
+	return ids
+
+func has_character(character_id: String) -> bool:
+	return CHARACTER_PROFILE_PATHS.has(character_id.strip_edges())
+
+func get_character_display_name(character_id: String) -> String:
+	var profile := get_character_profile(character_id)
+	if profile != null:
+		var display_name := str(profile.get("display_name")).strip_edges()
+		if not display_name.is_empty():
+			return display_name
+	return character_id.strip_edges()
 
 func initialize_party_for_run(run_data: Variant, character_id: StringName) -> void:
 	if run_data == null:
@@ -23,6 +46,7 @@ func initialize_party_for_run(run_data: Variant, character_id: StringName) -> vo
 		run_data.configure_selection(resolved_character_id)
 	run_data.player_party_state = PlayerPartyStateScript.new()
 	run_data.player_party_state.configure_single_member(resolved_character_id, profile_path, profile)
+	ensure_member_class_run_states(run_data)
 	PlayerRunStateServiceScript.sync_modifiers(run_data)
 
 func initialize_party_for_multiplayer_run(run_data: Variant, member_configs: Array[Dictionary], local_peer_id: int) -> void:
@@ -38,6 +62,7 @@ func initialize_party_for_multiplayer_run(run_data: Variant, member_configs: Arr
 	var leader: Variant = run_data.player_party_state.get_leader()
 	if leader != null and run_data.has_method("configure_selection"):
 		run_data.configure_selection(str(leader.character_id))
+	ensure_member_class_run_states(run_data)
 	PlayerRunStateServiceScript.sync_modifiers(run_data)
 
 func build_member_configs_from_network_players(players_snapshot: Dictionary) -> Array[Dictionary]:
@@ -97,7 +122,8 @@ func get_character_profile(character_id: String) -> Resource:
 func get_character_profile_path(character_id: String) -> String:
 	var resolved_id := character_id.strip_edges()
 	if resolved_id.is_empty():
-		resolved_id = RunData.DEFAULT_CHARACTER
+		push_error("Character id cannot be empty.")
+		return ""
 	if not CHARACTER_PROFILE_PATHS.has(resolved_id):
 		push_error("Unknown character id: %s." % resolved_id)
 		return ""
@@ -121,6 +147,7 @@ func apply_member_state_to_combatant(run_data: Variant, combatant: Node, party_m
 	if run_data == null or combatant == null:
 		return
 
+	ensure_member_class_run_states(run_data)
 	var member: Variant = null
 	if run_data.player_party_state != null and not String(party_member_id).is_empty():
 		member = run_data.player_party_state.get_member(String(party_member_id))
@@ -130,8 +157,54 @@ func apply_member_state_to_combatant(run_data: Variant, combatant: Node, party_m
 		combatant.set("combatant_id", str(member.combatant_state.combatant_id))
 		member.combatant_state.set_runtime_modifiers(run_data.run_stat_modifiers)
 		member.combatant_state.apply_stats_to_combatant(combatant)
+		if member.class_run_state != null and combatant.has_method("set_class_run_state"):
+			combatant.call("set_class_run_state", member.class_run_state)
 	else:
 		PlayerRunStateServiceScript.apply_run_state_to_combatant(run_data, combatant)
+
+func ensure_member_class_run_states(run_data: Variant) -> void:
+	if run_data == null or run_data.player_party_state == null:
+		return
+
+	for raw_member in run_data.player_party_state.members.values():
+		var member: Variant = raw_member
+		if member == null or member.combatant_state == null:
+			continue
+		if member.class_run_state != null and member.class_profile != null:
+			continue
+		var profile := _profile_for_member(member)
+		var class_profile := _class_profile_for_combatant_profile(profile)
+		if class_profile == null:
+			continue
+		member.class_profile = class_profile
+		if member.class_run_state == null:
+			member.class_run_state = ClassRunStateScript.new()
+		if member.class_run_state.has_method("configure_defaults"):
+			member.class_run_state.configure_defaults(class_profile)
+
+func get_selected_member_class_run_state(run_data: Variant) -> Variant:
+	ensure_member_class_run_states(run_data)
+	var member: Variant = get_selected_member_state(run_data)
+	return member.class_run_state if member != null else null
+
+func get_member_class_run_state(run_data: Variant, party_member_id: String) -> Variant:
+	ensure_member_class_run_states(run_data)
+	if run_data == null or run_data.player_party_state == null:
+		return null
+	var member: Variant = run_data.player_party_state.get_member(party_member_id)
+	return member.class_run_state if member != null else null
+
+func get_selected_member_class_profile(run_data: Variant) -> Resource:
+	ensure_member_class_run_states(run_data)
+	var member: Variant = get_selected_member_state(run_data)
+	return member.class_profile if member != null else null
+
+func get_class_run_state_for_combatant_id(run_data: Variant, combatant_id: String) -> Variant:
+	ensure_member_class_run_states(run_data)
+	if run_data == null or run_data.player_party_state == null:
+		return null
+	var member: Variant = run_data.player_party_state.get_member_for_combatant_id(combatant_id)
+	return member.class_run_state if member != null else null
 
 func get_selected_member_hp_snapshot(run_data: Variant) -> Dictionary:
 	return PlayerRunStateServiceScript.hp_snapshot(run_data)
@@ -218,6 +291,7 @@ func _member_snapshots(run_data: Variant) -> Dictionary:
 	if run_data == null or run_data.player_party_state == null:
 		return snapshots
 
+	ensure_member_class_run_states(run_data)
 	PlayerRunStateServiceScript.sync_modifiers(run_data)
 	for member_id: String in run_data.player_party_state.active_member_ids:
 		var member: Variant = run_data.player_party_state.get_member(member_id)
@@ -240,6 +314,7 @@ func _member_snapshots(run_data: Variant) -> Dictionary:
 				"max": int(combatant_state.max_hp),
 			},
 			"effective_stats": combatant_state.get_effective_stats(),
+			"class_state": _class_state_snapshot(member),
 		}
 	return snapshots
 
@@ -253,3 +328,36 @@ func _normalized_id(value: String) -> String:
 	if normalized.is_empty():
 		return "member"
 	return normalized
+
+func _profile_for_member(member: Variant) -> Resource:
+	if member == null or member.combatant_state == null:
+		return null
+	var profile_path := str(member.combatant_state.profile_path).strip_edges()
+	if profile_path.is_empty():
+		return null
+	var profile := load(profile_path) as Resource
+	if profile == null:
+		push_error("Could not load party member profile %s for class state." % profile_path)
+	return profile
+
+func _class_profile_for_combatant_profile(profile: Resource) -> Resource:
+	if profile == null:
+		return null
+	var class_profile: Resource = profile.get("class_profile") as Resource
+	if class_profile == null:
+		return null
+	if class_profile.get_script() == ClassProfileDataScript:
+		var validation_error: String = str(class_profile.validate())
+		if not validation_error.is_empty():
+			push_error(validation_error)
+			return null
+		return class_profile
+	push_error("Unsupported class profile type for %s." % profile.resource_path)
+	return null
+
+func _class_state_snapshot(member: Variant) -> Dictionary:
+	if member == null or member.class_run_state == null:
+		return {}
+	if member.class_run_state.has_method("to_snapshot"):
+		return member.class_run_state.to_snapshot()
+	return {}

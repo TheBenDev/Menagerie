@@ -34,6 +34,33 @@ static func string_name_from_variant(value: Variant) -> StringName:
 
 	return &""
 
+static func string_name_array(values: Variant) -> Array[StringName]:
+	var result: Array[StringName] = []
+	if values is Array:
+		for value in values:
+			var id := string_name_from_variant(value)
+			if id != &"":
+				result.append(id)
+	elif values is PackedStringArray:
+		for value in values:
+			var id := StringName(str(value))
+			if id != &"":
+				result.append(id)
+	elif values is StringName:
+		if values != &"":
+			result.append(values)
+	elif values is String:
+		var id := StringName(values)
+		if id != &"":
+			result.append(id)
+	return result
+
+static func string_array(values: Variant) -> Array[String]:
+	var strings: Array[String] = []
+	for value in string_name_array(values):
+		strings.append(String(value))
+	return strings
+
 static func int_lookup(values: Array) -> Dictionary:
 	var lookup: Dictionary = {}
 	for value in values:

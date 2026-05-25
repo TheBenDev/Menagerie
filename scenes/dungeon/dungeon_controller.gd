@@ -11,6 +11,7 @@ const DungeonNodeViewScript := preload("res://scenes/dungeon/dungeon_node_view.g
 const NumberFontHelper := preload("res://scenes/ui/common/number_font.gd")
 const ResourceBarScript := preload("res://scenes/ui/common/resource_bar.gd")
 const ValueReaderScript := preload("res://core/utils/value_reader.gd")
+const ClassRewardChoiceOverlayScene := preload("res://scenes/dungeon/class_rewards/ClassRewardChoiceOverlay.tscn")
 
 const GRID_CELL_SIZE := 72.0
 const START_NODE_ID := 0
@@ -50,6 +51,8 @@ var map_grid_size: Vector2i = Vector2i.ONE
 var active_encounter_scene: Node = null
 var active_encounter_node_id: int = -1
 var active_encounter_pawn_id: String = ""
+var active_class_reward_scene: Node = null
+var active_class_reward_context_id: String = ""
 var has_emitted_initial_haven_entry: bool = false
 
 func _ready() -> void:
@@ -76,6 +79,7 @@ func _ready() -> void:
 	_refresh_view()
 	_sync_active_encounter_from_snapshot()
 	_emit_initial_haven_entry()
+	_sync_active_class_reward_from_snapshot()
 	call_deferred("_center_map_content")
 
 func _create_path_data(descriptors: Array) -> void:
@@ -267,8 +271,11 @@ func _on_authoritative_snapshot_received(_snapshot: Dictionary) -> void:
 	_apply_progress_state()
 	_refresh_view()
 	_sync_active_encounter_from_snapshot()
+	_sync_active_class_reward_from_snapshot()
 
 func _sync_active_encounter_from_snapshot() -> void:
+	if active_class_reward_scene != null:
+		return
 	var dungeon_snapshot: Dictionary = _dungeon_snapshot_for_view()
 	var active_event: Dictionary = dungeon_snapshot.get("active_event", {})
 	if active_event.is_empty():
@@ -292,6 +299,42 @@ func _sync_active_encounter_from_snapshot() -> void:
 		return
 	_start_encounter_node(node, false, active_encounter_pawn_id)
 
+func _sync_active_class_reward_from_snapshot() -> void:
+	var class_reward_snapshot := _class_reward_snapshot_for_view()
+	if class_reward_snapshot.is_empty():
+		if active_class_reward_scene != null:
+			_clear_active_class_reward_scene()
+		return
+	var context_id := str(class_reward_snapshot.get("context_id", "")).strip_edges()
+	if context_id.is_empty():
+		push_error("Class reward snapshot is missing context_id.")
+		return
+	if active_class_reward_scene != null and active_class_reward_context_id == context_id:
+		_apply_class_reward_interactivity()
+		return
+
+	_clear_active_class_reward_scene()
+	active_class_reward_context_id = context_id
+	active_class_reward_scene = ClassRewardChoiceOverlayScene.instantiate()
+	encounter_layer.visible = true
+	encounter_layer.mouse_filter = Control.MOUSE_FILTER_STOP
+	encounter_layer.add_child(active_class_reward_scene)
+	if active_class_reward_scene.has_signal("class_reward_selected"):
+		active_class_reward_scene.connect("class_reward_selected", Callable(self, "_on_class_reward_selected"))
+	if active_class_reward_scene.has_method("set_hover_tooltip_layer"):
+		active_class_reward_scene.call("set_hover_tooltip_layer", hover_tooltip_layer)
+	if active_class_reward_scene.has_method("setup"):
+		active_class_reward_scene.call("setup", class_reward_snapshot)
+	_apply_class_reward_interactivity()
+
+func _apply_class_reward_interactivity() -> void:
+	if active_class_reward_scene == null:
+		return
+	var class_reward_snapshot := _class_reward_snapshot_for_view()
+	var can_interact: bool = int(class_reward_snapshot.get("owner_peer_id", 1)) == NetworkManager.local_peer_id()
+	if active_class_reward_scene.has_method("set_interactive"):
+		active_class_reward_scene.call("set_interactive", can_interact)
+
 func _apply_encounter_interactivity() -> void:
 	if active_encounter_scene == null:
 		return
@@ -306,6 +349,12 @@ func _dungeon_snapshot_for_view() -> Dictionary:
 		if not dungeon_snapshot.is_empty():
 			return dungeon_snapshot
 	return GameManager.get_dungeon_snapshot()
+
+func _class_reward_snapshot_for_view() -> Dictionary:
+	if NetworkManager.is_client() and not NetworkManager.last_authoritative_snapshot.is_empty():
+		var class_reward_snapshot: Dictionary = NetworkManager.last_authoritative_snapshot.get("class_reward", {})
+		return class_reward_snapshot
+	return GameManager.get_class_reward_snapshot()
 
 func _dungeon_snapshot_for_local_input() -> Dictionary:
 	var dungeon_snapshot := _dungeon_snapshot_for_view().duplicate(true)
@@ -475,10 +524,13 @@ func _emit_initial_haven_entry() -> void:
 		return
 
 	has_emitted_initial_haven_entry = true
+	if GameManager.prepare_haven_class_reward(node.id):
+		NetworkManager.broadcast_run_snapshot("haven_class_reward")
 	_emit_node_entered(node)
 	haven_node_entered.emit(node.id)
 	_apply_progress_state()
 	_refresh_view()
+	_sync_active_class_reward_from_snapshot()
 
 func _emit_node_entered(node: DungeonNodeData) -> void:
 	node_event_emitted.emit(DungeonNodeEventHelperScript.build_node_event(node))
@@ -548,8 +600,24 @@ func _clear_active_encounter_scene() -> void:
 		active_encounter_scene = null
 	active_encounter_node_id = -1
 	active_encounter_pawn_id = ""
-	encounter_layer.visible = false
-	encounter_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if active_class_reward_scene == null:
+		encounter_layer.visible = false
+		encounter_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+func _clear_active_class_reward_scene() -> void:
+	if active_class_reward_scene != null:
+		active_class_reward_scene.queue_free()
+		active_class_reward_scene = null
+	active_class_reward_context_id = ""
+	if active_encounter_scene == null:
+		encounter_layer.visible = false
+		encounter_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+func _on_class_reward_selected(context_id: String, reward_id: StringName) -> void:
+	NetworkManager.request_class_reward_choice({
+		"context_id": context_id,
+		"reward_id": String(reward_id),
+	})
 
 func _center_map_content() -> void:
 	var viewport_size := map_viewport.size

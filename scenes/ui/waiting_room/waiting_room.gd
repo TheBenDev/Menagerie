@@ -14,7 +14,7 @@ const DIFFICULTY_HARD := "hard"
 @onready var back_button: Button = $MarginContainer/Layout/ActionRow/BackButton
 @onready var setup_layout: VBoxContainer = $MarginContainer/Layout/SetupPanel/PanelMargin/SetupLayout
 
-var selected_character: String = "Warrior"
+var selected_character: String = RunData.DEFAULT_CHARACTER
 var selected_difficulty: String = DIFFICULTY_NORMAL
 var player_list_label: Label = null
 var ready_button: Button = null
@@ -32,8 +32,12 @@ func _ready() -> void:
 	if selected_difficulty.is_empty():
 		selected_difficulty = DIFFICULTY_NORMAL
 
+	if PartyManager.has_character(selected_character):
+		warrior_button.text = PartyManager.get_character_display_name(selected_character)
+	else:
+		push_error("Waiting room selected unknown default character: %s." % selected_character)
 	warrior_button.button_pressed = true
-	warrior_button.pressed.connect(_on_warrior_pressed)
+	warrior_button.pressed.connect(_on_character_pressed.bind(selected_character))
 	easy_button.pressed.connect(_set_difficulty.bind(DIFFICULTY_EASY))
 	normal_button.pressed.connect(_set_difficulty.bind(DIFFICULTY_NORMAL))
 	hard_button.pressed.connect(_set_difficulty.bind(DIFFICULTY_HARD))
@@ -50,8 +54,11 @@ func _set_difficulty(difficulty: String) -> void:
 	selected_difficulty = difficulty
 	_refresh_difficulty_buttons()
 
-func _on_warrior_pressed() -> void:
-	selected_character = "Warrior"
+func _on_character_pressed(character_id: String) -> void:
+	if not PartyManager.has_character(character_id):
+		push_error("Waiting room cannot select unknown character: %s." % character_id)
+		return
+	selected_character = character_id
 	warrior_button.button_pressed = true
 	NetworkManager.set_local_player_info(_default_display_name(), selected_character, _local_ready())
 
@@ -274,7 +281,7 @@ func _player_list_text() -> String:
 		var ready_text := "Ready" if bool(info.get("ready", false)) else "Not Ready"
 		lines.append("%s  %s  %s" % [
 			str(info.get("display_name", "Player")),
-			str(info.get("selected_character_id", "Warrior")),
+			str(info.get("selected_character_id", RunData.DEFAULT_CHARACTER)),
 			ready_text,
 		])
 	return "\n".join(lines)

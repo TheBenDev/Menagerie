@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ClassPassiveData" format=3]
+
+[ext_resource type="Script" path="res://core/combat/classes/class_passive_data.gd" id="1_passive"]
+
+[resource]
+script = ExtResource("1_passive")
+id = &"rage_discipline"
+display_name = "Rage Discipline"
+description = "A Warrior passive focused on stabilizing Rage-heavy builds."
+rarity = &"uncommon"
+tags = Array[StringName]([&"warrior"])
+hover_keywords = Array[StringName]([&"resource.rage"])
+

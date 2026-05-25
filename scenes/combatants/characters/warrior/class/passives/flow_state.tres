@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ClassPassiveData" format=3]
+
+[ext_resource type="Script" path="res://core/combat/classes/class_passive_data.gd" id="1_passive"]
+
+[resource]
+script = ExtResource("1_passive")
+id = &"flow_state"
+display_name = "Flow State"
+description = "A Warrior passive focused on tempo and clean stance transitions."
+rarity = &"uncommon"
+tags = Array[StringName]([&"warrior", &"duelist"])
+hover_keywords = Array[StringName]([&"stance.duelist"])
+

@@ -3,6 +3,7 @@ class_name RewardService
 extends RefCounted
 
 const ValueReaderScript := preload("res://core/utils/value_reader.gd")
+const ClassRewardServiceScript := preload("res://core/combat/classes/class_reward_service.gd")
 
 ## Returns a normalized package shape used by all reward producers and consumers.
 static func empty_reward_package() -> Dictionary:
@@ -54,6 +55,7 @@ static func apply_reward_package_to_run(run_data: Variant, reward_package: Dicti
 			int(party_rewards.get("memories", 0)),
 			int(party_rewards.get("gold", 0))
 		)
+		ClassRewardServiceScript.prepare_memory_reward_if_ready(run_data)
 
 	return package
 

@@ -1,17 +1,11 @@
-
+# To-Do
 
 We will need to store enemy intents and will later make it hidden to the player until they unlock it.
 
 WIll need to create the turn order view along the right side.
 
-
-
-Need to update the onhover info panel. Make a class implementation for displaying a block of info with graphics
-
-
 Move memories to above run timer and remove from under gold
 Make block icon and class resource icons like sts?
-
 
 Dungeon map abilities
 Rest, cooking to give party buffs
@@ -23,5 +17,6 @@ Map should be divided into sections and each section should have its own generat
 
 Player movement
 
-
 Final boss fight, goddess can revive party but if they die again it's permanent
+
+---

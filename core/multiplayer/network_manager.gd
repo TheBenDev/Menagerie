@@ -121,7 +121,7 @@ func close_session() -> void:
 	session_mode_changed.emit(session_state.session_mode)
 	player_list_changed.emit(session_state.get_players_snapshot())
 
-func set_local_player_info(display_name: String, selected_character_id: String = "Warrior", is_ready: bool = false) -> void:
+func set_local_player_info(display_name: String, selected_character_id: String = RunData.DEFAULT_CHARACTER, is_ready: bool = false) -> void:
 	local_player_info.configure({
 		"peer_id": local_peer_id(),
 		"display_name": display_name,
@@ -159,6 +159,9 @@ func request_encounter_choice(payload: Dictionary) -> void:
 
 func request_combat_action(payload: Dictionary) -> void:
 	_submit_command(NetworkCommandIdsScript.COMBAT_ACTION, payload)
+
+func request_class_reward_choice(payload: Dictionary) -> void:
+	_submit_command(NetworkCommandIdsScript.CLASS_REWARD_CHOICE, payload)
 
 func broadcast_route(scene_ref: String, payload: Dictionary = {}) -> void:
 	if not is_authority():
@@ -295,6 +298,8 @@ func _handle_authoritative_command(sender_peer_id: int, command_id: String, payl
 			_handle_encounter_choice(sender_peer_id, payload, request_id)
 		NetworkCommandIdsScript.COMBAT_ACTION:
 			_handle_combat_action(sender_peer_id, payload, request_id)
+		NetworkCommandIdsScript.CLASS_REWARD_CHOICE:
+			_handle_class_reward_choice(sender_peer_id, payload, request_id)
 		_:
 			_reject_command(sender_peer_id, request_id, "unknown_command", payload)
 
@@ -334,8 +339,10 @@ func _handle_pawn_travel(sender_peer_id: int, payload: Dictionary, request_id: S
 	if not bool(result.get("accepted", false)):
 		_reject_command(sender_peer_id, request_id, str(result.get("reason", "pawn_travel_rejected")), payload)
 		return
-	broadcast_run_snapshot("pawn_travel_requested")
-	if _can_process_authoritative_travel():
+	var can_process_travel_now := _can_process_authoritative_travel()
+	if not can_process_travel_now:
+		broadcast_run_snapshot("pawn_travel_requested")
+	if can_process_travel_now:
 		_start_authoritative_travel_processing()
 
 func _handle_encounter_choice(sender_peer_id: int, payload: Dictionary, request_id: String) -> void:
@@ -360,6 +367,17 @@ func _handle_combat_action(sender_peer_id: int, payload: Dictionary, request_id:
 		return
 	broadcast_run_snapshot("combat_action")
 
+func _handle_class_reward_choice(sender_peer_id: int, payload: Dictionary, request_id: String) -> void:
+	var game_manager: Variant = _game_manager()
+	if game_manager == null or not game_manager.has_method("server_select_class_reward"):
+		push_error("GameManager.server_select_class_reward is required before class reward commands can execute.")
+		return
+	var result: Dictionary = game_manager.server_select_class_reward(sender_peer_id, payload)
+	if not bool(result.get("accepted", false)):
+		_reject_command(sender_peer_id, request_id, str(result.get("reason", "class_reward_rejected")), payload)
+		return
+	broadcast_run_snapshot("class_reward_choice")
+
 func _start_authoritative_travel_processing() -> void:
 	if _is_processing_authoritative_travel:
 		return
@@ -373,6 +391,7 @@ func _start_authoritative_travel_processing() -> void:
 		"has_active_travel_orders",
 		"are_active_travel_orders_ready",
 		"visual_node_steps_per_real_second",
+		"should_delay_after_travel_step",
 	]:
 		if not dungeon_manager.has_method(method_name):
 			missing_methods.append(method_name)
@@ -398,6 +417,8 @@ func _process_authoritative_travel_steps(dungeon_manager: Variant) -> void:
 			broadcast_route(route_ref, result.get("route_payload", {}))
 		if reason != "travel_step":
 			break
+		if not bool(dungeon_manager.call("should_delay_after_travel_step", _current_run_data(), result.get("step_result", {}))):
+			continue
 
 		var steps_per_second: float = float(dungeon_manager.visual_node_steps_per_real_second())
 		if steps_per_second <= 0.0:

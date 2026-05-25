@@ -166,6 +166,7 @@ func server_resolve_arrival(run_data: Variant, pawn_id: String, node_id: int) ->
 			GameManager.emit_run_state()
 			return {"accepted": true, "reason": "empty_node_resolved"}
 		DungeonNodeDataScript.TYPE_HAVEN:
+			GameManager.prepare_haven_class_reward(node.id)
 			GameManager.emit_run_state()
 			return {"accepted": true, "reason": "haven_node_entered"}
 		DungeonNodeDataScript.TYPE_FIGHT, DungeonNodeDataScript.TYPE_BOSS:
@@ -376,6 +377,23 @@ func travel_step_game_seconds() -> float:
 
 func visual_node_steps_per_real_second() -> float:
 	return VISUAL_NODE_STEPS_PER_REAL_SECOND
+
+func should_delay_after_travel_step(run_data: Variant, step_result: Dictionary) -> bool:
+	if run_data == null:
+		push_error("DungeonManager cannot evaluate travel pacing without run data.")
+		return true
+	for raw_pawn_id in step_result.get(DungeonMovementCoordinatorScript.RESULT_MOVED_PAWN_IDS, []):
+		var pawn: Variant = get_pawn(run_data, str(raw_pawn_id))
+		if pawn == null:
+			push_error("Dungeon travel step referenced missing pawn %s." % str(raw_pawn_id))
+			return true
+		var descriptor: Dictionary = _descriptor_for_node_id(run_data, int(pawn.current_node_id))
+		if descriptor.is_empty():
+			push_error("Dungeon travel step moved pawn %s to missing node %s." % [str(raw_pawn_id), int(pawn.current_node_id)])
+			return true
+		if str(descriptor.get("type", "")) != DungeonNodeDataScript.TYPE_EMPTY:
+			return true
+	return false
 
 func lock_pawn_for_event(run_data: Variant, pawn_id: String, node_id: int) -> void:
 	var pawn: Variant = get_pawn(run_data, pawn_id)

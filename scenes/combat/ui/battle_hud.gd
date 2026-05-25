@@ -13,7 +13,6 @@ const StatusIconViewScene := preload("res://scenes/combat/ui/StatusIconView.tscn
 @export var preview_status_icon_cell_size: Vector2i = Vector2i(200, 200)
 @export var memory_goal: int = 100
 
-signal action_selected(index: int)
 signal hotbar_slot_used(slot_id: StringName, slot_entry: Dictionary)
 signal speed_requested()
 signal pause_requested()
@@ -81,6 +80,7 @@ func setup(
 
 	action_bar.set_hover_actor(player)
 	action_bar.set_actions(player.actions)
+	_refresh_hotbar_slots()
 	_configure_resource_bars()
 	refresh()
 
@@ -106,12 +106,10 @@ func refresh() -> void:
 	pause_button.text = ">" if battle.is_paused else "||"
 	pause_button.disabled = battle.battle_over
 
+	_refresh_hotbar_slots()
 	action_bar.set_can_choose(battle.waiting_for_player_input and not battle.battle_over and not is_targeting_active)
 	_update_resource_bars()
 	_update_status_bar()
-
-func choose_action_index(index: int) -> void:
-	action_bar.choose_action_index(index)
 
 func choose_hotbar_slot_index(index: int) -> void:
 	action_bar.choose_slot_index(index)
@@ -144,6 +142,9 @@ func _configure_memory_bar() -> void:
 	if memory_bar == null:
 		return
 
+	memory_bar.visible = false
+	if memory_label != null:
+		memory_label.visible = false
 	memory_bar.resource_name = "Memories"
 	memory_bar.display_reference_value = true
 	memory_bar.low_color = Color(0.42, 0.32, 0.78, 1.0)
@@ -216,11 +217,17 @@ func _update_memory_bar() -> void:
 	if memory_bar == null:
 		return
 
-	var memories: int = _current_run_memories()
-	var goal: int = max(memory_goal, 1)
-	memory_bar.set_values(memories, goal, 0)
+	memory_bar.visible = false
 	if memory_label != null:
-		memory_label.text = "%s/%s" % [memories, goal]
+		memory_label.visible = false
+
+func _refresh_hotbar_slots() -> void:
+	if action_bar == null or player == null:
+		return
+	if player.has_method("get_hotbar_slot_entries"):
+		var slot_entries_value: Variant = player.call("get_hotbar_slot_entries")
+		if slot_entries_value is Array:
+			action_bar.set_hotbar_slots(slot_entries_value)
 
 func _update_health_and_block_bars() -> void:
 	if player == null or health_bar == null or block_bar == null:
@@ -452,35 +459,3 @@ func _on_hotbar_slot_selected(slot_id: StringName) -> void:
 		return
 
 	hotbar_slot_used.emit(slot_id, slot_entry)
-	var slot_kind: StringName = _slot_kind(slot_entry)
-	if slot_kind != BattleActionBar.SLOT_KIND_ACTION:
-		return
-
-	var action_index: int = _action_index_from_slot(slot_entry)
-	if action_index < 0:
-		return
-
-	action_selected.emit(action_index)
-
-func _slot_kind(slot_entry: Dictionary) -> StringName:
-	var kind_value: Variant = slot_entry.get(BattleActionBar.KIND_KEY, BattleActionBar.SLOT_KIND_EMPTY)
-	if kind_value is StringName:
-		return kind_value
-
-	return StringName(str(kind_value))
-
-func _action_index_from_slot(slot_entry: Dictionary) -> int:
-	var action_index: int = int(slot_entry.get(BattleActionBar.ACTION_INDEX_KEY, -1))
-	if action_index >= 0 and player != null and action_index < player.actions.size():
-		return action_index
-
-	var action_id: String = str(slot_entry.get(BattleActionBar.ACTION_ID_KEY, ""))
-	if action_id.is_empty() or player == null:
-		return -1
-
-	for index in player.actions.size():
-		var action: CombatActionData = player.actions[index]
-		if action != null and action.id == action_id:
-			return index
-
-	return -1

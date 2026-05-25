@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="PlayerActionData" format=3 uid="uid://bo5rv3rndlv0j"]
+
+[ext_resource type="Script" uid="uid://bvhvlkmv0thup" path="res://core/combat/actions/player_action_data.gd" id="1_action"]
+
+[resource]
+script = ExtResource("1_action")
+required_stance = "duelist"
+class_skill_id = &"parry"
+skill_tags = Array[StringName]([&"duelist"])
+stance_id = &"duelist"
+id = "parry"
+display_name = "Parry"
+description = "Prepare to blunt the next incoming strike."
+effect_data = Array[Dictionary]([{
+"duration_override_seconds": 3.0,
+"id": &"status.apply",
+"status_id": &"status.parry"
+}])
+time_cost = 2.0
+target_rule = "Self"
+hover_keywords = Array[StringName]([&"stance.duelist", &"keyword.parry"])

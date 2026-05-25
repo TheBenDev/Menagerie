@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="PlayerActionData" format=3 uid="uid://baucwloco2kc4"]
+
+[ext_resource type="Script" uid="uid://bvhvlkmv0thup" path="res://core/combat/actions/player_action_data.gd" id="1_action"]
+
+[resource]
+script = ExtResource("1_action")
+required_stance = "guardian"
+class_skill_id = &"hold_the_line"
+skill_tags = Array[StringName]([&"guardian"])
+stance_id = &"guardian"
+id = "hold_the_line"
+display_name = "Hold the Line"
+description = "Dig in and raise a heavy guard."
+effect_data = Array[Dictionary]([{
+"amount": 20,
+"id": &"combat.block"
+}])
+target_rule = "Self"
+hover_keywords = Array[StringName]([&"stance.guardian", &"resource.block"])

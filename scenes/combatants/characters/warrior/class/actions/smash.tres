@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="PlayerActionData" format=3]
+
+[ext_resource type="Script" path="res://core/combat/actions/player_action_data.gd" id="1_action"]
+
+[resource]
+script = ExtResource("1_action")
+id = "smash"
+display_name = "Smash"
+description = "Turn your guard into a crushing blow. Damage scales with current Block and consumes up to 5 Block."
+effect_data = Array[Dictionary]([{
+"base_damage": 6,
+"block_scaling_multiplier": 0.5,
+"consume_block_amount": 5,
+"id": &"combat.damage",
+"scaling_multiplier": 1.0
+}])
+time_cost = 5.0
+required_stance = "guardian"
+hover_keywords = Array[StringName]([&"stance.guardian", &"resource.block"])
+

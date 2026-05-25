@@ -17,7 +17,7 @@ func reset_offline(local_info: Dictionary = {}) -> void:
 	var info := {
 		"peer_id": 1,
 		"display_name": "Player",
-		"selected_character_id": "Warrior",
+		"selected_character_id": RunData.DEFAULT_CHARACTER,
 		"ready": false,
 		"platform": "offline",
 		"platform_user_id": "",

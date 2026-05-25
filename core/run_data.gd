@@ -102,6 +102,15 @@ func add_currencies(new_memories: int, new_gold: int) -> void:
 	memories += max(new_memories, 0)
 	gold += max(new_gold, 0)
 
+func spend_memories(amount: int) -> bool:
+	var cost: int = max(amount, 0)
+	if cost <= 0:
+		return true
+	if memories < cost:
+		return false
+	memories -= cost
+	return true
+
 func end_run(reason: String) -> void:
 	if reason.is_empty():
 		reason = END_REASON_DEFEAT

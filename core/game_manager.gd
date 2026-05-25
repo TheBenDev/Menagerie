@@ -4,6 +4,7 @@ extends Node
 const RunDataScript := preload("res://core/run_data.gd")
 const CombatPayloadValidatorScript := preload("res://core/combat/combat_payload_validator.gd")
 const RewardServiceScript := preload("res://core/rewards/reward_service.gd")
+const ClassRewardServiceScript := preload("res://core/combat/classes/class_reward_service.gd")
 const SceneRouteServiceScript := preload("res://core/scene_route_service.gd")
 const DEFAULT_DUNGEON_GENERATION_CONFIG := preload("res://core/dungeon/default_dungeon_floor_generation_config.tres")
 const DEFAULT_DUNGEON_ENCOUNTER_POOL := preload("res://core/dungeon/encounters/default_dungeon_encounter_pool.tres")
@@ -267,6 +268,51 @@ func get_currency_snapshot() -> Dictionary:
 		"gold": max(int(current_run_data.gold), 0),
 	}
 
+func prepare_haven_class_reward(node_id: int = -1) -> bool:
+	if current_run_data == null or _is_run_ended():
+		return false
+	var prepared: bool = ClassRewardServiceScript.prepare_haven_reward(current_run_data, node_id)
+	if prepared:
+		emit_run_state()
+	return prepared
+
+func prepare_memory_class_reward_if_ready() -> bool:
+	if current_run_data == null or _is_run_ended():
+		return false
+	var prepared: bool = ClassRewardServiceScript.prepare_memory_reward_if_ready(current_run_data)
+	if prepared:
+		emit_run_state()
+	return prepared
+
+func server_select_class_reward(sender_peer_id: int, payload: Dictionary) -> Dictionary:
+	if current_run_data == null:
+		return {"accepted": false, "reason": "missing_run_data"}
+	var pending_snapshot := get_class_reward_snapshot()
+	if pending_snapshot.is_empty():
+		return {"accepted": false, "reason": "no_pending_class_reward"}
+	if int(pending_snapshot.get("owner_peer_id", 1)) != sender_peer_id:
+		return {"accepted": false, "reason": "sender_does_not_own_reward"}
+	var context_id := str(payload.get("context_id", "")).strip_edges()
+	var reward_id := StringName(str(payload.get("reward_id", "")).strip_edges())
+	if context_id.is_empty():
+		return {"accepted": false, "reason": "missing_class_reward_context"}
+	if reward_id == &"":
+		return {"accepted": false, "reason": "missing_class_reward_id"}
+	var result: Dictionary = ClassRewardServiceScript.apply_pending_reward(current_run_data, context_id, reward_id)
+	if bool(result.get("accepted", false)):
+		emit_run_state()
+	return result
+
+func get_class_reward_snapshot() -> Dictionary:
+	if current_run_data == null:
+		return {}
+	return ClassRewardServiceScript.pending_reward_snapshot(current_run_data)
+
+func get_class_memory_snapshot() -> Dictionary:
+	if current_run_data == null:
+		return {}
+	return ClassRewardServiceScript.memory_progress_snapshot(current_run_data)
+
 func get_run_summary_snapshot() -> Dictionary:
 	if current_run_data == null:
 		return {}
@@ -300,6 +346,8 @@ func get_run_snapshot() -> Dictionary:
 		"route": current_route_ref,
 		"timer": get_timer_snapshot(),
 		"currencies": get_currency_snapshot(),
+		"class_reward": get_class_reward_snapshot(),
+		"class_memory": get_class_memory_snapshot(),
 		"summary": get_run_summary_snapshot(),
 		"party": get_party_snapshot(),
 		"dungeon": get_dungeon_snapshot(),

@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="ClassProfileData" format=3 uid="uid://chpd5ttbimpxe"]
+
+[ext_resource type="Script" path="res://core/combat/classes/class_profile_data.gd" id="1_profile"]
+
+[resource]
+script = ExtResource("1_profile")
+class_id = &"warrior"
+class_root = "res://scenes/combatants/characters/warrior/class"
+primary_resource_id = &"rage"
+core_strike_action_id = &"strike"
+core_guard_action_id = &"block"
+stance_order = Array[StringName]([&"berserker", &"guardian", &"duelist"])

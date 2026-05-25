@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="ClassPassiveData" format=3]
+
+[ext_resource type="Script" path="res://core/combat/classes/class_passive_data.gd" id="1_passive"]
+
+[resource]
+script = ExtResource("1_passive")
+id = &"steady_breathing"
+display_name = "Steady Breathing"
+description = "A Warrior passive focused on steadier defensive pacing."
+rarity = &"common"
+tags = Array[StringName]([&"warrior"])
+hover_keywords = Array[StringName]([&"resource.block"])

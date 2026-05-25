@@ -19,9 +19,8 @@ const TARGET_ALL_ALLIES := "AllAllies"
 const TARGET_ALL_ENEMIES := "AllEnemies"
 const STATUS_TEXT_FALLBACK_COLOR := Color(0.88, 0.76, 0.42, 1.0)
 const BLOCK_KEYWORD_ID := &"resource.block"
-const RAGE_KEYWORD_ID := &"resource.rage"
 const BLOCK_TEXT_FALLBACK_COLOR := Color(0.32, 0.66, 1.0, 1.0)
-const RAGE_TEXT_FALLBACK_COLOR := Color(0.95, 0.42, 0.12, 1.0)
+const RESOURCE_TEXT_FALLBACK_COLOR := Color(0.95, 0.42, 0.12, 1.0)
 const INLINE_STAT_ICON_SIZE := Vector2(15.0, 15.0)
 
 @export var id: String = ""
@@ -57,13 +56,21 @@ func get_hover_info(actor: Combatant = null, show_formula: bool = false) -> Reso
 	info.header_right_text = "%ss" % CombatTime.format_seconds(time_cost)
 	_populate_description(info, actor, show_formula)
 	info.footer = hover_footer.strip_edges()
-	_populate_keyword_ids(info)
+	_populate_keyword_ids(info, actor)
 	info.panel_style = &"action"
 
 	if hp_cost > 0:
 		info.add_field("HP Cost", str(hp_cost))
 	if mana_cost > 0:
 		info.add_field("Mana Cost", str(mana_cost))
+	var resource_costs_value: Variant = get("resource_costs")
+	if resource_costs_value is Dictionary:
+		var resource_costs: Dictionary = resource_costs_value
+		for raw_resource_id in resource_costs.keys():
+			var resource_id := StringName(str(raw_resource_id))
+			var amount := int(resource_costs[raw_resource_id])
+			if resource_id != &"" and amount > 0:
+				info.add_field("%s Cost" % _resource_display_name(resource_id, actor), str(amount))
 	info.add_field("Target", _target_label())
 	info.fields.append_array(hover_fields)
 	return info
@@ -101,7 +108,7 @@ func _description_for_hover() -> String:
 
 	return ""
 
-func _populate_keyword_ids(info: Resource) -> void:
+func _populate_keyword_ids(info: Resource, actor: Combatant) -> void:
 	for keyword_id in hover_keywords:
 		_append_unique_keyword_id(info.keyword_ids, keyword_id)
 
@@ -114,16 +121,19 @@ func _populate_keyword_ids(info: Resource) -> void:
 				_append_unique_keyword_id(info.keyword_ids, _keyword_id_for_status_effect(effect, status_data))
 			CombatEffectLibraryScript.EFFECT_BLOCK:
 				_append_unique_keyword_id(info.keyword_ids, BLOCK_KEYWORD_ID)
-			CombatEffectLibraryScript.EFFECT_RAGE_GAIN:
-				_append_unique_keyword_id(info.keyword_ids, RAGE_KEYWORD_ID)
+			CombatEffectLibraryScript.EFFECT_RESOURCE_GAIN:
+				_append_unique_keyword_id(
+					info.keyword_ids,
+					_resource_keyword_id(CombatEffectLibraryScript.resource_id_for_effect(effect), actor)
+				)
 
 func _effect_description_segments(actor: Combatant, show_formula: bool) -> Array[Resource]:
 	var segments: Array[Resource] = []
 	var damage_breakdowns := _damage_breakdowns(actor)
 	var applied_statuses := _applied_statuses()
 	var block_gain_amount := _block_gain_amount()
-	var rage_gain_amount := _rage_gain_amount()
-	if damage_breakdowns.is_empty() and applied_statuses.is_empty() and block_gain_amount <= 0 and rage_gain_amount <= 0:
+	var resource_gain_entries := _resource_gain_entries(actor)
+	if damage_breakdowns.is_empty() and applied_statuses.is_empty() and block_gain_amount <= 0 and resource_gain_entries.is_empty():
 		return segments
 
 	if not damage_breakdowns.is_empty():
@@ -148,9 +158,16 @@ func _effect_description_segments(actor: Combatant, show_formula: bool) -> Array
 		_append_spaced_effect_sentence(segments)
 		_append_resource_gain_segments(segments, block_gain_amount, "Block", BLOCK_KEYWORD_ID, BLOCK_TEXT_FALLBACK_COLOR)
 
-	if rage_gain_amount > 0:
+	for resource_gain in resource_gain_entries:
 		_append_spaced_effect_sentence(segments)
-		_append_resource_gain_segments(segments, rage_gain_amount, "Rage", RAGE_KEYWORD_ID, RAGE_TEXT_FALLBACK_COLOR)
+		var fallback_color: Color = resource_gain.get("fallback_color", RESOURCE_TEXT_FALLBACK_COLOR)
+		_append_resource_gain_segments(
+			segments,
+			int(resource_gain.get("amount", 0)),
+			str(resource_gain.get("display_name", "")),
+			StringName(str(resource_gain.get("keyword_id", &""))),
+			fallback_color
+		)
 
 	return segments
 
@@ -158,8 +175,8 @@ func _effect_description_text(actor: Combatant, show_formula: bool) -> String:
 	var damage_breakdowns := _damage_breakdowns(actor)
 	var applied_statuses := _applied_statuses()
 	var block_gain_amount := _block_gain_amount()
-	var rage_gain_amount := _rage_gain_amount()
-	if damage_breakdowns.is_empty() and applied_statuses.is_empty() and block_gain_amount <= 0 and rage_gain_amount <= 0:
+	var resource_gain_entries := _resource_gain_entries(actor)
+	if damage_breakdowns.is_empty() and applied_statuses.is_empty() and block_gain_amount <= 0 and resource_gain_entries.is_empty():
 		return ""
 
 	var text := ""
@@ -184,8 +201,11 @@ func _effect_description_text(actor: Combatant, show_formula: bool) -> String:
 		sentences.append(text + ".")
 	if block_gain_amount > 0:
 		sentences.append("Gain %s Block." % block_gain_amount)
-	if rage_gain_amount > 0:
-		sentences.append("Gain %s Rage." % rage_gain_amount)
+	for resource_gain in resource_gain_entries:
+		sentences.append("Gain %s %s." % [
+			int(resource_gain.get("amount", 0)),
+			str(resource_gain.get("display_name", "")),
+		])
 
 	return " ".join(sentences)
 
@@ -232,15 +252,38 @@ func _block_gain_amount() -> int:
 
 	return total_amount
 
-func _rage_gain_amount() -> int:
-	var total_amount := 0
+func _resource_gain_entries(actor: Combatant) -> Array[Dictionary]:
+	var entries: Array[Dictionary] = []
 	for effect in effect_data:
 		if not (effect is Dictionary):
 			continue
-		if CombatEffectLibraryScript.effect_id_for_data(effect) == CombatEffectLibraryScript.EFFECT_RAGE_GAIN:
-			total_amount += max(CombatEffectLibraryScript.effect_amount(effect, 0), 0)
+		if CombatEffectLibraryScript.effect_id_for_data(effect) != CombatEffectLibraryScript.EFFECT_RESOURCE_GAIN:
+			continue
+		var resource_id := CombatEffectLibraryScript.resource_id_for_effect(effect)
+		if resource_id == &"":
+			push_error("Action %s has resource.gain hover effect without resource_id." % id)
+			continue
+		var amount: int = max(CombatEffectLibraryScript.effect_amount(effect, 0), 0)
+		if amount <= 0:
+			continue
 
-	return total_amount
+		var existing_index := -1
+		for index in entries.size():
+			if StringName(entries[index].get("id", &"")) == resource_id:
+				existing_index = index
+				break
+		if existing_index >= 0:
+			entries[existing_index]["amount"] = int(entries[existing_index].get("amount", 0)) + amount
+		else:
+			entries.append({
+				"id": resource_id,
+				"amount": amount,
+				"display_name": _resource_display_name(resource_id, actor),
+				"keyword_id": _resource_keyword_id(resource_id, actor),
+				"fallback_color": _resource_keyword_color(resource_id, actor),
+			})
+
+	return entries
 
 func _append_damage_formula_segments(segments: Array[Resource], breakdown: Dictionary) -> void:
 	segments.append(HoverInfoTextSegmentScript.from_text(str(int(breakdown.get("base_damage", 0)))))
@@ -322,6 +365,29 @@ func _status_keyword_color(status_data: Resource) -> Color:
 			return keyword_color_value
 
 	return STATUS_TEXT_FALLBACK_COLOR
+
+func _resource_display_name(resource_id: StringName, actor: Combatant) -> String:
+	if resource_id == &"":
+		return ""
+	if actor != null and actor.has_method("class_resource_display_name"):
+		var display := str(actor.call("class_resource_display_name", resource_id)).strip_edges()
+		if not display.is_empty():
+			return display
+	return String(resource_id).replace("_", " ").capitalize()
+
+func _resource_keyword_id(resource_id: StringName, actor: Combatant) -> StringName:
+	if resource_id == &"":
+		return &""
+	if actor != null and actor.has_method("class_resource_keyword_id"):
+		return actor.call("class_resource_keyword_id", resource_id)
+	return StringName("resource.%s" % String(resource_id))
+
+func _resource_keyword_color(resource_id: StringName, actor: Combatant) -> Color:
+	if resource_id != &"" and actor != null and actor.has_method("class_resource_keyword_color"):
+		var color: Variant = actor.call("class_resource_keyword_color", resource_id, RESOURCE_TEXT_FALLBACK_COLOR)
+		if color is Color:
+			return color
+	return RESOURCE_TEXT_FALLBACK_COLOR
 
 func _append_unique_keyword_id(keyword_ids: Array[StringName], keyword_id: StringName) -> void:
 	if keyword_id == &"" or keyword_ids.has(keyword_id):

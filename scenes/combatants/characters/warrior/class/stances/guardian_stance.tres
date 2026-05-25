@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="ClassStanceData" format=3]
+
+[ext_resource type="Script" path="res://core/combat/classes/class_stance_data.gd" id="1_stance"]
+
+[resource]
+script = ExtResource("1_stance")
+id = &"guardian"
+display_name = "Guardian"
+description = "A defensive stance focused on Block and durability. Entry bonus: gain 10 Block."
+tags = Array[StringName]([&"warrior", &"guardian"])
+strike_replacement_action_id = &"smash"
+fixed_skill_ids = Array[StringName]([&"hold_the_line"])
+entry_bonus_effect_data = Array[Dictionary]([{
+"amount": 10,
+"id": &"combat.block"
+}])
+switch_time_cost = 1.0
+switch_description = "Enter Guardian stance."
+hover_keywords = Array[StringName]([&"stance.guardian", &"resource.block"])

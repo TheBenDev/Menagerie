@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="PlayerActionData" format=3 uid="uid://cg7evij776uyq"]
+
+[ext_resource type="Script" uid="uid://bvhvlkmv0thup" path="res://core/combat/actions/player_action_data.gd" id="1_action"]
+
+[resource]
+script = ExtResource("1_action")
+id = "strike"
+display_name = "Strike"
+effect_data = Array[Dictionary]([{
+"base_damage": 6,
+"id": &"combat.damage",
+"scaling_multiplier": 1.0
+}, {
+"amount": 2,
+"id": &"resource.gain",
+"resource_id": &"rage"
+}])
+time_cost = 4.0

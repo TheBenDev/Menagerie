@@ -4,7 +4,7 @@ extends RefCounted
 
 var peer_id: int = 1
 var display_name: String = "Player"
-var selected_character_id: String = "Warrior"
+var selected_character_id: String = RunData.DEFAULT_CHARACTER
 var ready: bool = false
 var platform: String = "offline"
 var platform_user_id: String = ""
@@ -19,7 +19,7 @@ func configure(info: Dictionary) -> void:
 		display_name = "Player %s" % max(peer_id, 1)
 	selected_character_id = str(info.get("selected_character_id", selected_character_id)).strip_edges()
 	if selected_character_id.is_empty():
-		selected_character_id = "Warrior"
+		selected_character_id = RunData.DEFAULT_CHARACTER
 	ready = bool(info.get("ready", ready))
 	platform = str(info.get("platform", platform)).strip_edges()
 	if platform.is_empty():

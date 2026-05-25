@@ -9,14 +9,13 @@ const CombatAudioBridgeScript := preload("res://core/audio/combat_audio_bridge.g
 const CombatantDisplayScene := preload("res://scenes/combat/ui/CombatantDisplay.tscn")
 const CombatantDisplayScript := preload("res://scenes/combat/ui/combatant_display.gd")
 const CombatantScript := preload("res://scenes/combatants/combatant.gd")
-const EnemyCombatantScript := preload("res://scenes/combatants/enemies/enemy_combatant.gd")
-const WarriorCombatantScript := preload("res://scenes/combatants/characters/warrior/warrior_combatant.gd")
 const CombatEffectLibraryScript := preload("res://core/combat/actions/combat_effect_library.gd")
+const ActionCostServiceScript := preload("res://core/combat/actions/action_cost_service.gd")
 const CombatPayloadValidatorScript := preload("res://core/combat/combat_payload_validator.gd")
 const QueuedActionScript := preload("res://core/combat/actions/queued_action.gd")
 const StatusDataScript := preload("res://core/statuses/status_data.gd")
 const ValueReaderScript := preload("res://core/utils/value_reader.gd")
-const DEFAULT_PLAYER_PROFILE := preload("res://scenes/combatants/characters/warrior/warrior_profile.tres")
+const HotbarSlotSchemaScript := preload("res://core/combat/classes/hotbar_slot_schema.gd")
 
 const DEFAULT_PLAYER_SLOT_ID := &"PlayerSlot1"
 const DEFAULT_ENEMY_SLOT_ID := &"EnemySlot1"
@@ -36,6 +35,7 @@ var last_accounted_combat_time: float = 0.0
 var audio_bridge: Node = null
 var participant_hp_before_by_id: Dictionary = {}
 var pending_player_action: CombatActionData = null
+var pending_player_slot_id: StringName = &""
 var pending_player_actor_id: String = ""
 var targeting_valid_targets: Array[Combatant] = []
 var player_leader: Combatant = null
@@ -46,6 +46,7 @@ var actor_owner_peer_ids: Dictionary = {}
 var enemy_instance_data: Array[Dictionary] = []
 var combatant_display_entries: Array[Dictionary] = []
 var _game_manager = null
+var combat_setup_failed: bool = false
 
 func _ready() -> void:
 	_game_manager = get_node_or_null("/root/GameManager")
@@ -53,10 +54,19 @@ func _ready() -> void:
 		NetworkManager.authoritative_snapshot_received.connect(_on_authoritative_snapshot_received)
 	if NetworkManager.is_authority():
 		CombatManager.register_battle_scene(self)
+	combat_setup_failed = false
 	_configure_encounter_from_game_manager()
-	_setup_player_combatants()
-	_setup_enemy_combatants()
+	if not combat_setup_failed:
+		_setup_player_combatants()
+	if not combat_setup_failed:
+		_setup_enemy_combatants()
 
+	if combat_setup_failed:
+		push_error("BattleScene combat setup failed; aborting battle initialization.")
+		return
+	if player_combatants.is_empty() or player_leader == null:
+		push_error("BattleScene cannot initialize combat without player combatants.")
+		return
 	if enemy_combatants == null or enemy_combatants.is_empty():
 		push_error("BattleScene cannot initialize combat without enemy combatants.")
 		return
@@ -71,7 +81,7 @@ func _ready() -> void:
 
 	hud.call("setup", battle, player_leader, _primary_enemy(), battle.player_group, battle.enemy_group)
 	_setup_combatant_displays()
-	hud.connect("action_selected", Callable(self, "_choose_player_action"))
+	hud.connect("hotbar_slot_used", Callable(self, "_choose_player_slot"))
 	hud.connect("speed_requested", Callable(self, "_on_speed_requested"))
 	hud.connect("pause_requested", Callable(self, "_on_pause_requested"))
 
@@ -105,6 +115,7 @@ func _input(event: InputEvent) -> void:
 		hud.call("choose_hotbar_keycode", event.keycode)
 
 func _setup_player_combatants() -> void:
+	player_leader = null
 	player_combatants.clear()
 	ai_player_combatants.clear()
 	actor_owner_peer_ids.clear()
@@ -116,17 +127,38 @@ func _setup_player_combatants() -> void:
 		var member_id := str(active_member_ids[index])
 		var member_snapshot: Dictionary = members.get(member_id, {})
 		if member_snapshot.is_empty():
-			push_error("Combat setup missing party member snapshot for %s." % member_id)
+			_fail_combat_setup("Combat setup missing party member snapshot for %s." % member_id)
 			continue
-		var character_id := str(member_snapshot.get("character_id", "Warrior"))
-		var active_player := _new_player_combatant("Player%s" % (index + 1), character_id)
-		var profile_path := str(member_snapshot.get("profile_path", ""))
-		var profile := load(profile_path) as CombatantProfile if not profile_path.is_empty() else null
-		active_player.profile = profile if profile != null else DEFAULT_PLAYER_PROFILE
-		active_player.apply_profile()
+		var character_id := str(member_snapshot.get("character_id", "")).strip_edges()
+		if character_id.is_empty():
+			_fail_combat_setup("Combat setup missing character_id for party member %s." % member_id)
+			continue
+		if not PartyManager.has_character(character_id):
+			_fail_combat_setup("Combat setup received unknown character_id %s for party member %s." % [character_id, member_id])
+			continue
+		var profile_path := str(member_snapshot.get("profile_path", "")).strip_edges()
+		if profile_path.is_empty():
+			_fail_combat_setup("Combat setup missing profile_path for party member %s (%s)." % [member_id, character_id])
+			continue
+		var registered_profile_path := PartyManager.get_character_profile_path(character_id)
+		if profile_path != registered_profile_path:
+			_fail_combat_setup("Combat setup profile path mismatch for %s: snapshot=%s registry=%s." % [character_id, profile_path, registered_profile_path])
+			continue
+		var profile := load(profile_path) as CombatantProfile
+		if profile == null:
+			_fail_combat_setup("Combat setup could not load CombatantProfile for party member %s from %s." % [member_id, profile_path])
+			continue
+		var active_player := _new_combatant("Player%s" % (index + 1), profile)
+		if not active_player.profile_configuration_valid:
+			_fail_combat_setup("Combat setup aborted invalid profile configuration for party member %s from %s." % [member_id, profile_path])
+			active_player.queue_free()
+			continue
 		active_player.combatant_id = str(member_snapshot.get("combatant_id", "combatant.player_%s" % (index + 1)))
 		active_player.display_name = _player_profile_display_name(active_player.profile)
 		_game_manager.apply_run_player_state_to_combatant(active_player, StringName(member_id))
+		var class_state_snapshot: Dictionary = member_snapshot.get("class_state", {})
+		if not class_state_snapshot.is_empty() and active_player.has_method("apply_class_state_snapshot"):
+			active_player.call("apply_class_state_snapshot", class_state_snapshot)
 		var owner_peer_id := int(member_snapshot.get("owner_peer_id", 1))
 		actor_owner_peer_ids[active_player.combatant_id] = owner_peer_id
 		player_combatants.append(active_player)
@@ -134,24 +166,26 @@ func _setup_player_combatants() -> void:
 			player_leader = active_player
 
 	if player_combatants.is_empty():
-		push_error("BattleScene cannot initialize combat without player party members.")
+		_fail_combat_setup("BattleScene cannot initialize combat without player party members.")
 
 func _setup_enemy_combatants() -> void:
 	enemy_combatants.clear()
 	if enemy_instance_data.is_empty():
-		push_error("BattleScene cannot set up combat without validated enemy instances.")
+		_fail_combat_setup("BattleScene cannot set up combat without validated enemy instances.")
 		return
 
 	for index in enemy_instance_data.size():
 		var instance_data: Dictionary = enemy_instance_data[index]
-		var active_enemy := _new_enemy_combatant("Enemy%s" % (index + 1))
-		active_enemy.combatant_id = str(instance_data.get("instance_id", "enemy_%s" % (index + 1)))
 		var enemy_profile := _profile_for_enemy_instance(instance_data)
 		if enemy_profile == null:
-			push_error("BattleScene cannot load enemy profile for instance %s." % instance_data)
+			_fail_combat_setup("BattleScene cannot load enemy profile for instance %s." % instance_data)
 			continue
-		active_enemy.profile = enemy_profile
-		active_enemy.apply_profile()
+		var active_enemy := _new_combatant("Enemy%s" % (index + 1), enemy_profile)
+		active_enemy.combatant_id = str(instance_data.get("instance_id", "enemy_%s" % (index + 1)))
+		if not active_enemy.profile_configuration_valid:
+			_fail_combat_setup("BattleScene aborted invalid enemy profile configuration for instance %s." % instance_data)
+			active_enemy.queue_free()
+			continue
 		_apply_enemy_instance_stats(active_enemy, instance_data)
 		enemy_combatants.append(active_enemy)
 
@@ -166,45 +200,22 @@ func _apply_enemy_instance_stats(active_enemy: Combatant, instance_data: Diction
 	if active_enemy.profile != null and enemy_level > 0:
 		active_enemy.display_name = "%s Lv %s" % [active_enemy.profile.display_name, enemy_level]
 
-func _new_player_combatant(node_name: String, character_id: String = "") -> Combatant:
-	var script: Script = _player_combatant_script(character_id)
-	var combatant := script.new() as Combatant
-	if combatant == null:
-		combatant = CombatantScript.new() as Combatant
+func _new_combatant(node_name: String, combatant_profile: CombatantProfile) -> Combatant:
+	var combatant := CombatantScript.new() as Combatant
 	combatant.name = node_name
+	combatant.profile = combatant_profile
 	combatants_root.add_child(combatant)
 	return combatant
-
-func _new_enemy_combatant(node_name: String) -> Combatant:
-	var combatant := EnemyCombatantScript.new() as Combatant
-	combatant.name = node_name
-	combatants_root.add_child(combatant)
-	return combatant
-
-func _player_combatant_script(character_id: String = "") -> Script:
-	var selected_character_id := character_id
-	if selected_character_id.is_empty() and _game_manager != null:
-		selected_character_id = _game_manager.get_selected_character_id()
-
-	match selected_character_id:
-		"Warrior", "":
-			return WarriorCombatantScript
-		_:
-			return CombatantScript
-
-func _selected_player_profile() -> CombatantProfile:
-	if _game_manager != null:
-		var profile: CombatantProfile = _game_manager.get_selected_character_profile() as CombatantProfile
-		if profile != null:
-			return profile
-
-	return DEFAULT_PLAYER_PROFILE
 
 func _player_profile_display_name(profile: CombatantProfile) -> String:
 	if profile != null and not profile.display_name.is_empty():
 		return profile.display_name
 
 	return "Player"
+
+func _fail_combat_setup(message: String) -> void:
+	combat_setup_failed = true
+	push_error(message)
 
 func _setup_combatant_displays() -> void:
 	combatant_display_entries.clear()
@@ -285,8 +296,12 @@ func _connect_combatant_signals(combatant: Combatant) -> void:
 	combatant.action_resolved.connect(_broadcast_combat_snapshot_deferred)
 	combatant.died.connect(_broadcast_combat_snapshot_deferred)
 
-	if combatant.has_signal("rage_changed"):
-		combatant.connect("rage_changed", Callable(self, "_refresh_hud"))
+	if combatant.has_signal("class_resource_changed"):
+		combatant.connect("class_resource_changed", Callable(self, "_refresh_hud"))
+		combatant.connect("class_resource_changed", Callable(self, "_broadcast_combat_snapshot_deferred"))
+	if combatant.has_signal("stance_changed"):
+		combatant.connect("stance_changed", Callable(self, "_refresh_hud"))
+		combatant.connect("stance_changed", Callable(self, "_broadcast_combat_snapshot_deferred"))
 
 func _connect_group_combatant_signals(group: Variant) -> void:
 	if group == null:
@@ -315,19 +330,22 @@ func _setup_audio_bridge() -> void:
 	var encounter := CombatManager.get_current_combat_payload()
 	audio_bridge.call("setup", battle, player_leader, _primary_enemy(), bool(encounter.get("is_boss", false)), battle.player_group, battle.enemy_group)
 
-## Starts explicit player targeting or immediately queues auto-targeted actions.
-func _choose_player_action(index: int) -> void:
+## Starts explicit player targeting or immediately queues auto-targeted slot actions.
+func _choose_player_slot(slot_id: StringName, _slot_entry: Dictionary = {}) -> void:
 	var actor := _local_ready_actor()
 	if _is_targeting() or not battle.waiting_for_player_input or battle.battle_over or actor == null or actor.hp <= 0:
 		return
-	if index < 0 or index >= actor.actions.size():
+	if slot_id == &"":
 		return
 
-	var action: CombatActionData = actor.actions[index]
+	var action: CombatActionData = _action_for_actor_slot(actor, slot_id)
+	if action == null:
+		push_error("No action resolved for actor %s slot %s." % [_combatant_result_id(actor), slot_id])
+		return
 	if not CombatTargetingScript.requires_manual_target(action):
 		NetworkManager.request_combat_action({
 			"actor_id": _combatant_result_id(actor),
-			"action_index": index,
+			"slot_id": String(slot_id),
 			"target_ids": [],
 		})
 		_refresh_hud()
@@ -338,6 +356,7 @@ func _choose_player_action(index: int) -> void:
 		return
 
 	pending_player_action = action
+	pending_player_slot_id = slot_id
 	pending_player_actor_id = _combatant_result_id(actor)
 	targeting_valid_targets = valid_targets
 	hud.call("set_targeting_active", true)
@@ -365,15 +384,32 @@ func server_request_combat_action(sender_peer_id: int, payload: Dictionary) -> D
 		return {"accepted": false, "reason": "sender_does_not_own_actor"}
 	if not battle.is_waiting_for_actor(actor_id):
 		return {"accepted": false, "reason": "actor_not_waiting_for_input"}
-	var action_index := int(payload.get("action_index", -1))
-	if action_index < 0 or action_index >= actor.actions.size():
-		return {"accepted": false, "reason": "invalid_action_index"}
-	var action: CombatActionData = actor.actions[action_index]
+	var slot_id := StringName(str(payload.get("slot_id", "")).strip_edges())
+	if slot_id == &"":
+		return {"accepted": false, "reason": "missing_slot_id"}
+	var slot_entry := _slot_entry_for_actor(actor, slot_id)
+	var slot_error := _slot_entry_error(slot_entry)
+	if not slot_error.is_empty():
+		return {"accepted": false, "reason": slot_error}
+	var action: CombatActionData = _action_for_actor_slot(actor, slot_id)
+	if action == null:
+		return {"accepted": false, "reason": "invalid_slot_action"}
+	var cost_error := ActionCostServiceScript.usability_error(actor, action)
+	if not cost_error.is_empty():
+		return {"accepted": false, "reason": cost_error}
 	var explicit_targets := _combatants_for_ids(payload.get("target_ids", []))
 	if CombatTargetingScript.requires_manual_target(action) and explicit_targets.is_empty():
 		return {"accepted": false, "reason": "missing_manual_targets"}
+	var resolved_targets := _resolved_targets_for_player_action(actor, action, explicit_targets)
+	if resolved_targets.is_empty():
+		return {"accepted": false, "reason": "no_valid_targets"}
+	var start_cost_error := ActionCostServiceScript.spend_start_costs(actor, action)
+	if not start_cost_error.is_empty():
+		return {"accepted": false, "reason": start_cost_error}
 
 	battle.player_choose_action_for_actor(actor, action, explicit_targets)
+	if actor.has_method("on_hotbar_action_queued"):
+		actor.call("on_hotbar_action_queued", slot_id)
 	actions_used += 1
 	_refresh_hud()
 	return {"accepted": true, "reason": "combat_action_accepted"}
@@ -425,6 +461,12 @@ func _apply_combatant_snapshots(raw_snapshots: Variant) -> void:
 		combatant.max_hp = max(int(snapshot.get("max_hp", combatant.max_hp)), 1)
 		combatant.hp = clamp(int(snapshot.get("hp", combatant.hp)), 0, combatant.max_hp)
 		combatant.block = max(int(snapshot.get("block", combatant.block)), 0)
+		var class_resources_snapshot: Dictionary = snapshot.get("class_resources", {})
+		if not class_resources_snapshot.is_empty() and combatant.has_method("apply_class_resources_snapshot"):
+			combatant.call("apply_class_resources_snapshot", class_resources_snapshot)
+		var class_state_snapshot: Dictionary = snapshot.get("class_state", {})
+		if not class_state_snapshot.is_empty() and combatant.has_method("apply_class_state_snapshot"):
+			combatant.call("apply_class_state_snapshot", class_state_snapshot)
 		combatant.is_busy = bool(snapshot.get("is_busy", combatant.is_busy))
 		combatant.action_finish_time = float(snapshot.get("action_finish_time", combatant.action_finish_time))
 		combatant.display_name = str(snapshot.get("display_name", combatant.display_name))
@@ -504,6 +546,10 @@ func _action_for_actor_snapshot(actor: Combatant, snapshot: Dictionary) -> Comba
 
 	var action_id := str(snapshot.get("action_id", "")).strip_edges()
 	var action_name := str(snapshot.get("action_name", "")).strip_edges()
+	if not action_id.is_empty() and actor.has_method("get_action_by_id"):
+		var resolved_action := actor.call("get_action_by_id", action_id) as CombatActionData
+		if resolved_action != null:
+			return resolved_action
 	for action in actor.actions:
 		var combat_action := action as CombatActionData
 		if combat_action == null:
@@ -545,15 +591,6 @@ func _combatants_for_ids(raw_ids: Variant) -> Array[Combatant]:
 			combatants.append(combatant)
 	return combatants
 
-func _action_index_for_actor(actor_id: String, action: CombatActionData) -> int:
-	var actor := _combatant_for_id(actor_id)
-	if actor == null or action == null:
-		return -1
-	for index in actor.actions.size():
-		if actor.actions[index] == action:
-			return index
-	return -1
-
 func _combatant_snapshots(combatants: Array[Combatant], side_id: String) -> Array[Dictionary]:
 	var snapshots: Array[Dictionary] = []
 	for combatant in combatants:
@@ -567,6 +604,8 @@ func _combatant_snapshots(combatants: Array[Combatant], side_id: String) -> Arra
 				"hp": int(combatant.hp),
 				"max_hp": int(combatant.max_hp),
 				"block": int(combatant.block),
+				"class_resources": combatant.call("get_class_resources_snapshot") if combatant.has_method("get_class_resources_snapshot") else {},
+				"class_state": combatant.call("get_class_state_snapshot") if combatant.has_method("get_class_state_snapshot") else {},
 				"is_busy": bool(combatant.is_busy),
 				"action_finish_time": float(combatant.action_finish_time),
 				"statuses": _status_snapshots(combatant),
@@ -727,15 +766,14 @@ func _confirm_targeting_target(selected_target: Combatant) -> void:
 	if not _is_targeting() or selected_target == null or not targeting_valid_targets.has(selected_target):
 		return
 
-	var action := pending_player_action
-	var action_index := _action_index_for_actor(pending_player_actor_id, action)
 	var actor_id := pending_player_actor_id
+	var slot_id := pending_player_slot_id
 	var target_ids: Array[String] = [_combatant_result_id(selected_target)]
 	_cancel_targeting(false)
 
 	NetworkManager.request_combat_action({
 		"actor_id": actor_id,
-		"action_index": action_index,
+		"slot_id": String(slot_id),
 		"target_ids": target_ids,
 	})
 	_refresh_hud()
@@ -745,6 +783,7 @@ func _cancel_targeting(refresh_after_cancel: bool = true) -> void:
 		return
 
 	pending_player_action = null
+	pending_player_slot_id = &""
 	pending_player_actor_id = ""
 	targeting_valid_targets.clear()
 	_clear_targeting_display_states()
@@ -760,6 +799,57 @@ func _valid_player_targets_for_action(actor: Combatant, action: CombatActionData
 	var opponents: Array[Combatant] = battle.enemy_group.get_living_combatants() if battle.enemy_group != null else []
 	var allies: Array[Combatant] = battle.player_group.get_living_combatants() if battle.player_group != null else []
 	return CombatTargetingScript.manual_targets_for_action(action, actor, opponents, allies)
+
+func _resolved_targets_for_player_action(actor: Combatant, action: CombatActionData, explicit_targets: Array[Combatant]) -> Array[Combatant]:
+	if battle == null or actor == null or action == null:
+		return []
+	var opponents: Array[Combatant] = battle.enemy_group.get_living_combatants() if battle.enemy_group != null else []
+	var allies: Array[Combatant] = battle.player_group.get_living_combatants() if battle.player_group != null else []
+	return CombatTargetingScript.targets_for_action(action, actor, opponents, allies, explicit_targets)
+
+func _action_for_actor_slot(actor: Combatant, slot_id: StringName) -> CombatActionData:
+	if actor == null or slot_id == &"":
+		return null
+	if not actor.has_method("resolve_hotbar_action"):
+		push_error("Actor %s cannot resolve hotbar slot %s." % [_combatant_result_id(actor), slot_id])
+		return null
+	var action := actor.call("resolve_hotbar_action", slot_id) as CombatActionData
+	if action == null:
+		return null
+	for registered_action in actor.actions:
+		if registered_action == action:
+			return action
+		if registered_action != null and registered_action.id == action.id:
+			return registered_action
+	push_error("Actor %s resolved unregistered hotbar action %s." % [_combatant_result_id(actor), action.id])
+	return null
+
+func _slot_entry_for_actor(actor: Combatant, slot_id: StringName) -> Dictionary:
+	if actor == null or slot_id == &"":
+		return {}
+	if not actor.has_method("get_hotbar_slot_entry"):
+		push_error("Actor %s cannot provide hotbar slot %s." % [_combatant_result_id(actor), slot_id])
+		return {}
+	var entry_value: Variant = actor.call("get_hotbar_slot_entry", slot_id)
+	return entry_value if entry_value is Dictionary else {}
+
+func _slot_entry_error(slot_entry: Dictionary) -> String:
+	if slot_entry.is_empty():
+		return "invalid_slot"
+	var kind := HotbarSlotSchemaScript.slot_kind(slot_entry)
+	match kind:
+		&"action":
+			if not HotbarSlotSchemaScript.is_selectable(slot_entry):
+				return "slot_disabled"
+			return ""
+		&"locked":
+			return "slot_locked"
+		&"disabled":
+			return "slot_disabled"
+		&"empty":
+			return "slot_empty"
+		_:
+			return "invalid_slot_kind"
 
 func _apply_targeting_display_states() -> void:
 	for entry in combatant_display_entries:
@@ -781,7 +871,7 @@ func _configure_encounter_from_game_manager() -> void:
 
 	var encounter := _combat_payload_for_view()
 	if encounter.is_empty():
-		push_error("BattleScene cannot configure combat because CombatManager has no active payload.")
+		_fail_combat_setup("BattleScene cannot configure combat because CombatManager has no active payload.")
 		return
 	MusicDirector.on_combat_started({"is_boss": bool(encounter.get("is_boss", false))})
 	enemy_instance_data = _enemy_instances_for_encounter(encounter)
@@ -801,11 +891,11 @@ func _enemy_instances_for_encounter(encounter: Dictionary) -> Array[Dictionary]:
 		for instance in instances:
 			var instance_error := CombatPayloadValidatorScript.enemy_instance_error(instance)
 			if not instance_error.is_empty():
-				push_error("BattleScene received malformed enemy instance (%s): %s." % [instance_error, instance])
+				_fail_combat_setup("BattleScene received malformed enemy instance (%s): %s." % [instance_error, instance])
 				return []
 		return instances
 
-	push_error("BattleScene received a combat encounter without enemy_instances.")
+	_fail_combat_setup("BattleScene received a combat encounter without enemy_instances.")
 	return instances
 
 func _enemy_instances_from_variant(raw_instances: Variant) -> Array[Dictionary]:
@@ -821,12 +911,16 @@ func _enemy_instances_from_variant(raw_instances: Variant) -> Array[Dictionary]:
 
 func _profile_for_enemy_instance(instance_data: Dictionary) -> CombatantProfile:
 	var profile_path := str(instance_data.get("profile_path", "")).strip_edges()
-	if not profile_path.is_empty():
-		var loaded_profile := load(profile_path) as CombatantProfile
-		if loaded_profile != null:
-			return loaded_profile
+	if profile_path.is_empty():
+		_fail_combat_setup("Enemy instance is missing profile_path: %s." % instance_data)
+		return null
 
-	return null
+	var loaded_profile := load(profile_path) as CombatantProfile
+	if loaded_profile == null:
+		_fail_combat_setup("Enemy profile path did not load a CombatantProfile: %s." % profile_path)
+		return null
+
+	return loaded_profile
 
 ## Copies an authored slot marker rectangle onto a display node.
 func _apply_display_slot(display: Control, slot_parent: Control, slot_id: StringName, fallback_slot_id: StringName) -> void:

@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="ClassPassiveData" format=3]
+
+[ext_resource type="Script" path="res://core/combat/classes/class_passive_data.gd" id="1_passive"]
+
+[resource]
+script = ExtResource("1_passive")
+id = &"berserker_momentum"
+display_name = "Berserker Momentum"
+description = "A Warrior passive focused on maintaining pressure in Berserker stance."
+rarity = &"uncommon"
+tags = Array[StringName]([&"warrior", &"berserker"])
+hover_keywords = Array[StringName]([&"stance.berserker", &"resource.rage"])

@@ -100,7 +100,7 @@ theme_type_variation = &"CombatHotbarButton"
 text = "S"
 script = ExtResource("10_slot_button")
 slot_id = &"strike"
-default_action_id = "quick_strike"
+default_action_id = "strike"
 
 [node name="GuardButton" type="Button" parent="Hotbar/ActionBar" unique_id=1495647857]
 custom_minimum_size = Vector2(64, 64)
@@ -113,7 +113,7 @@ theme_type_variation = &"CombatHotbarButton"
 text = "G"
 script = ExtResource("10_slot_button")
 slot_id = &"guard"
-default_action_id = "guard"
+default_action_id = "block"
 
 [node name="AbilityButton1" type="Button" parent="Hotbar/ActionBar" unique_id=1414850936]
 custom_minimum_size = Vector2(64, 64)
@@ -125,7 +125,6 @@ theme_type_variation = &"CombatHotbarButton"
 text = "H"
 script = ExtResource("10_slot_button")
 slot_id = &"ability_1"
-default_action_id = "heavy_strike"
 
 [node name="AbilityButton2" type="Button" parent="Hotbar/ActionBar" unique_id=572642022]
 custom_minimum_size = Vector2(64, 64)

@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="StatusData" format=3]
+
+[ext_resource type="Script" path="res://core/statuses/status_data.gd" id="1_status_data"]
+
+[resource]
+script = ExtResource("1_status_data")
+id = "parry"
+display_name = "Parry"
+description = "Incoming damage is reduced by 50% for the next 3s."
+icon_atlas_coords = Vector2i(2, 0)
+duration_seconds = 3.0
+keyword_color = Color(0.95, 0.78, 0.32, 1)
+incoming_damage_multiplier = 0.5
+

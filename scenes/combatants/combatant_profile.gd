@@ -1,4 +1,4 @@
-## Resource profile for combatant identity, stats, moveset, rewards, audio cues, and UI resource bars.
+## Resource profile for combatant identity, stats, class kit, moveset registry, rewards, audio cues, and UI resource bars.
 class_name CombatantProfile
 extends Resource
 
@@ -14,6 +14,7 @@ const HoverInfoDataScript := preload("res://core/hover_info/hover_info_data.gd")
 @export var intelligence: int = 0
 @export var vitality: int = 0
 @export var stat_weights: Dictionary = {}
+@export var class_profile: Resource = null
 @export var moveset: CombatMovesetData = null
 @export var enemy_ai_profile: EnemyAIProfile = null
 @export var reward_profile: Resource = null

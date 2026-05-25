@@ -2,26 +2,10 @@
 class_name BattleActionBar
 extends Control
 
-const SLOT_KIND_EMPTY: StringName = &"empty"
-const SLOT_KIND_ACTION: StringName = &"action"
-const SLOT_KIND_CONSUMABLE: StringName = &"consumable"
-const HOVER_INFO_META := &"hover_info_data"
+const ValueReaderScript := preload("res://core/utils/value_reader.gd")
+const HotbarSlotSchemaScript := preload("res://core/combat/classes/hotbar_slot_schema.gd")
 
-const SLOT_ID_KEY: String = "slot_id"
-const KIND_KEY: String = "kind"
-const ACTION_KEY: String = "action"
-const ACTION_ID_KEY: String = "action_id"
-const ACTION_INDEX_KEY: String = "action_index"
-const LABEL_KEY: String = "label"
-const DISPLAY_NAME_KEY: String = "display_name"
-const DESCRIPTION_KEY: String = "description"
-const DETAILS_KEY: String = "details"
-const HOVER_INFO_KEY: String = "hover_info"
-const RESOURCE_KEY: String = "resource"
-const KEYWORD_IDS_KEY: String = "keyword_ids"
-const FOOTER_KEY: String = "footer"
-const HOTKEY_KEYCODE_KEY: String = "keycode"
-const HOTKEY_LABEL_KEY: String = "hotkey_label"
+const HOVER_INFO_META := &"hover_info_data"
 
 @export var hotkey_bindings: Array[Dictionary] = [
 	{"slot_id": &"strike", "hotkey_label": "1", "keycode": KEY_1},
@@ -114,7 +98,7 @@ func choose_slot_id(slot_id: StringName) -> void:
 		return
 
 	var entry: Dictionary = _slot_entry_for_id(slot_id)
-	if not _slot_has_content(entry):
+	if not _slot_selectable(entry):
 		return
 
 	slot_selected.emit(slot_id)
@@ -131,13 +115,6 @@ func choose_hotkey_keycode(keycode: int) -> void:
 		return
 
 	choose_slot_id(slot_id)
-
-func choose_action_index(index: int) -> void:
-	for slot_id in slot_ids:
-		var entry: Dictionary = _slot_entry_for_id(slot_id)
-		if int(entry.get(ACTION_INDEX_KEY, -1)) == index:
-			choose_slot_id(slot_id)
-			return
 
 func _collect_buttons() -> void:
 	buttons.clear()
@@ -160,12 +137,12 @@ func _refresh_hotkey_bindings() -> void:
 		if slot_id == &"":
 			continue
 
-		var keycode: int = int(binding.get(HOTKEY_KEYCODE_KEY, 0))
+		var keycode: int = int(binding.get("keycode", 0))
 		if keycode == 0:
 			continue
 
 		hotkey_slot_ids.append(slot_id)
-		hotkey_label_by_slot_id[slot_id] = str(binding.get(HOTKEY_LABEL_KEY, ""))
+		hotkey_label_by_slot_id[slot_id] = str(binding.get("hotkey_label", ""))
 		hotkey_slot_id_by_keycode[keycode] = slot_id
 
 func _connect_button(button: Button) -> void:
@@ -197,7 +174,7 @@ func _connect_button(button: Button) -> void:
 
 func _assign_default_action_slots() -> void:
 	slot_entries.clear()
-	var action_index_by_id: Dictionary = _action_index_by_id()
+	var action_by_id: Dictionary = _action_by_id()
 	for button in buttons:
 		var slot_id: StringName = _button_slot_id(button)
 		var default_action_id: String = _button_default_action_id(button)
@@ -205,23 +182,22 @@ func _assign_default_action_slots() -> void:
 			slot_entries[slot_id] = _empty_slot_entry(slot_id, button)
 			continue
 
-		var action_index: int = int(action_index_by_id.get(default_action_id, -1))
-		if action_index < 0 or action_index >= actions.size():
+		var action := action_by_id.get(default_action_id, null) as CombatActionData
+		if action == null:
 			slot_entries[slot_id] = _empty_slot_entry(slot_id, button)
 			continue
 
-		slot_entries[slot_id] = _action_slot_entry(slot_id, action_index, actions[action_index])
+		slot_entries[slot_id] = _action_slot_entry(slot_id, action)
 
-func _action_index_by_id() -> Dictionary:
-	var index_by_id: Dictionary = {}
-	for index in actions.size():
-		var action: CombatActionData = actions[index]
+func _action_by_id() -> Dictionary:
+	var action_by_id: Dictionary = {}
+	for action in actions:
 		if action == null or action.id.is_empty():
 			continue
 
-		index_by_id[action.id] = index
+		action_by_id[action.id] = action
 
-	return index_by_id
+	return action_by_id
 
 func _update_buttons() -> void:
 	for button in buttons:
@@ -231,8 +207,9 @@ func _update_buttons() -> void:
 			entry = _empty_slot_entry(slot_id, button)
 
 		var has_content: bool = _slot_has_content(entry)
+		var selectable: bool = can_choose and _slot_selectable(entry)
 		button.visible = true
-		button.disabled = not can_choose or not has_content
+		button.disabled = not selectable
 		button.tooltip_text = ""
 		button.text = _button_label_for_slot(button, entry)
 		_apply_button_hotkey_label(button, slot_id)
@@ -252,71 +229,63 @@ func _slot_entry_for_id(slot_id: StringName) -> Dictionary:
 
 func _normalized_slot_entry(slot_id: StringName, entry: Dictionary) -> Dictionary:
 	var normalized_entry: Dictionary = entry.duplicate()
-	normalized_entry[SLOT_ID_KEY] = slot_id
-	if not normalized_entry.has(KIND_KEY):
-		if normalized_entry.has(ACTION_KEY) or normalized_entry.has(ACTION_ID_KEY) or normalized_entry.has(ACTION_INDEX_KEY):
-			normalized_entry[KIND_KEY] = SLOT_KIND_ACTION
+	normalized_entry["slot_id"] = slot_id
+	if not normalized_entry.has("kind"):
+		if normalized_entry.has("action") or normalized_entry.has("action_id"):
+			normalized_entry["kind"] = &"action"
 		else:
-			normalized_entry[KIND_KEY] = SLOT_KIND_EMPTY
+			normalized_entry["kind"] = &"empty"
 
-	if _slot_kind(normalized_entry) == SLOT_KIND_ACTION:
+	if _slot_kind(normalized_entry) == &"action":
 		var action: CombatActionData = _action_from_entry(normalized_entry)
 		if action != null:
-			var action_index: int = actions.find(action)
-			normalized_entry[ACTION_KEY] = action
-			normalized_entry[ACTION_ID_KEY] = action.id
-			normalized_entry[ACTION_INDEX_KEY] = action_index
-			if str(normalized_entry.get(LABEL_KEY, "")).is_empty():
-				normalized_entry[LABEL_KEY] = _button_label_for_action(action)
-			if str(normalized_entry.get(DISPLAY_NAME_KEY, "")).is_empty():
-				normalized_entry[DISPLAY_NAME_KEY] = action.display_name
-			if str(normalized_entry.get(DESCRIPTION_KEY, "")).is_empty():
-				normalized_entry[DESCRIPTION_KEY] = _description_for_action(action)
+			normalized_entry["action"] = action
+			normalized_entry["action_id"] = action.id
+			if str(normalized_entry.get("label", "")).is_empty():
+				normalized_entry["label"] = _button_label_for_action(action)
+			if str(normalized_entry.get("display_name", "")).is_empty():
+				normalized_entry["display_name"] = action.display_name
+			if str(normalized_entry.get("description", "")).is_empty():
+				normalized_entry["description"] = _description_for_action(action)
 
 	return normalized_entry
 
 func _empty_slot_entry(slot_id: StringName, button: Button) -> Dictionary:
 	return {
-		SLOT_ID_KEY: slot_id,
-		KIND_KEY: SLOT_KIND_EMPTY,
-		LABEL_KEY: _button_empty_label(button),
+		"slot_id": slot_id,
+		"kind": &"empty",
+		"label": _button_empty_label(button),
 	}
 
-func _action_slot_entry(slot_id: StringName, action_index: int, action: CombatActionData) -> Dictionary:
+func _action_slot_entry(slot_id: StringName, action: CombatActionData) -> Dictionary:
 	return {
-		SLOT_ID_KEY: slot_id,
-		KIND_KEY: SLOT_KIND_ACTION,
-		ACTION_KEY: action,
-		ACTION_ID_KEY: action.id,
-		ACTION_INDEX_KEY: action_index,
-		LABEL_KEY: _button_label_for_action(action),
-		DISPLAY_NAME_KEY: action.display_name,
-		DESCRIPTION_KEY: _description_for_action(action),
+		"slot_id": slot_id,
+		"kind": &"action",
+		"action": action,
+		"action_id": action.id,
+		"label": _button_label_for_action(action),
+		"display_name": action.display_name,
+		"description": _description_for_action(action),
 	}
 
 func _slot_has_content(entry: Dictionary) -> bool:
-	return _slot_kind(entry) != SLOT_KIND_EMPTY
+	return _slot_kind(entry) != &"empty"
+
+func _slot_selectable(entry: Dictionary) -> bool:
+	return HotbarSlotSchemaScript.is_selectable(entry)
 
 func _slot_kind(entry: Dictionary) -> StringName:
-	var kind_value: Variant = entry.get(KIND_KEY, SLOT_KIND_EMPTY)
-	if kind_value is StringName:
-		return kind_value
-
-	return StringName(str(kind_value))
+	return HotbarSlotSchemaScript.slot_kind(entry)
 
 func _slot_id_from_entry(entry: Dictionary) -> StringName:
-	var slot_id_value: Variant = entry.get(SLOT_ID_KEY, &"")
-	if slot_id_value is StringName:
-		return slot_id_value
-
-	return StringName(str(slot_id_value))
+	return HotbarSlotSchemaScript.slot_id(entry)
 
 func _button_slot_id(button: Button) -> StringName:
 	if button.has_method("get_resolved_slot_id"):
 		var resolved_slot_id: Variant = button.call("get_resolved_slot_id")
 		return _string_name_value(resolved_slot_id)
 
-	var metadata_value: Variant = button.get_meta(SLOT_ID_KEY, &"")
+	var metadata_value: Variant = button.get_meta("slot_id", &"")
 	if metadata_value is StringName:
 		return metadata_value
 	if not str(metadata_value).is_empty():
@@ -340,10 +309,7 @@ func _button_empty_label(button: Button) -> String:
 	return button.text
 
 func _string_name_value(value: Variant) -> StringName:
-	if value is StringName:
-		return value
-
-	return StringName(str(value))
+	return ValueReaderScript.string_name_from_variant(value)
 
 func _hotkey_slot_id_for_keycode(keycode: int) -> StringName:
 	var slot_id_value: Variant = hotkey_slot_id_by_keycode.get(keycode, &"")
@@ -357,11 +323,11 @@ func _apply_button_hotkey_label(button: Button, slot_id: StringName) -> void:
 	button.call("set_hotkey_label", hotkey_label)
 
 func _button_label_for_slot(button: Button, entry: Dictionary) -> String:
-	var label: String = str(entry.get(LABEL_KEY, ""))
+	var label: String = str(entry.get("label", ""))
 	if not label.is_empty():
 		return label
 
-	if _slot_kind(entry) == SLOT_KIND_ACTION:
+	if _slot_kind(entry) == &"action":
 		var action: CombatActionData = _action_from_entry(entry)
 		if action != null:
 			return _button_label_for_action(action)
@@ -383,15 +349,11 @@ func _button_label_for_action(action: CombatActionData) -> String:
 	return "?"
 
 func _action_from_entry(entry: Dictionary) -> CombatActionData:
-	var action_value: Variant = entry.get(ACTION_KEY, null)
+	var action_value: Variant = entry.get("action", null)
 	if action_value is CombatActionData:
 		return action_value
 
-	var action_index: int = int(entry.get(ACTION_INDEX_KEY, -1))
-	if action_index >= 0 and action_index < actions.size():
-		return actions[action_index]
-
-	var action_id: String = str(entry.get(ACTION_ID_KEY, ""))
+	var action_id: String = str(entry.get("action_id", ""))
 	if action_id.is_empty():
 		return null
 
@@ -417,31 +379,31 @@ func _set_slot_hover_info(button: Button, entry: Dictionary) -> void:
 	_set_button_hover_info(button, _hover_info_for_entry(entry))
 
 func _hover_info_for_entry(entry: Dictionary) -> Resource:
-	if _slot_kind(entry) == SLOT_KIND_ACTION:
+	if _slot_kind(entry) == &"action":
 		var action: CombatActionData = _action_from_entry(entry)
 		if action != null:
 			return action.get_hover_info(hover_actor, _is_formula_modifier_pressed())
 
-	var hover_info_value: Variant = entry.get(HOVER_INFO_KEY, null)
+	var hover_info_value: Variant = entry.get("hover_info", null)
 	if hover_info_value is Resource:
 		return hover_info_value
 
-	var resource_value := entry.get(RESOURCE_KEY, null) as Resource
+	var resource_value := entry.get("resource", null) as Resource
 	if resource_value != null and resource_value.has_method("get_hover_info"):
 		var resource_info := resource_value.call("get_hover_info") as Resource
 		if resource_info != null:
 			return resource_info
 
 	var info = load("res://core/hover_info/hover_info_data.gd").new()
-	var display_name: String = str(entry.get(DISPLAY_NAME_KEY, ""))
-	var description: String = str(entry.get(DESCRIPTION_KEY, ""))
+	var display_name: String = str(entry.get("display_name", ""))
+	var description: String = str(entry.get("description", ""))
 	info.title = display_name
 	info.description = description
-	info.footer = str(entry.get(FOOTER_KEY, "")).strip_edges()
-	info.keyword_ids.append_array(_keyword_ids_from_variant(entry.get(KEYWORD_IDS_KEY, [])))
+	info.footer = str(entry.get("footer", "")).strip_edges()
+	info.keyword_ids.append_array(_keyword_ids_from_variant(entry.get("keyword_ids", [])))
 	info.panel_style = StringName(str(_slot_kind(entry)))
 
-	var details_value: Variant = entry.get(DETAILS_KEY, [])
+	var details_value: Variant = entry.get("details", [])
 	if details_value is Array:
 		for raw_detail in details_value:
 			info.add_field("", str(raw_detail))
@@ -452,26 +414,7 @@ func _hover_info_for_entry(entry: Dictionary) -> Resource:
 	return info
 
 func _keyword_ids_from_variant(value: Variant) -> Array[StringName]:
-	var keyword_ids: Array[StringName] = []
-	if value is Array:
-		for raw_keyword in value:
-			var keyword_id := _string_name_value(raw_keyword)
-			if keyword_id != &"":
-				keyword_ids.append(keyword_id)
-	elif value is PackedStringArray:
-		for raw_keyword in value:
-			var keyword_id := StringName(str(raw_keyword))
-			if keyword_id != &"":
-				keyword_ids.append(keyword_id)
-	elif value is StringName:
-		if value != &"":
-			keyword_ids.append(value)
-	elif value is String:
-		var keyword_id := StringName(str(value))
-		if keyword_id != &"":
-			keyword_ids.append(keyword_id)
-
-	return keyword_ids
+	return ValueReaderScript.string_name_array(value)
 
 func _set_button_hover_info(button: Button, info: Resource) -> void:
 	if button.has_method("set_hover_info"):

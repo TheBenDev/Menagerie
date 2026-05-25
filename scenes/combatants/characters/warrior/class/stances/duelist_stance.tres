@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="ClassStanceData" format=3]
+
+[ext_resource type="Script" path="res://core/combat/classes/class_stance_data.gd" id="1_stance"]
+
+[resource]
+script = ExtResource("1_stance")
+id = &"duelist"
+display_name = "Duelist"
+description = "A precise stance focused on tempo, control, and bypassing Block. Entry bonus: next action is 50% faster."
+tags = Array[StringName]([&"warrior", &"duelist"])
+strike_replacement_action_id = &"pierce"
+fixed_skill_ids = Array[StringName]([&"parry"])
+entry_bonus_effect_data = Array[Dictionary]([{
+"id": &"action.next_time_multiplier",
+"multiplier": 0.5
+}])
+switch_time_cost = 1.0
+switch_description = "Enter Duelist stance."
+hover_keywords = Array[StringName]([&"stance.duelist"])
